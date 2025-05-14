@@ -5287,9 +5287,14 @@ const agentAxios = axios.create({
 });
 
 // 用於與本地後端交互的 axios 實例
+// const apiAxios = axios.create({
+//   baseURL: 'http://localhost:4000',
+// });
+
 const apiAxios = axios.create({
-  baseURL: 'http://localhost:4000',
+  baseURL: 'http://140.115.126.27:4000',
 });
+
 
 apiAxios.interceptors.request.use(
   (config) => {

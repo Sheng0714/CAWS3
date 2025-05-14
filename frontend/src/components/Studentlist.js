@@ -579,8 +579,11 @@ const Studentlist = () => {
         // 從後端獲取 Notion 資料庫中的學生資料
         const fetchNotionData = async () => {
           try {
+            // const notionResponse = await axios.get(
+            //   `http://localhost:4000/api/get-students-by-class/${encodeURIComponent(fetchedClassName)}`
+            // );
             const notionResponse = await axios.get(
-              `http://localhost:4000/api/get-students-by-class/${encodeURIComponent(fetchedClassName)}`
+              `http://140.115.126.27:4000/api/get-students-by-class/${encodeURIComponent(fetchedClassName)}`
             );
 
             console.log("後端返回的學生資料:", notionResponse.data);

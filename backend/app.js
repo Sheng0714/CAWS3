@@ -146,7 +146,7 @@ const app = express();
 // 配置 CORS
 // app.js
 const corsOptions = {
-  origin: ['http://localhost:3000', 'https://icit.lazyinwork.com'],
+  origin: ['http://localhost:3000', 'https://icit.lazyinwork.com','http://140.115.126.27'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
