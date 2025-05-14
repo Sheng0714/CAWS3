@@ -62,16 +62,18 @@ services:
   #   env_file:
   #     - ./frontend/.env  # 放到這裡
   notion-backend:
-  build:
-    context: ./notion-backend
-    dockerfile: Dockerfile
-  restart: always
-  ports:
-    - "4000:4000"
-  depends_on:
-    - db
-  env_file:
-    - ../frontend/.env  # 若還是從根目錄引用 .env，要記得這樣寫
+    build:
+      context: ./notion-backend
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "4000:4000"
+    depends_on:
+      - db
+    env_file:
+      - ../frontend/.env
+
+
 
 
   db:
