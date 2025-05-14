@@ -332,7 +332,7 @@ export default function Home() {
             <br />
             Write Infinite Possibilities
             <br />
-            with A
+            with A123
           </h1>
         </div>
 
