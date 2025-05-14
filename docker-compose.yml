@@ -71,7 +71,7 @@ services:
     depends_on:
       - db
     env_file:
-      - ../frontend/.env
+      - ./frontend/.env
 
 
 
