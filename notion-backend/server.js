@@ -1086,6 +1086,6 @@ const PORT = 4000;
 // app.listen(PORT, () => {
 //   console.log(`伺服器運行在 http://localhost:${PORT}`);
 // });
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`伺服器運行在 http://0.0.0.0:${PORT}`);
+app.listen(PORT, '140.115.126.27', () => {
+  console.log(`伺服器運行在 http://140.115.126.27/:${PORT}`);
 });
