@@ -757,13 +757,18 @@ app.use(express.json());
 
 // 配置 CORS
 app.use(cors({
-  origin: 'http://localhost',
+  origin: ['http://localhost:3000', 'http://140.115.126.27'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
 
-app.options('*', cors());
+// app.options('*', cors());
+app.options('*', cors({
+  origin: ['http://localhost:3000', 'http://140.115.126.27'],
+  credentials: true,
+}));
+
 
 // 初始化 Notion 客戶端
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
