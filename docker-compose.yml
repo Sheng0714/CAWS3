@@ -50,17 +50,29 @@ services:
   #   depends_on:
   #     - db
 
+  # notion-backend:
+  #   build:
+  #     context: .  # 設為專案根目錄
+  #     dockerfile: notion-backend/Dockerfile
+  #   restart: always
+  #   ports:
+  #     - "4000:4000"
+  #   depends_on:
+  #     - db
+  #   env_file:
+  #     - ./frontend/.env  # 放到這裡
   notion-backend:
-    build:
-      context: .  # 設為專案根目錄
-      dockerfile: notion-backend/Dockerfile
-    restart: always
-    ports:
-      - "4000:4000"
-    depends_on:
-      - db
-    env_file:
-      - ./frontend/.env  # 放到這裡
+  build:
+    context: ./notion-backend
+    dockerfile: Dockerfile
+  restart: always
+  ports:
+    - "4000:4000"
+  depends_on:
+    - db
+  env_file:
+    - ../frontend/.env  # 若還是從根目錄引用 .env，要記得這樣寫
+
 
   db:
     image: postgres:13.2-alpine
