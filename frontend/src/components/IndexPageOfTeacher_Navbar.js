@@ -109,7 +109,7 @@ export default function IndexPageOfTeacher_Navbar({ callback_setActivities }) {
                 <button className='create-activity-button'>
                     <CreateActivityForm callback_setActivities={callback_setActivities} />
                 </button>
-                <button className='common-button'  onClick={() => navigate("/home")}>回到活動列表</button>
+                {/* <button className='common-button'  onClick={() => navigate("/home")}>回到活動列表</button> */}
                 <BatchRegister callback_setActivities={callback_setActivities} />
                 <div className="menu-trigger" onClick={() => { setOpen(!open) }}>
                     <Avatar {...stringAvatar(name)} />

@@ -462,7 +462,7 @@ export const KF = () => {
                                 <Button
                                     variant="contained"
                                     color="primary"
-                                    onClick={handleKFClick}  // 點擊 KF 按鈕跳轉到 /kfweb
+                                    onClick={() => window.open('https://kf6.nccu.edu.tw/', '_blank')}  // 點擊 KF 按鈕跳轉到 /kfweb
                                 >
                                     KF
                                 </Button>

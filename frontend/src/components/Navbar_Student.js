@@ -45,14 +45,14 @@ export default function Navbar() {
         navigate("/writing_area");  // 根據角色跳轉到不同頁面
     } else {
         // navigate("/home");
-        navigate("/writing_area");  // 根據角色跳轉到不同頁面
+        navigate("/home");  // 根據角色跳轉到不同頁面
     }
 };
 
 // 點擊 KF 按鈕時跳轉到 /kfweb 路徑
-const handleKFTEACHERClick = () => {
-    navigate("/kfweb");  // 跳轉到 /kfweb 頁面
-};
+// const handleKFTEACHERClick = () => {
+//     navigate("/kf");  // 跳轉到 /kfweb 頁面
+// };
 
   return (
     <nav>
@@ -74,7 +74,7 @@ const handleKFTEACHERClick = () => {
                                 <Button
                                     variant="contained"
                                     color="primary"
-                                    onClick={handleKFTEACHERClick}  // 點擊 KF 按鈕跳轉到 /kfweb
+                                    onClick={() => window.open('https://kf6.nccu.edu.tw/', '_blank')}  // 點擊 KF 按鈕跳轉到 /kfweb
                                 >
                                     KF
                                 </Button>
