@@ -235,194 +235,6 @@
 
 
 
-// import React, { useState } from "react";
-// import Navbar from "../components/HomePage_Navbar";
-// import axios from "axios";
-// import { useSignIn } from "react-auth-kit";
-// import { useNavigate } from "react-router-dom";
-// import {
-//   TextField,
-//   Button,
-//   RadioGroup,
-//   FormControlLabel,
-//   Radio,
-//   FormControl,
-//   FormLabel,
-// } from "@mui/material";
-// import url from "../url.json";
-// import config from "../config.json";
-// import { Register } from "../components/Register"; // 確保路徑正確
-// import { Login } from "../components/Login";
-
-// export default function Home() {
-//   const [data, setData] = useState({
-//     email: "",
-//     password: "",
-//   });
-//   const [role, setRole] = useState("student");
-//   const [isLoggedIn, setIsLoggedIn] = useState(false);
-//   const [openLogin, setOpenLogin] = useState(false);
-//   const [openRegister, setOpenRegister] = useState(false);
-
-//   const signIn = useSignIn();
-//   const navigate = useNavigate();
-
-//   const handleChange = (e) => {
-//     const { name, value } = e.target;
-//     setData((prevData) => ({
-//       ...prevData,
-//       [name]: value,
-//     }));
-//   };
-
-//   const handleRoleChange = (e) => {
-//     setRole(e.target.value);
-//   };
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     const userData = {
-//       email: data.email,
-//       password: data.password,
-//       role,
-//     };
-//     try {
-//       const response = await axios.post(
-//         url.backendHost + config[1].loginUrl,
-//         userData
-//       );
-//       setIsLoggedIn(true);
-//       setData({ email: "", password: "" });
-//       signIn({
-//         token: response.data.jwtToken,
-//         expiresIn: 3600,
-//         tokenType: "Bearer",
-//         authState: { ...response.data },
-//       });
-//       localStorage.setItem("jwtToken", response.data.jwtToken);
-//       localStorage.setItem("userId", response.data.id);
-//       localStorage.setItem("name", response.data.name);
-//       localStorage.setItem("email", response.data.email);
-//       localStorage.setItem("role", role);
-//       alert("Login Successful!");
-//       if (role === "student") navigate("/kf");
-//       else if (role === "teacher") navigate("/teacher/teacher_home");
-//     } catch (error) {
-//       if (!error.response) {
-//         alert("後端伺服器連結失敗");
-//       } else {
-//         switch (error.response.status) {
-//           case 401:
-//             alert("登入授權失敗，請確認帳號密碼");
-//             break;
-//           default:
-//             alert("未知錯誤，請聯絡管理員: " + error.response.status);
-//         }
-//       }
-//     }
-//   };
-
-//   return (
-//     <div className="home-container">
-//       <Navbar />
-//       <div className="home-banner-container">
-//         <div className="home-text-section">
-//           <h1 className="primary-heading">
-//             Inspire Thinking
-//             <br />
-//             Write Infinite Possibilities
-//             <br />
-//             with AI
-//           </h1>
-//         </div>
-
-//         <div
-//           style={{
-//             backgroundColor: "white",
-//             padding: "20px",
-//             marginRight: "-150px",
-//             marginTop: "80px",
-//             width: "500px",
-//             margin: "0 auto",
-//           }}
-//         >
-//           <form onSubmit={handleSubmit}>
-//             <TextField
-//               label="Please enter your email"
-//               type="email"
-//               name="email"
-//               value={data.email}
-//               fullWidth
-//               onChange={handleChange}
-//               style={{ marginBottom: "16px" }}
-//             />
-//             <TextField
-//               label="Please enter your password"
-//               type="password"
-//               name="password"
-//               value={data.password}
-//               fullWidth
-//               onChange={handleChange}
-//               style={{ marginBottom: "16px" }}
-//             />
-//             <FormControl
-//               component="fieldset"
-//               style={{ marginBottom: "16px" }}
-//             >
-//               <FormLabel component="legend">Role</FormLabel>
-//               <RadioGroup row value={role} onChange={handleRoleChange}>
-//                 <FormControlLabel
-//                   value="student"
-//                   control={<Radio />}
-//                   label="Student"
-//                 />
-//                 <FormControlLabel
-//                   value="teacher"
-//                   control={<Radio />}
-//                   label="Teacher"
-//                 />
-//               </RadioGroup>
-//             </FormControl>
-//             <Button
-//               type="submit"
-//               variant="contained"
-//               color="primary"
-//               style={{ marginLeft: "16px", top: "28px" }}
-//             >
-//               Login
-//             </Button>
-
-//             <div style={{ marginTop: "16px" }}>
-//               Haven't registered yet?
-//               <Button
-//                 variant="outlined"
-//                 color="secondary"
-//                 style={{ marginLeft: "20px" }}
-//                 onClick={() => setOpenRegister(true)}
-//               >
-//                 Register
-//               </Button>
-//             </div>
-//           </form>
-//         </div>
-//       </div>
-
-//       <Login
-//         open={openLogin}
-//         setOpen={setOpenLogin}
-//         setOpenRegister={setOpenRegister}
-//       />
-//       <Register
-//         open={openRegister}
-//         setOpen={setOpenRegister}
-//         setOpenLogin={setOpenLogin}
-//       />
-//     </div>
-//   );
-// }
-
-
-//響應式
 import React, { useState } from "react";
 import Navbar from "../components/HomePage_Navbar";
 import axios from "axios";
@@ -524,7 +336,16 @@ export default function Home() {
           </h1>
         </div>
 
-        <div className="form-container">
+        <div
+          style={{
+            backgroundColor: "white",
+            padding: "20px",
+            marginRight: "-150px",
+            marginTop: "80px",
+            width: "500px",
+            margin: "0 auto",
+          }}
+        >
           <form onSubmit={handleSubmit}>
             <TextField
               label="Please enter your email"
@@ -533,6 +354,7 @@ export default function Home() {
               value={data.email}
               fullWidth
               onChange={handleChange}
+              style={{ marginBottom: "16px" }}
             />
             <TextField
               label="Please enter your password"
@@ -541,8 +363,12 @@ export default function Home() {
               value={data.password}
               fullWidth
               onChange={handleChange}
+              style={{ marginBottom: "16px" }}
             />
-            <FormControl component="fieldset">
+            <FormControl
+              component="fieldset"
+              style={{ marginBottom: "16px" }}
+            >
               <FormLabel component="legend">Role</FormLabel>
               <RadioGroup row value={role} onChange={handleRoleChange}>
                 <FormControlLabel
@@ -557,15 +383,21 @@ export default function Home() {
                 />
               </RadioGroup>
             </FormControl>
-            <Button type="submit" variant="contained" color="primary">
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              style={{ marginLeft: "16px", top: "28px" }}
+            >
               Login
             </Button>
 
-            <div className="register-link">
+            <div style={{ marginTop: "16px" }}>
               Haven't registered yet?
               <Button
                 variant="outlined"
                 color="secondary"
+                style={{ marginLeft: "20px" }}
                 onClick={() => setOpenRegister(true)}
               >
                 Register
@@ -588,3 +420,4 @@ export default function Home() {
     </div>
   );
 }
+
