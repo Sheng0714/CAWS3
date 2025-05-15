@@ -347,6 +347,19 @@ span {
   position: relative;
   display: flex;
   margin: 0rem 10rem;
+  justify-content: center;
+
+}
+
+
+.content-wrapper {
+  display: flex;
+  flex-direction: row; /* 預設左右排列 */
+  justify-content: space-between;
+  max-width: 1000px; /* 限制最大寬度 */
+  width: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
 }
 
 .home-bannerImage-container {
@@ -371,6 +384,33 @@ span {
   align-items: flex-start;
   /* padding-left: 10rem; */
 }
+
+.form-section {
+  flex: 1;
+  max-width: 500px;
+  background-color: white;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .content-wrapper {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .home-text-section {
+    padding-right: 0;
+    margin-bottom: 20px; /* 上下間距 */
+    text-align: center; /* 中心對齊，看起來更美 */
+  }
+
+  .form-section {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
 
 .primary-heading1 {
   /* font-size: clamp(2rem, 5vw, 4rem); */
