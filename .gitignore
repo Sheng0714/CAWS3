@@ -14,3 +14,4 @@ nginx.http/logs
 nginx.http/logs
 nginx.http/logs/
 a1b7cb8 (Ignore nginx.http/logs/)
+nginx.http/logs/*.log
