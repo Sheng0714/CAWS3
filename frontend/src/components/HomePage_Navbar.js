@@ -233,7 +233,7 @@ export default function Navbar() {
       
       <div style={navbarLinksContainerStyle}>
         <a href='/' style={linkStyle}>Home</a>
-        <a href='/about' style={linkStyle}>About</a>
+        <a href='/about_Home' style={linkStyle}>About</a>
       </div>
 
       <div style={navbarMenuContainerStyle}>
