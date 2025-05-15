@@ -1,10 +1,16 @@
 **/node_modules
 db_data
 pgadmin_data
-
+nginx.http/logs/*.log
 uploads
 *.pyc
 testenv
 nginx/logs
+HEAD
 
 
+
+nginx.http/logs
+nginx.http/logs
+nginx.http/logs/
+a1b7cb8 (Ignore nginx.http/logs/)
