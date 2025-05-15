@@ -6,5 +6,5 @@ uploads
 *.pyc
 testenv
 nginx/logs
-nginx.http/logs
+
 
