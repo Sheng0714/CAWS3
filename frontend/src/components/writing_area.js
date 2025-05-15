@@ -5283,7 +5283,7 @@ import Navbar from "../components/Navbar_Student";
 
 // 用於 RAGFlow API 的 axios 實例
 const agentAxios = axios.create({
-  baseURL: 'https://140.115.126.193',
+  baseURL: 'https://ragflow.lazyinwork.com',
 });
 
 // 用於與本地後端交互的 axios 實例
@@ -5375,7 +5375,7 @@ const WritingArea = () => {
 
   useEffect(() => {
     const handleMessage = (event) => {
-      if (event.origin !== 'https://140.115.126.193') return;
+      if (event.origin !== 'https://ragflow.lazyinwork.com') return;
       const { type, content } = event.data;
       if (type === 'agentResponse') {
         setCurrentMessages((prev) => [
@@ -5421,7 +5421,7 @@ const WritingArea = () => {
         setLastCreatedSessionId(newSessionId);
         setSessionResponse(`✅ 成功創建聊天會話：${newSessionId}`);
         if (iframeRef.current) {
-          iframeRef.current.src = `https://140.115.126.193/chat/share?shared_id=8f34f200ef5911ef91480242ac120005&session_id=${newSessionId}&from=agent&auth=hmY2Y0MjNjMWQ5YTExZjBhMGQ5MDI0Mm`;
+          iframeRef.current.src = `https://ragflow.lazyinwork.com/chat/share?shared_id=8f34f200ef5911ef91480242ac120005&session_id=${newSessionId}&from=agent&auth=hmY2Y0MjNjMWQ5YTExZjBhMGQ5MDI0Mm`;
         }
       } else {
         setSessionResponse(`❌ 創建失敗：${res.data.message}`);
@@ -5662,7 +5662,7 @@ const WritingArea = () => {
             )}
             <iframe
               ref={iframeRef}
-              src={`https://140.115.126.193/chat/share?shared_id=8f34f200ef5911ef91480242ac120005${sessionId ? `&session_id=${sessionId}` : ''}&from=agent&auth=hmY2Y0MjNjMWQ5YTExZjBhMGQ5MDI0Mm`}
+              src={`https://ragflow.lazyinwork.com/chat/share?shared_id=8f34f200ef5911ef91480242ac120005${sessionId ? `&session_id=${sessionId}` : ''}&from=agent&auth=hmY2Y0MjNjMWQ5YTExZjBhMGQ5MDI0Mm`}
               style={{ width: '100%', height: '100%' }}
               frameBorder="0"
               title="Chat Widget"
