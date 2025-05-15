@@ -326,6 +326,8 @@ export default function Home() {
     <div className="home-container">
       <Navbar />
       <div className="home-banner-container">
+        <div className="content-wrapper">
+
         <div className="home-text-section">
           <h1 className="primary-heading">
             Inspire Thinking
@@ -337,14 +339,15 @@ export default function Home() {
         </div>
 
         <div
-          style={{
-            backgroundColor: "white",
-            padding: "20px",
-            marginRight: "-150px",
-            marginTop: "80px",
-            width: "500px",
-            margin: "0 auto",
-          }}
+          // style={{
+          //   backgroundColor: "white",
+          //   padding: "20px",
+          //   marginRight: "-150px",
+          //   marginTop: "80px",
+          //   width: "500px",
+          //   margin: "0 auto",
+          // }}
+          className="form-section"
         >
           <form onSubmit={handleSubmit}>
             <TextField
@@ -404,6 +407,7 @@ export default function Home() {
               </Button>
             </div>
           </form>
+        </div>
         </div>
       </div>
 
