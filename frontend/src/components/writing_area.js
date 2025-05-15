@@ -5773,18 +5773,18 @@ const WritingArea = () => {
 
       {/* 提交確認對話框 */}
       <Dialog open={openConfirmSubmitDialog} onClose={() => setOpenConfirmSubmitDialog(false)}>
-        <DialogTitle>確認繳交</DialogTitle>
+        <DialogTitle>Confirm Submission</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            確定要繳交嗎，繳交後無法再修改內容？
+            Are you sure you want to submit? You won’t be able to edit the content after submission.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenConfirmSubmitDialog(false)} color="primary">
-            取消
+            Close
           </Button>
           <Button onClick={handleConfirmSubmit} color="primary" autoFocus>
-            確認
+            OK
           </Button>
         </DialogActions>
       </Dialog>
@@ -5793,7 +5793,7 @@ const WritingArea = () => {
         <DialogTitle>Notification</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Please discuss with the Writing Assistant before starting to write!
+            Please discuss with the AI Writing Genie before starting to write!
           </DialogContentText>
         </DialogContent>
         <DialogActions>
