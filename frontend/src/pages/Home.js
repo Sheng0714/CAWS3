@@ -439,9 +439,8 @@ import {
 } from "@mui/material";
 import url from "../url.json";
 import config from "../config.json";
-import { Register } from "../components/Register";
+import { Register } from "../components/Register"; // 確保路徑正確
 import { Login } from "../components/Login";
-import "./Home.css"; // 引入 CSS 文件
 
 export default function Home() {
   const [data, setData] = useState({
