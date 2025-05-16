@@ -5671,7 +5671,7 @@ export default function MyCreatedActivityCard({ activity, onDelete }) {
                   disablePadding
                   secondaryAction={
                     <EnterActivity>
-                      <Button
+                      {/* <Button
                         className='enter-activity-button'
                         onClick={(e) => {
                           localStorage.setItem('groupId', group.id);
@@ -5680,7 +5680,7 @@ export default function MyCreatedActivityCard({ activity, onDelete }) {
                         }}
                       >
                         進入名單
-                      </Button>
+                      </Button> */}
                       <Button
                         className='hidden-button'
                         onClick={() => handleOpenHideDialog(group)}

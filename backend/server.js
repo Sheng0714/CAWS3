@@ -280,8 +280,10 @@ app.use(cors({
 app.options('*', cors());
 
 // 初始化 Notion 客戶端
-const notion = new Client({ auth: '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' });
-const NOTION_DATABASE_ID = '1e0f62c3743f802aa3add604507ef1e7';
+// const notion = new Client({ auth: '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' });
+// const NOTION_DATABASE_ID = '1e0f62c3743f802aa3add604507ef1e7';
+const notion = new Client({ auth: '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' });
+const NOTION_DATABASE_ID = '1f534b62aded8081bfb0d8c7cbdeb64c';
 
 // 處理提交到 Notion 的端點
 app.post('/api/submit-to-notion', async (req, res) => {
