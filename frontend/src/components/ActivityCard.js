@@ -232,6 +232,11 @@ const Item = styled(Card)(({ theme }) => ({
     ...theme.typography.body2,
     padding: theme.spacing(2),
     color: theme.palette.text.secondary,
+    width: '100%',
+    maxWidth: '600px',   // 限制最大寬度，避免在寬螢幕撐太開
+    minWidth: '300px',   // ✅ 加這行：最小寬度不低於 300px
+    margin: 'auto',      // ✅ 置中顯示
+    boxSizing: 'border-box',
 }));
 
 const EnterActivity = styled((props) => {
@@ -304,9 +309,9 @@ export default function ActivityCard({ activity }) {
                     </Typography>
                 </CardContent>
                 <CardActions disableSpacing>
-                    <IconButton aria-label="add to favorites">
+                    {/* <IconButton aria-label="add to favorites">
                         <Favorite />
-                    </IconButton>
+                    </IconButton> */}
                     <EnterActivity>
                         <Button className='enter-activity-button' onClick={handleEnter}>
                             Enter Writing Area
