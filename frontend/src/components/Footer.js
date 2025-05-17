@@ -22,7 +22,7 @@ export default function Footer() {
           <span>Help</span>
         </div>
         <div className="footer-section-columns">
-          <span>932-784-663</span>
+          {/* <span>932-784-663</span> */}
           <span>yoyayoya8564@gmail.com</span>
         </div>
       </div>

@@ -26,14 +26,14 @@ export default function Navbar() {
       onClick: () => navigate('/About_student') // 跳轉到 About 頁面
     },
     {
-      text: "Login",
+      text: "KF",
       icon: <Login />,
-      onClick: () => navigate('/login') // 跳轉到 Login 頁面
+      onClick: () => window.open('https://kf6.nccu.edu.tw/', '_blank')
     },
     {
-      text: "Register",
+      text: "Writing Area",
       icon: <Register />,
-      onClick: () => navigate('/register') // 跳轉到 Register 頁面
+      onClick: () => navigate('/home') // 跳轉到 Register 頁面
     }
 
     
@@ -68,6 +68,7 @@ export default function Navbar() {
         <a href="" onClick={() => navigate('/About_student')}>About</a> {/* 使用 navigate 進行跳轉 */}
         <a href="" style={{ marginRight: '15px' }}>Manual</a>
         <a href="" onClick={() => navigate('/')}>logout</a> {/* 使用 navigate 進行跳轉 */}
+
       </div>
 
       <div style={{ display: "flex", flexDirection: "row", justifyContent: "center", gap: "20px" }}>

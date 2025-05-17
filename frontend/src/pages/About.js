@@ -40,7 +40,7 @@ export default function About() {
   return (
     <div className="about-section-container">
         <div className="about-section-image-container">
-          <img src={AboutBackgroundImage} alt="" />
+          <img src={AboutBackgroundImage} alt="" className="about-img"/>
         </div>
         <div className="about-section-text-container">
             <p className="primary-subheading">about us</p>

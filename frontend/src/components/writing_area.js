@@ -5918,7 +5918,7 @@
 // export default WritingArea;
 
 
-
+//寫作區超過2000字元做分段處理
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField, List, ListItem, ListItemText } from '@mui/material';
 import { Box } from '@mui/system';

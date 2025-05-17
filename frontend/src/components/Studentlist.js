@@ -704,7 +704,7 @@ const Studentlist = () => {
                 <StyledTableHeadCell>議論文繳交時間</StyledTableHeadCell>
                 <StyledTableHeadCell>批改議論文</StyledTableHeadCell>
                 <StyledTableHeadCell>留言</StyledTableHeadCell>
-                <StyledTableHeadCell>批</StyledTableHeadCell>
+                <StyledTableHeadCell>批改</StyledTableHeadCell>
               </TableRow>
             </TableHead>
             <TableBody>

@@ -386,11 +386,12 @@ export default function Home() {
                 />
               </RadioGroup>
             </FormControl>
+            <br/>
             <Button
               type="submit"
               variant="contained"
               color="primary"
-              style={{ marginLeft: "16px", top: "28px" }}
+              style={{ marginLeft: "16px", top: "5px" }}
             >
               Login
             </Button>
