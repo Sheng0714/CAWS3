@@ -7110,7 +7110,7 @@ const WritingArea = () => {
                 <DialogTitle>Notification</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Please discuss with the AI Writing Genie before starting to write!
+                        Please discuss with the AI Writing Assistant before starting to write!
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
