@@ -396,7 +396,7 @@ export default function Home() {
               Login
             </Button>
 
-            <div style={{ marginTop: "16px" }}>
+            {/* <div style={{ marginTop: "16px" }}>
               Haven't registered yet?
               <Button
                 variant="outlined"
@@ -406,7 +406,7 @@ export default function Home() {
               >
                 Register
               </Button>
-            </div>
+            </div> */}
           </form>
         </div>
         </div>
