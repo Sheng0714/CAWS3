@@ -235,10 +235,25 @@ export default function Navbar() {
     color: '#333'
   };
 
+  const handleLogoClick = () => {
+    navigate('/'); // 導航到主畫面
+  };
+
   return (
     <nav style={navbarStyle}>
       <div style={navLogoContainerStyle}>
-        <img alt='Logo' src={Logo} style={logoStyle} />
+        
+        <img 
+        alt='Logo' 
+        src={Logo} 
+        style={logoStyle} 
+        onClick={handleLogoClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && handleLogoClick()}
+        />
+        
+        
         {!isTablet && (
           <p style={navTitleStyle}>
             Collaborative Argumentation and Writing System

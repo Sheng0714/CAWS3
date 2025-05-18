@@ -220,10 +220,24 @@ export default function Navbar() {
     color: '#333',
   };
 
+  const handleLogoClick = () => {
+    navigate('/'); // 導航到主畫面
+  };
+
   return (
     <nav style={navbarStyle}>
       <div style={navLogoContainerStyle}>
-        <img alt="Logo" src={Logo} style={logoStyle} />
+        
+        <img 
+        alt="Logo" 
+        src={Logo} 
+        style={logoStyle}
+        onClick={handleLogoClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && handleLogoClick()}
+         />
+
         {!isBelow900 && ( // 當寬度小於 900px 時隱藏標題
           <p style={navTitleStyle}>
             Collaborative Argumentation and Writing System

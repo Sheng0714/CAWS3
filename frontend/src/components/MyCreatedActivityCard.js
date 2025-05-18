@@ -5079,8 +5079,11 @@ const Item = styled(Card)(({ theme }) => ({
   ...theme.typography.body2,
   padding: theme.spacing(2),
   color: theme.palette.text.secondary,
-  width: '420px',
   minHeight: '200px',
+  width: '100%',
+  // maxWidth: '360px',   // ✅ 限制最大寬度
+  // minWidth: '300px',   // ✅ 避免壓縮太小
+  boxSizing: 'border-box',
 }));
 
 const EnterActivity = styled((props) => {

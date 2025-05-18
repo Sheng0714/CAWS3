@@ -54,10 +54,22 @@ const handleKFTEACHERClick = () => {
     navigate("/kf_teacher");  // 跳轉到 /kfweb 頁面
 };
 
+const handleLogoClick = () => {
+    navigate('/'); // 導航到主畫面
+  };
+  
   return (
     <nav>
       <div className='nav-logo-container'>
-        <img alt='' src={Logo} width={150} height={120} />
+        <img alt='' 
+        src={Logo} 
+        width={150} 
+        height={120}
+        onClick={handleLogoClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && handleLogoClick()}
+         />
         <p style={{ marginLeft: '150px', position: 'relative', top: '-75px', fontSize: '24px' }}>
           Collaborative Argumentation and Writing System
         </p>

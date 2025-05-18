@@ -97,11 +97,23 @@ export default function IndexPage_Navbar({callback_setActivities}) {
 
     };
 
+    const handleLogoClick = () => {
+    navigate('/'); // 導航到主畫面
+  };
+
     return (
       <>
         <nav ref={menuRef}>
             <div className='nav-logo-container'>
-                <img alt='' src={Logo} width={85} height={85} />
+                <img alt='' 
+                src={Logo} 
+                width={85} 
+                height={85}
+                onClick={handleLogoClick}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogoClick()} 
+                />
             </div>
             <div className='nav-buttons'>
                 {/* <button className='common-button' onClick={() => navigate("/teacher/home")}>創建活動</button> */}

@@ -74,12 +74,24 @@ import { styled } from '@mui/material';
 import MyCreatedActivityCard from './MyCreatedActivityCard';
 import url from '../url.json';
 
-const Container = styled('div')({
+const Container = styled('div')(() => ({
     display: 'flex',
-    flexWrap: 'wrap',
-    gap: '20px',
-    padding: '20px',
-});
+  flexWrap: 'wrap',            // ✅ 允許換行
+  justifyContent: 'center',    // ✅ 讓所有卡片置中對齊
+  gap: '10px',                 // ✅ 卡片之間固定間距（你可以設為 5px）
+  padding: '20px',
+
+    
+}));
+
+const CardWrapper = styled('div')(() => ({
+  minWidth: '200px',
+  maxWidth: '300px',
+  width: '100%',
+  display: 'flex',
+  justifyContent: 'center',
+  boxSizing: 'border-box',
+}));
 
 const ActivityList = () => {
     const [activities, setActivities] = useState([]);
@@ -135,15 +147,28 @@ const ActivityList = () => {
     };
 
     return (
+        // <Container>
+        //     {activities.map((activity) => (
+                
+        //         <CardWrapper key={activity.id}>
+        //         <MyCreatedActivityCard
+                    
+        //             activity={activity}
+        //             onDelete={handleDeleteActivity}
+        //         />
+        //         </CardWrapper>
+        //     ))}
+        // </Container>
         <Container>
             {activities.map((activity) => (
-                <MyCreatedActivityCard
-                    key={activity.id}
-                    activity={activity}
-                    onDelete={handleDeleteActivity}
-                />
-            ))}
-        </Container>
+             <CardWrapper key={activity.id}>
+              <MyCreatedActivityCard
+                activity={activity}
+                onDelete={handleDeleteActivity}
+          />
+        </CardWrapper>
+      ))}
+    </Container>
     );
 };
 
