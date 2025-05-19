@@ -7082,7 +7082,7 @@ const WritingArea = () => {
                             onClick={() => setOpenConfirmSubmitDialog(true)}
                             disabled={isSubmitDisabled}
                         >
-                            Submit Upload
+                            Submit
                         </Button>
                     </Box>
                 </Box>
