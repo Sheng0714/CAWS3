@@ -283,7 +283,8 @@ const corsOptions = {
   origin: function (origin, callback) {
     console.log('🌐 請求來自 origin:', origin);  // 除錯用途
     if (!origin || whitelist.includes(origin)) {
-      callback(null, true);
+      // callback(null, true);
+      callback(null, origin); // 不要設 *
     } else {
       callback(new Error('Not allowed by CORS'));
     }
