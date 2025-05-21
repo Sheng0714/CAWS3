@@ -247,7 +247,8 @@ exports.login = async (req, res) => {
       maxAge: 1 * 24 * 60 * 60 * 1000, // 1 天有效期
       httpOnly: true,                 // 禁止 JavaScript 訪問（防範 XSS 攻擊）
       secure: true,                   // 僅限 HTTPS 傳輸
-      sameSite: "Strict"              // 防止 CSRF 攻擊
+      // sameSite: "Strict"
+      sameSite: 'None', // 避免跨域被擋
     });
 
     
@@ -429,7 +430,8 @@ exports.reNewToken = async (req, res) => {
     maxAge: 1 * 24 * 60 * 60 * 1000, // 1 天有效期
     httpOnly: true,                 // 禁止 JavaScript 訪問（防範 XSS 攻擊）
     secure: true,                   // 僅限 HTTPS 傳輸
-    sameSite: "Strict"              // 防止 CSRF 攻擊
+    // sameSite: "Strict"              // 防止 CSRF 攻擊
+    sameSite: 'None', // 避免跨域被擋
   });
 
 
