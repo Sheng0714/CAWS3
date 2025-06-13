@@ -12221,12 +12221,30 @@ const WritingArea = () => {
     }
   };
 
+  const stripHtml = (html) => {
+    // Create a temporary div to parse HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    // Remove Froala watermark
+    const watermark = tempDiv.querySelector('p[data-f-id="pbf"]');
+    if (watermark) {
+      watermark.remove();
+    }
+    // Get plain text and normalize whitespace
+    return tempDiv.textContent.trim();
+  };
+
   const handleEssaySuggestion = () => {
     if (!editorContent.trim()) {
       setErrorMessage('❌ 寫作區內容為空，請先輸入議論文內容！');
       return;
     }
-    const suggestionPrompt = `Please provide suggestions for improving the following essay content:\n\n${editorContent}`;
+    const plainText = stripHtml(editorContent);
+    if (!plainText) {
+      setErrorMessage('❌ 寫作區無有效文字內容！');
+      return;
+    }
+    const suggestionPrompt = `Please provide suggestions for improving the following essay content:\n\n${plainText}`;
     handleSendMessage(suggestionPrompt);
   };
 
@@ -12440,7 +12458,7 @@ const WritingArea = () => {
                 placement="top"
                 arrow
               >
-                <IconButton sx={{ padding: 0, color: '#000000' }}>
+                <IconButton sx={{ padding: '0', color: '#000000' }}>
                   <HelpOutline sx={{ fontSize: '28px' }} />
                 </IconButton>
               </Tooltip>
