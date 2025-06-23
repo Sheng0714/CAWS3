@@ -11037,7 +11037,7 @@
 // export default WritingArea;
 
 
-//0613進度
+// //0613進度
 // import React, { useState, useEffect, useRef } from 'react';
 // import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField, List, ListItem, ListItemText, Avatar, IconButton, ListItemButton, Drawer, Tooltip } from '@mui/material';
 // import { Box } from '@mui/system';
@@ -11977,7 +11977,4584 @@
 
 
 
-//+寫作建議按鈕
+// //+寫作建議按鈕
+// import React, { useState, useEffect, useRef } from 'react';
+// import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField, List, ListItem, ListItemText, Avatar, IconButton, ListItemButton, Drawer, Tooltip } from '@mui/material';
+// import { Box } from '@mui/system';
+// import FroalaEditor from 'react-froala-wysiwyg';
+// import 'froala-editor/js/plugins.pkgd.min.js';
+// import 'froala-editor/css/froala_editor.pkgd.min.css';
+// import 'froala-editor/css/froala_style.min.css';
+// import axios from 'axios';
+// import Navbar from "../components/Navbar_Student";
+// import userAvatar from "../assets/學生ICON.png";
+// import assistantAvatar from "../assets/AI_LOGOICON.png";
+// import sendArrow from '../assets/發送.png';
+// import notesIcon from '../assets/筆記工具.png';
+// import MenuIcon from '../assets/側欄ICON.png';
+// import HelpOutline from '@mui/icons-material/HelpOutline';
+
+// const apiAxios = axios.create({
+//   baseURL: 'http://140.115.126.27:4000',
+//   timeout: 10000,
+// });
+
+// apiAxios.interceptors.request.use(
+//   (config) => {
+//     const token = localStorage.getItem('token');
+//     if (token) {
+//       config.headers.Authorization = `Bearer ${token}`;
+//     }
+//     return config;
+//   },
+//   (error) => Promise.reject(error)
+// );
+
+// const WritingArea = () => {
+//   const [editorContent, setEditorContent] = useState('');
+//   const [openReminderDialog, setOpenReminderDialog] = useState(false);
+//   const [openTempSaveDialog, setOpenTempSaveDialog] = useState(false);
+//   const [openNoteDrawer, setOpenNoteDrawer] = useState(false);
+//   const [openHistoryDialog, setOpenHistoryDialog] = useState(false);
+//   const [openChatSidebar, setOpenChatSidebar] = useState(false);
+//   const [noteContent, setNoteContent] = useState('');
+//   const [currentMessages, setCurrentMessages] = useState([]);
+//   const [chatHistory, setChatHistory] = useState([]);
+//   const [userInput, setUserInput] = useState('');
+//   const [errorMessage, setErrorMessage] = useState('');
+//   const [sessionId, setSessionId] = useState('');
+//   const [activityTitle, setActivityTitle] = useState('');
+//   const [groupName, setGroupName] = useState('');
+//   const [username, setUsername] = useState('');
+//   const [isSubmitDisabled, setIsSubmitDisabled] = useState(false);
+//   const [openConfirmSubmitDialog, setOpenConfirmSubmitDialog] = useState(false);
+//   const chatEndRef = useRef(null);
+
+//   const RAGFLOW_API_URL = 'https://ragflow.lazyinwork.com/api/v1';
+//   const RAGFLOW_API_KEY = 'ragflow-hmY2YzMjRjMWQ5YTExZjBhMGQ5MDI0Mm';
+//   const AGENT_ID = '8f34f200ef5911ef91480242ac120005';
+
+//   const scrollToBottom = () => {
+//     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+//   };
+
+//   useEffect(() => {
+//     scrollToBottom();
+//   }, [currentMessages]);
+
+//   useEffect(() => {
+//     const savedActivityTitle = localStorage.getItem('activityTitle');
+//     if (savedActivityTitle) {
+//       setActivityTitle(savedActivityTitle);
+//     }
+
+//     const savedGroupName = localStorage.getItem('groupName');
+//     if (savedGroupName) {
+//       setGroupName(savedGroupName);
+//     }
+
+//     const savedUsername = localStorage.getItem('name');
+//     if (savedUsername && savedActivityTitle && savedGroupName) {
+//       setUsername(savedUsername);
+
+//       const fetchEssayContent = async () => {
+//         try {
+//           const response = await apiAxios.get(`/api/get-essay/${encodeURIComponent(savedUsername)}`, {
+//             params: { className: savedActivityTitle, theme: savedGroupName },
+//           });
+//           if (response.data.success) {
+//             setEditorContent(response.data.data.essayContent || '');
+//             setNoteContent(response.data.data.noteContent || '');
+//           } else {
+//             console.warn('未找到符合學生姓名、班級和主題的議論文內容，使用空白內容');
+//             setEditorContent('');
+//             setNoteContent('');
+//           }
+//         } catch (error) {
+//           console.error('從 Notion 獲取議論文內容失敗:', error);
+//           setEditorContent('');
+//           setNoteContent('');
+//         }
+//       };
+
+//       fetchEssayContent();
+//     }
+
+//     const savedNote = localStorage.getItem('noteData');
+//     if (savedNote) {
+//       setNoteContent(savedNote);
+//     }
+
+//     setOpenReminderDialog(true);
+
+//     handleCreateSession();
+//   }, []);
+
+//   const handleCreateSession = async () => {
+//     if (sessionId && currentMessages.length > 0) {
+//       setChatHistory((prev) => [
+//         ...prev,
+//         { sessionId, messages: [...currentMessages], createdAt: new Date().toISOString() },
+//       ]);
+//     }
+
+//     setCurrentMessages([]);
+//     setErrorMessage('');
+
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/sessions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({}),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('創建會話回應:', data);
+
+//       if (data.code === 0) {
+//         const newSessionId = data.data?.id;
+//         setSessionId(newSessionId);
+//         setErrorMessage(`✅ 成功創建聊天會話：${newSessionId}`);
+
+//         await fetchOpeningMessage(newSessionId);
+//       } else {
+//         setErrorMessage(`❌ 創建會話失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 創建會話錯誤：${error.message}`);
+//       console.error('創建會話失敗:', error);
+//     }
+//   };
+
+//   const fetchOpeningMessage = async (sessionId) => {
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/completions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({
+//           question: "Hello",
+//           stream: false,
+//           session_id: sessionId,
+//         }),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('開場白回應:', data);
+
+//       if (data.code === 0) {
+//         const content = data.data?.answer || 'No opening message received';
+//         setCurrentMessages((prev) => [
+//           ...prev,
+//           { role: 'assistant', content, created_at: new Date().toISOString() },
+//         ]);
+//       } else {
+//         setErrorMessage(`❌ 獲取開場白失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 獲取開場白錯誤：${error.message}`);
+//       console.error('獲取開場白失敗:', error);
+//     }
+//   };
+
+//   const handleSendMessage = async (message) => {
+//     if (!message.trim()) {
+//       setErrorMessage('❌ 請輸入問題！');
+//       return;
+//     }
+
+//     if (!sessionId) {
+//       setErrorMessage('❌ 請先創建聊天會話！');
+//       return;
+//     }
+
+//     const newMessage = { role: 'user', content: message, created_at: new Date().toISOString() };
+//     setCurrentMessages((prev) => [...prev, newMessage]);
+//     setErrorMessage('');
+
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/completions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({
+//           question: message,
+//           stream: false,
+//           session_id: sessionId,
+//         }),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('API 回應:', data);
+
+//       if (data.code === 0) {
+//         const content = data.data?.answer || 'No content received from API';
+//         setCurrentMessages((prev) => [
+//           ...prev,
+//           { role: 'assistant', content, created_at: new Date().toISOString() },
+//         ]);
+//       } else {
+//         setErrorMessage(`❌ 回應失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 發送訊息失敗：${error.message}`);
+//       console.error('發送訊息失敗:', error);
+//     }
+//   };
+
+//   const stripHtml = (html) => {
+//     // Create a temporary div to parse HTML
+//     const tempDiv = document.createElement('div');
+//     tempDiv.innerHTML = html;
+//     // Remove Froala watermark
+//     const watermark = tempDiv.querySelector('p[data-f-id="pbf"]');
+//     if (watermark) {
+//       watermark.remove();
+//     }
+//     // Get plain text and normalize whitespace
+//     return tempDiv.textContent.trim();
+//   };
+
+//   const handleEssaySuggestion = () => {
+//     if (!editorContent.trim()) {
+//       setErrorMessage('❌ 寫作區內容為空，請先輸入議論文內容！');
+//       return;
+//     }
+//     const plainText = stripHtml(editorContent);
+//     if (!plainText) {
+//       setErrorMessage('❌ 寫作區無有效文字內容！');
+//       return;
+//     }
+//     const suggestionPrompt = `Please provide suggestions for improving the following essay content:\n\n${plainText}`;
+//     handleSendMessage(suggestionPrompt);
+//   };
+
+//   const handleViewHistory = () => {
+//     if (sessionId && currentMessages.length > 0) {
+//       setChatHistory((prev) => {
+//         const existingSession = prev.find((session) => session.sessionId === sessionId);
+//         if (existingSession) {
+//           existingSession.messages = [...currentMessages];
+//           existingSession.createdAt = new Date().toISOString();
+//           return [...prev];
+//         } else {
+//           return [
+//             ...prev,
+//             { sessionId, messages: [...currentMessages], createdAt: new Date().toISOString() },
+//           ];
+//         }
+//       });
+//     }
+//     setOpenHistoryDialog(true);
+//   };
+
+//   const handleLoadHistory = (session) => {
+//     setCurrentMessages(session.messages);
+//     setSessionId(session.sessionId);
+//     setOpenHistoryDialog(false);
+//   };
+
+//   const formatDateTime = (isoString) => {
+//     const date = new Date(isoString);
+//     return date.toLocaleString('zh-TW', {
+//       year: 'numeric',
+//       month: '2-digit',
+//       day: '2-digit',
+//       hour: '2-digit',
+//       minute: '2-digit',
+//       second: '2-digit',
+//     });
+//   };
+
+//   const handleSubmit = async () => {
+//     // if (editorContent.length > 2000) {
+//     //   alert('議論文內容超過 2000 字元，將自動分段儲存至資料庫');
+//     // }
+//     // if (noteContent.length > 2000) {
+//     //   alert('筆記內容超過 2000 字元，將自動分段儲存至資料庫');
+//     // }
+
+//     try {
+//       const response = await apiAxios.post('/api/submit-to-notion', {
+//         studentName: username || '未命名使用者',
+//         theme: groupName || '未指定主題',
+//         essayContent: editorContent || '無內容',
+//         className: activityTitle || '未指定班級',
+//         noteContent: noteContent || '',
+//       });
+
+//       if (response.data.success) {
+//         alert('繳交上傳成功！');
+//         setIsSubmitDisabled(true);
+//       } else {
+//         alert(`繳交上傳失敗：${response.data.message || '未知錯誤'}`);
+//       }
+//     } catch (error) {
+//       console.error('發送到 Notion 時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       alert(`繳交上傳失敗：${errorMessage}`);
+//     }
+//   };
+
+//   const handleConfirmSubmit = () => {
+//     setOpenConfirmSubmitDialog(false);
+//     handleSubmit();
+//   };
+
+//   const handleTempSave = () => {
+//     setOpenTempSaveDialog(true);
+//   };
+
+//   const handleUpdateNote = async () => {
+    
+//     try {
+//       const response = await apiAxios.patch('/api/update-note', {
+//         studentName: username || '未命名使用者',
+//         className: activityTitle || '未指定班級',
+//         theme: groupName || '未指定主題',
+//         noteContent: noteContent || '',
+//         essayContent: editorContent || '',
+//       });
+
+//       if (response.data.success) {
+//         console.log('筆記區和寫作區內容已更新到 Notion');
+//       } else {
+//         console.warn('更新筆記區和寫作區內容失敗:', response.data.error);
+//       }
+//     } catch (error) {
+//       console.error('更新筆記區和寫作區內容時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       console.warn(`更新失敗：${errorMessage}`);
+//     }
+//   };
+
+//   const config = {
+//     placeholderText: '開始編輯...',
+//     charCounterCount: false,
+//     toolbarButtons: ['bold', 'italic', 'underline', 'strikeThrough', 'fontSize', 'color', 'fontFamily', 'backColor',
+//       'align', 'orderedList', 'unorderedList', 'insertImage', 'insertTable', 'link', 'undo', 'redo',
+//       'clearFormatting', 'fullscreen', 'html', 'insertHR', 'specialCharacters'],
+//   };
+
+//   const handleCloseReminderDialog = () => {
+//     setOpenReminderDialog(false);
+//   };
+
+//   const handleCloseTempSaveDialog = () => {
+//     setOpenTempSaveDialog(false);
+//   };
+
+//   const handleToggleNoteDrawer = () => {
+//     setOpenNoteDrawer((prev) => {
+//       if (prev) {
+//         localStorage.setItem('noteData', noteContent);
+//         handleUpdateNote();
+//       }
+//       return !prev;
+//     });
+//   };
+
+//   const handleNoteChange = (e) => {
+//     setNoteContent(e.target.value);
+//   };
+
+//   const handleToggleChatSidebar = () => {
+//     setOpenChatSidebar((prev) => !prev);
+//   };
+
+//   return (
+//     <div>
+//       <Navbar />
+//       <Box
+//         sx={{
+//           display: 'flex',
+//           flexDirection: { xs: 'column', md: 'row' },
+//           minHeight: 'calc(100vh - 120px)',
+//           padding: '10px',
+//           gap: '10px',
+//         }}
+//       >
+//         {/* 左邊容器：聊天室與側欄 */}
+//         <Box
+//           sx={{
+//             width: { md: '50%', xs: '100%' },
+//             padding: '5px',
+//             borderRight: { md: '1px solid #ccc', xs: 'none' },
+//             display: 'flex',
+//             flexDirection: 'row',
+//             height: { md: '600px', sm: '800px', xs: 'auto' },
+//             '@media (max-width: 700px)': {
+//               height: '800px',
+//             },
+//           }}
+//         >
+//           {/* 聊天室側欄 */}
+//           <Box
+//             sx={{
+//               width: '50px',
+//               backgroundColor: 'transparent',
+//               display: 'flex',
+//               flexDirection: 'column',
+//               alignItems: 'center',
+//               paddingTop: '10px',
+//             }}
+//           >
+//             <IconButton
+//               onClick={handleToggleChatSidebar}
+//               sx={{
+//                 color: '#1976d2',
+//                 '&:hover': {
+//                   backgroundColor: 'rgba(0, 0, 0, 0.04)',
+//                 },
+//               }}
+//             >
+//               <img src={MenuIcon} alt="Menu" style={{ width: '24px', height: '24px' }} />
+//             </IconButton>
+//           </Box>
+
+//           {/* 聊天室區域 */}
+//           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+//             <Box
+//               sx={{
+//                 width: '100%',
+//                 height: '100px',
+//                 display: 'flex',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//                 backgroundColor: '#B7C5FF',
+//                 fontSize: '18px',
+//                 fontWeight: 'bold',
+//                 padding: '0 10px',
+//               }}
+//             >
+//               <span style={{ fontSize: '16px' }}>AI Writing Assistant</span>
+//               <Tooltip
+//                 title="I'm here to help you brainstorm, explore, and organize your ideas for a great essay！"
+//                 placement="top"
+//                 arrow
+//               >
+//                 <IconButton sx={{ padding: '0', color: '#000000' }}>
+//                   <HelpOutline sx={{ fontSize: '28px' }} />
+//                 </IconButton>
+//               </Tooltip>
+//             </Box>
+//             <Box
+//               sx={{
+//                 border: '2px solid black',
+//                 borderRadius: '8px',
+//                 padding: '10px',
+//                 flex: 1,
+//                 overflowY: 'auto',
+//                 backgroundColor: '#FFFFFF',
+//                 marginBottom: '5px',
+//                 marginTop: '10px',
+//                 display: 'flex',
+//                 flexDirection: 'column',
+//               }}
+//             >
+//               {errorMessage && (
+//                 <Box
+//                   sx={{
+//                     mt: 1,
+//                     p: 1,
+//                     backgroundColor: '#f0f0f0',
+//                     borderRadius: '4px',
+//                     fontSize: '14px',
+//                   }}
+//                 >
+//                   {errorMessage}
+//                 </Box>
+//               )}
+//               <List
+//                 sx={{ flexGrow: 1, overflowY: 'auto', paddingBottom: '5px' }}
+//               >
+//                 {currentMessages.map((msg, index) => (
+//                   <ListItem
+//                     key={index}
+//                     sx={{
+//                       justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+//                       textAlign: msg.role === 'user' ? 'right' : 'left',
+//                       marginBottom: '5px',
+//                     }}
+//                   >
+//                     <Box
+//                       sx={{
+//                         display: 'flex',
+//                         flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+//                         alignItems: 'flex-start',
+//                       }}
+//                     >
+//                       <Avatar
+//                         alt={msg.role === 'user' ? 'User' : 'AI Assistant'}
+//                         src={msg.role === 'user' ? userAvatar : assistantAvatar}
+//                         sx={{ width: 40, height: 40, margin: '0 8px' }}
+//                       />
+//                       <Box
+//                         sx={{
+//                           maxWidth: '80%',
+//                           p: 2,
+//                           borderRadius: '8px',
+//                           backgroundColor: msg.role === 'user' ? '#DCF8C6' : '#F0F0F0',
+//                         }}
+//                       >
+//                         <ListItemText
+//                           primary={msg.content || 'No content'}
+//                           secondary={formatDateTime(msg.created_at)}
+//                           sx={{
+//                             wordBreak: 'break-word',
+//                             textAlign: 'left',
+//                           }}
+//                         />
+//                       </Box>
+//                     </Box>
+//                   </ListItem>
+//                 ))}
+//                 <div ref={chatEndRef} />
+//               </List>
+//               <Box sx={{ display: 'flex', mt: 2 }}>
+//                 <TextField
+//                   fullWidth
+//                   value={userInput}
+//                   onChange={(e) => setUserInput(e.target.value)}
+//                   placeholder="請輸入與寫作主題相關的內容..."
+//                   onKeyPress={(e) => {
+//                     if (e.key === 'Enter' && !e.shiftKey) {
+//                       e.preventDefault();
+//                       handleSendMessage(userInput);
+//                     }
+//                   }}
+//                   variant="standard"
+//                   sx={{ marginRight: '8px' }}
+//                 />
+//                 <IconButton
+//                   color="primary"
+//                   onClick={() => handleSendMessage(userInput)}
+//                   sx={{ padding: '8px' }}
+//                 >
+//                   <img src={sendArrow} alt="Send" style={{ width: '40px', height: '40px' }} />
+//                 </IconButton>
+//               </Box>
+//             </Box>
+//           </Box>
+//         </Box>
+
+//         {/* 右邊容器：文字編輯器與側欄 */}
+//         <Box
+//           sx={{
+//             width: { md: '50%', xs: '100%' },
+//             borderLeft: { md: '1px solid #ccc', xs: 'none' },
+//             position: 'relative',
+//             height: { md: '600px', sm: '800px', xs: 'auto' },
+//             display: 'flex',
+//             flexDirection: 'row',
+//             '@media (max-width: 700px)': {
+//               width: '100%',
+//               padding: '10px',
+//               height: '800px',
+//               borderLeft: 'none',
+//             },
+//             '@media (max-width: 600px)': {
+//               width: '100%',
+//             },
+//           }}
+//         >
+//           {/* 編輯器區域 */}
+//           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+//             <Box
+//               sx={{
+//                 width: '100%',
+//                 height: '100px',
+//                 display: 'flex',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//                 backgroundColor: '#B7C5FF',
+//                 fontSize: '18px',
+//                 fontWeight: 'bold',
+//                 padding: '0 10px',
+//               }}
+//             >
+//               <Box>
+//                 <span style={{ fontSize: '16px' }}>
+//                   {username && `User: ${username}`}
+//                   {activityTitle && ` Class: ${activityTitle}`}<br />
+//                   {groupName && ` Topic: ${groupName}`}
+//                 </span>
+//               </Box>
+//               {/* 筆記側欄 */}
+//               <Box
+//                 sx={{
+//                   width: '50px',
+//                   backgroundColor: 'transparent',
+//                   display: 'flex',
+//                   flexDirection: 'column',
+//                   alignItems: 'center',
+//                   paddingTop: '10px',
+//                 }}
+//               >
+//                 <IconButton
+//                   onClick={handleToggleNoteDrawer}
+//                   sx={{
+//                     color: '#1976d2',
+//                     '&:hover': {
+//                       backgroundColor: 'rgba(0, 0, 0, 0.04)',
+//                     },
+//                   }}
+//                 >
+//                   <img src={notesIcon} alt="Notes" style={{ width: '24px', height: '24px' }} />
+//                 </IconButton>
+//               </Box>
+//             </Box>
+//             <Box sx={{ flex: 1, overflowY: 'auto' }}>
+//               <FroalaEditor
+//                 tag="textarea"
+//                 config={config}
+//                 model={editorContent}
+//                 onModelChange={(value) => setEditorContent(value)}
+//                 style={{ height: '100%' }}
+//               />
+//             </Box>
+//             <Box sx={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '10px' }}>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={handleTempSave}
+//               >
+//                 Temporary
+//               </Button>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={handleEssaySuggestion}
+//               >
+//                 Essay Suggestion
+//               </Button>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={() => setOpenConfirmSubmitDialog(true)}
+//                 disabled={isSubmitDisabled}
+//               >
+//                 Submit
+//               </Button>
+//             </Box>
+//           </Box>
+//         </Box>
+//       </Box>
+
+//       {/* 提交確認提示 */}
+//       <Dialog open={openConfirmSubmitDialog} onClose={() => setOpenConfirmSubmitDialog(false)}>
+//         <DialogTitle>確認提交</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             您確定要提交嗎？提交後無法編輯內容。
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setOpenConfirmSubmitDialog(false)} color="primary">
+//             關閉
+//           </Button>
+//           <Button onClick={handleConfirmSubmit} color="primary" autoFocus>
+//             確定
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Dialog open={openReminderDialog} onClose={handleCloseReminderDialog}>
+//         <DialogTitle>Notice</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             Please discuss with the AI Writing Assistant before you start writing!
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={handleCloseReminderDialog} color="primary">
+//             OK！
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Dialog open={openTempSaveDialog} onClose={handleCloseTempSaveDialog}>
+//         <DialogTitle>提示</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             暫存成功！
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={handleCloseTempSaveDialog} color="primary">
+//             確定
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       {/* 筆記側欄 Drawer */}
+//       <Drawer
+//         anchor="right"
+//         open={openNoteDrawer}
+//         onClose={handleToggleNoteDrawer}
+//         sx={{
+//           '& .MuiDrawer-paper': {
+//             width: '500px',
+//             maxWidth: '90vw',
+//             height: '100%',
+//             '@media (max-width: 600px)': {
+//               width: '90vw',
+//             },
+//           },
+//         }}
+//       >
+//         <Box sx={{ p: 2 }}>
+//           <DialogTitle>Note Area</DialogTitle>
+//           <Tooltip
+//             title="Capture your thoughts before they fly away！"
+//             placement="top"
+//             arrow
+//           >
+//             <IconButton sx={{ padding: 0, color: '#000000' }}>
+//               <HelpOutline sx={{ fontSize: '28px' }} />
+//             </IconButton>
+//           </Tooltip>
+//           <DialogContent>
+//             <TextField
+//               label="Jot down your ideas"
+//               value={noteContent}
+//               onChange={handleNoteChange}
+//               multiline
+//               rows={15}
+//               fullWidth
+//               variant="outlined"
+//               sx={{ height: '90%' }}
+//             />
+//           </DialogContent>
+//           <DialogActions>
+//             <Button onClick={handleToggleNoteDrawer} color="primary">
+//               Save & Close
+//             </Button>
+//           </DialogActions>
+//         </Box>
+//       </Drawer>
+
+//       {/* 聊天室側欄 Drawer */}
+//       <Drawer
+//         anchor="left"
+//         open={openChatSidebar}
+//         onClose={handleToggleChatSidebar}
+//         sx={{
+//           '& .MuiDrawer-paper': {
+//             width: '200px',
+//             maxWidth: '90vw',
+//             height: '100%',
+//             backgroundColor: '#f5f5f5',
+//             padding: '10px',
+//             '@media (max-width: 600px)': {
+//               width: '80vw',
+//             },
+//           },
+//         }}
+//       >
+//         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px', p: 2 }}>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={handleViewHistory}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             View History
+//           </Button>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={handleCreateSession}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             Create New Chat
+//           </Button>
+//         </Box>
+//       </Drawer>
+
+//       {/* 歷史紀錄對話框 */}
+//       <Dialog
+//         open={openHistoryDialog}
+//         onClose={() => setOpenHistoryDialog(false)}
+//         sx={{
+//           '& .MuiDialog-container .MuiPaper-root': {
+//             width: '500px',
+//             maxWidth: '90vw',
+//           },
+//         }}
+//       >
+//         <DialogTitle>聊天歷史紀錄</DialogTitle>
+//         <DialogContent>
+//           {chatHistory.length === 0 ? (
+//             <DialogContentText>暫無歷史紀錄</DialogContentText>
+//           ) : (
+//             <List>
+//               {chatHistory.map((session, index) => (
+//                 <ListItem key={index} disablePadding>
+//                   <ListItemButton onClick={() => handleLoadHistory(session)}>
+//                     <ListItemText
+//                       primary={`會話 ${session.sessionId}`}
+//                       secondary={
+//                         <>
+//                           {`創建時間: ${formatDateTime(session.createdAt)}`}<br />
+//                           {session.messages[0]?.content
+//                             ? session.messages[0].content.substring(0, 50) + '...'
+//                             : '無訊息'}
+//                         </>
+//                       }
+//                     />
+//                   </ListItemButton>
+//                 </ListItem>
+//               ))}
+//             </List>
+//           )}
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setOpenHistoryDialog(false)} color="primary">
+//             關閉
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+//     </div>
+//   );
+// };
+
+// export default WritingArea;
+
+
+
+// import React, { useState, useEffect, useRef } from 'react';
+// import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField, List, ListItem, ListItemText, Avatar, IconButton, ListItemButton, Drawer, Tooltip } from '@mui/material';
+// import { Box } from '@mui/system';
+// import FroalaEditor from 'react-froala-wysiwyg';
+// import 'froala-editor/js/plugins.pkgd.min.js';
+// import 'froala-editor/css/froala_editor.pkgd.min.css';
+// import 'froala-editor/css/froala_style.min.css';
+// import axios from 'axios';
+// import Navbar from "../components/Navbar_Student";
+// import userAvatar from "../assets/學生ICON.png";
+// import assistantAvatar from "../assets/AI_LOGOICON.png";
+// import sendArrow from '../assets/發送.png';
+// import HelpOutline from '@mui/icons-material/HelpOutline';
+
+// const apiAxios = axios.create({
+//   baseURL: 'http://140.115.126.27:4000',
+//   timeout: 10000,
+// });
+
+// apiAxios.interceptors.request.use(
+//   (config) => {
+//     const token = localStorage.getItem('token');
+//     if (token) {
+//       config.headers.Authorization = `Bearer ${token}`;
+//     }
+//     return config;
+//   },
+//   (error) => Promise.reject(error)
+// );
+
+// const WritingArea = () => {
+//   const [editorContent, setEditorContent] = useState('');
+//   const [openReminderDialog, setOpenReminderDialog] = useState(false);
+//   const [openTempSaveDialog, setOpenTempSaveDialog] = useState(false);
+//   const [openNoteDrawer, setOpenNoteDrawer] = useState(false);
+//   const [openHistoryDialog, setOpenHistoryDialog] = useState(false);
+//   const [openChatSidebar, setOpenChatSidebar] = useState(false);
+//   const [noteContent, setNoteContent] = useState('');
+//   const [currentMessages, setCurrentMessages] = useState([]);
+//   const [chatHistory, setChatHistory] = useState([]);
+//   const [userInput, setUserInput] = useState('');
+//   const [errorMessage, setErrorMessage] = useState('');
+//   const [sessionId, setSessionId] = useState('');
+//   const [activityTitle, setActivityTitle] = useState('');
+//   const [groupName, setGroupName] = useState('');
+//   const [username, setUsername] = useState('');
+//   const [isSubmitDisabled, setIsSubmitDisabled] = useState(false);
+//   const [openConfirmSubmitDialog, setOpenConfirmSubmitDialog] = useState(false);
+//   const chatEndRef = useRef(null);
+
+//   const RAGFLOW_API_URL = 'https://ragflow.lazyinwork.com/api/v1';
+//   const RAGFLOW_API_KEY = 'ragflow-hmY2YzMjRjMWQ5YTExZjBhMGQ5MDI0Mm';
+//   const AGENT_ID = '8f34f200ef5911ef91480242ac120005';
+
+//   const scrollToBottom = () => {
+//     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+//   };
+
+//   useEffect(() => {
+//     scrollToBottom();
+//   }, [currentMessages]);
+
+//   useEffect(() => {
+//     const savedActivityTitle = localStorage.getItem('activityTitle');
+//     if (savedActivityTitle) {
+//       setActivityTitle(savedActivityTitle);
+//     }
+
+//     const savedGroupName = localStorage.getItem('groupName');
+//     if (savedGroupName) {
+//       setGroupName(savedGroupName);
+//     }
+
+//     const savedUsername = localStorage.getItem('name');
+//     if (savedUsername && savedActivityTitle && savedGroupName) {
+//       setUsername(savedUsername);
+
+//       const fetchEssayContent = async () => {
+//         try {
+//           const response = await apiAxios.get(`/api/get-essay/${encodeURIComponent(savedUsername)}`, {
+//             params: { className: savedActivityTitle, theme: savedGroupName },
+//           });
+//           if (response.data.success) {
+//             setEditorContent(response.data.data.essayContent || '');
+//             setNoteContent(response.data.data.noteContent || '');
+//           } else {
+//             console.warn('未找到符合學生姓名、班級和主題的議論文內容，使用空白內容');
+//             setEditorContent('');
+//             setNoteContent('');
+//           }
+//         } catch (error) {
+//           console.error('從 Notion 獲取議論文內容失敗:', error);
+//           setEditorContent('');
+//           setNoteContent('');
+//         }
+//       };
+
+//       fetchEssayContent();
+//     }
+
+//     const savedNote = localStorage.getItem('noteData');
+//     if (savedNote) {
+//       setNoteContent(savedNote);
+//     }
+
+//     setOpenReminderDialog(true);
+
+//     handleCreateSession();
+//   }, []);
+
+//   const handleCreateSession = async () => {
+//     if (sessionId && currentMessages.length > 0) {
+//       setChatHistory((prev) => [
+//         ...prev,
+//         { sessionId, messages: [...currentMessages], createdAt: new Date().toISOString() },
+//       ]);
+//     }
+
+//     setCurrentMessages([]);
+//     setErrorMessage('');
+
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/sessions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({}),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('創建會話回應:', data);
+
+//       if (data.code === 0) {
+//         const newSessionId = data.data?.id;
+//         setSessionId(newSessionId);
+//         setErrorMessage(`✅ 成功創建聊天會話：${newSessionId}`);
+
+//         await fetchOpeningMessage(newSessionId);
+//       } else {
+//         setErrorMessage(`❌ 創建會話失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 創建會話錯誤：${error.message}`);
+//       console.error('創建會話失敗:', error);
+//     }
+//   };
+
+//   const fetchOpeningMessage = async (sessionId) => {
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/completions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({
+//           question: "Hello",
+//           stream: false,
+//           session_id: sessionId,
+//         }),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('開場白回應:', data);
+
+//       if (data.code === 0) {
+//         const content = data.data?.answer || 'No opening message received';
+//         setCurrentMessages((prev) => [
+//           ...prev,
+//           { role: 'assistant', content, created_at: new Date().toISOString() },
+//         ]);
+//       } else {
+//         setErrorMessage(`❌ 獲取開場白失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 獲取開場白錯誤：${error.message}`);
+//       console.error('獲取開場白失敗:', error);
+//     }
+//   };
+
+//   const handleSendMessage = async (message) => {
+//     if (!message.trim()) {
+//       setErrorMessage('❌ 請輸入問題！');
+//       return;
+//     }
+
+//     if (!sessionId) {
+//       setErrorMessage('❌ 請先創建聊天會話！');
+//       return;
+//     }
+
+//     const newMessage = { role: 'user', content: message, created_at: new Date().toISOString() };
+//     setCurrentMessages((prev) => [...prev, newMessage]);
+//     setErrorMessage('');
+
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/completions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({
+//           question: message,
+//           stream: false,
+//           session_id: sessionId,
+//         }),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('API 回應:', data);
+
+//       if (data.code === 0) {
+//         const content = data.data?.answer || 'No content received from API';
+//         setCurrentMessages((prev) => [
+//           ...prev,
+//           { role: 'assistant', content, created_at: new Date().toISOString() },
+//         ]);
+//       } else {
+//         setErrorMessage(`❌ 回應失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 發送訊息失敗：${error.message}`);
+//       console.error('發送訊息失敗:', error);
+//     }
+//   };
+
+//   const stripHtml = (html) => {
+//     const tempDiv = document.createElement('div');
+//     tempDiv.innerHTML = html;
+//     const watermark = tempDiv.querySelector('p[data-f-id="pbf"]');
+//     if (watermark) {
+//       watermark.remove();
+//     }
+//     return tempDiv.textContent.trim();
+//   };
+
+//   const handleEssaySuggestion = () => {
+//     if (!editorContent.trim()) {
+//       setErrorMessage('❌ 寫作區內容為空，請先輸入議論文內容！');
+//       return;
+//     }
+//     const plainText = stripHtml(editorContent);
+//     if (!plainText) {
+//       setErrorMessage('❌ 寫作區無有效文字內容！');
+//       return;
+//     }
+//     const suggestionPrompt = `Please provide suggestions for improving the following essay content:\n\n${plainText}`;
+//     handleSendMessage(suggestionPrompt);
+//   };
+
+//   const handleViewHistory = () => {
+//     if (sessionId && currentMessages.length > 0) {
+//       setChatHistory((prev) => {
+//         const existingSession = prev.find((session) => session.sessionId === sessionId);
+//         if (existingSession) {
+//           existingSession.messages = [...currentMessages];
+//           existingSession.createdAt = new Date().toISOString();
+//           return [...prev];
+//         } else {
+//           return [
+//             ...prev,
+//             { sessionId, messages: [...currentMessages], createdAt: new Date().toISOString() },
+//           ];
+//         }
+//       });
+//     }
+//     setOpenHistoryDialog(true);
+//   };
+
+//   const handleLoadHistory = (session) => {
+//     setCurrentMessages(session.messages);
+//     setSessionId(session.sessionId);
+//     setOpenHistoryDialog(false);
+//   };
+
+//   const formatDateTime = (isoString) => {
+//     const date = new Date(isoString);
+//     return date.toLocaleString('zh-TW', {
+//       year: 'numeric',
+//       month: '2-digit',
+//       day: '2-digit',
+//       hour: '2-digit',
+//       minute: '2-digit',
+//       second: '2-digit',
+//     });
+//   };
+
+//   const handleSubmit = async () => {
+//     // if (editorContent.length > 2000) {
+//     //   alert('議論文內容超過 2000 字元，將自動分段儲存至資料庫');
+//     // }
+//     // if (noteContent.length > 2000) {
+//     //   alert('筆記內容超過 2000 字元，將自動分段儲存至資料庫');
+//     // }
+
+//     try {
+//       const response = await apiAxios.post('/api/submit-to-notion', {
+//         studentName: username || '未命名使用者',
+//         theme: groupName || '未指定主題',
+//         essayContent: editorContent || '無內容',
+//         className: activityTitle || '未指定班級',
+//         noteContent: noteContent || '',
+//       });
+
+//       if (response.data.success) {
+//         alert('繳交上傳成功！');
+//         setIsSubmitDisabled(true);
+//       } else {
+//         alert(`繳交上傳失敗：${response.data.message || '未知錯誤'}`);
+//       }
+//     } catch (error) {
+//       console.error('發送到 Notion 時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       alert(`繳交上傳失敗：${errorMessage}`);
+//     }
+//   };
+
+//   const handleConfirmSubmit = () => {
+//     setOpenConfirmSubmitDialog(false);
+//     handleSubmit();
+//   };
+
+//   const handleTempSave = () => {
+//     setOpenTempSaveDialog(true);
+//   };
+
+//   const handleUpdateNote = async () => {
+//     try {
+//       const response = await apiAxios.patch('/api/update-note', {
+//         studentName: username || '未命名使用者',
+//         className: activityTitle || '未指定班級',
+//         theme: groupName || '未指定主題',
+//         noteContent: noteContent || '',
+//         essayContent: editorContent || '',
+//       });
+
+//       if (response.data.success) {
+//         console.log('筆記區和寫作區內容已更新到 Notion');
+//       } else {
+//         console.warn('更新筆記區和寫作區內容失敗:', response.data.error);
+//       }
+//     } catch (error) {
+//       console.error('更新筆記區和寫作區內容時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       console.warn(`更新失敗：${errorMessage}`);
+//     }
+//   };
+
+//   const config = {
+//     placeholderText: '開始編輯...',
+//     charCounterCount: false,
+//     toolbarButtons: ['bold', 'italic', 'underline', 'strikeThrough', 'fontSize', 'color', 'fontFamily', 'backColor',
+//       'align', 'orderedList', 'unorderedList', 'insertImage', 'insertTable', 'link', 'undo', 'redo',
+//       'clearFormatting', 'fullscreen', 'html', 'insertHR', 'specialCharacters'],
+//   };
+
+//   const handleCloseReminderDialog = () => {
+//     setOpenReminderDialog(false);
+//   };
+
+//   const handleCloseTempSaveDialog = () => {
+//     setOpenTempSaveDialog(false);
+//   };
+
+//   const handleToggleNoteDrawer = () => {
+//     setOpenNoteDrawer((prev) => {
+//       if (prev) {
+//         localStorage.setItem('noteData', noteContent);
+//         handleUpdateNote();
+//       }
+//       return !prev;
+//     });
+//   };
+
+//   const handleNoteChange = (e) => {
+//     setNoteContent(e.target.value);
+//   };
+
+//   const handleToggleChatSidebar = () => {
+//     setOpenChatSidebar((prev) => !prev);
+//   };
+
+//   return (
+//     <div>
+//       <Navbar />
+//       <Box
+//         sx={{
+//           display: 'flex',
+//           flexDirection: { xs: 'column', md: 'row' },
+//           minHeight: 'calc(100vh - 120px)',
+//           padding: '10px',
+//           gap: '10px',
+//         }}
+//       >
+//         {/* 左邊容器：聊天室與側欄 */}
+//         <Box
+//           sx={{
+//             width: { md: '50%', xs: '100%' },
+//             padding: '5px',
+//             borderRight: { md: '1px solid #ccc', xs: 'none' },
+//             display: 'flex',
+//             flexDirection: 'row',
+//             height: { md: '600px', sm: '800px', xs: 'auto' },
+//             '@media (max-width: 700px)': {
+//               height: '800px',
+//             },
+//           }}
+//         >
+//           {/* 聊天室側欄 */}
+//           <Box
+//             sx={{
+//               width: '50px',
+//               backgroundColor: 'transparent',
+//               display: 'flex',
+//               flexDirection: 'column',
+//               alignItems: 'center',
+//               paddingTop: '10px',
+//             }}
+//           >
+//             <IconButton
+//               onClick={handleToggleChatSidebar}
+//               sx={{
+//                 color: '#1976d2',
+//                 '&:hover': {
+//                   backgroundColor: 'rgba(0, 0, 0, 0.04)',
+//                 },
+//                 display: 'flex',
+//                 flexDirection: 'column',
+//                 fontSize: '16px',
+//                 fontWeight: 'bold',
+//                 lineHeight: '1.2',
+//                 padding: '8px',
+//               }}
+//             >
+//               <span>M</span>
+//               <span>E</span>
+//               <span>N</span>
+//               <span>U</span>
+//             </IconButton>
+//           </Box>
+
+//           {/* 聊天室區域 */}
+//           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+//             <Box
+//               sx={{
+//                 width: '100%',
+//                 height: '100px',
+//                 display: 'flex',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//                 backgroundColor: '#B7C5FF',
+//                 fontSize: '18px',
+//                 fontWeight: 'bold',
+//                 padding: '0 10px',
+//               }}
+//             >
+//               <span style={{ fontSize: '16px' }}>AI Writing Assistant</span>
+//               <Tooltip
+//                 title="I'm here to help you brainstorm, explore, and organize your ideas for a great essay！"
+//                 placement="top"
+//                 arrow
+//               >
+//                 <IconButton sx={{ padding: '0', color: '#000000' }}>
+//                   <HelpOutline sx={{ fontSize: '28px' }} />
+//                 </IconButton>
+//               </Tooltip>
+//             </Box>
+//             <Box
+//               sx={{
+//                 border: '2px solid black',
+//                 borderRadius: '8px',
+//                 padding: '10px',
+//                 flex: 1,
+//                 overflowY: 'auto',
+//                 backgroundColor: '#FFFFFF',
+//                 marginBottom: '5px',
+//                 marginTop: '10px',
+//                 display: 'flex',
+//                 flexDirection: 'column',
+//               }}
+//             >
+//               {errorMessage && (
+//                 <Box
+//                   sx={{
+//                     mt: 1,
+//                     p: 1,
+//                     backgroundColor: '#f0f0f0',
+//                     borderRadius: '4px',
+//                     fontSize: '14px',
+//                   }}
+//                 >
+//                   {errorMessage}
+//                 </Box>
+//               )}
+//               <List
+//                 sx={{ flexGrow: 1, overflowY: 'auto', paddingBottom: '5px' }}
+//               >
+//                 {currentMessages.map((msg, index) => (
+//                   <ListItem
+//                     key={index}
+//                     sx={{
+//                       justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+//                       textAlign: msg.role === 'user' ? 'right' : 'left',
+//                       marginBottom: '5px',
+//                     }}
+//                   >
+//                     <Box
+//                       sx={{
+//                         display: 'flex',
+//                         flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+//                         alignItems: 'flex-start',
+//                       }}
+//                     >
+//                       <Avatar
+//                         alt={msg.role === 'user' ? 'User' : 'AI Assistant'}
+//                         src={msg.role === 'user' ? userAvatar : assistantAvatar}
+//                         sx={{ width: 40, height: 40, margin: '0 8px' }}
+//                       />
+//                       <Box
+//                         sx={{
+//                           maxWidth: '80%',
+//                           p: 2,
+//                           borderRadius: '8px',
+//                           backgroundColor: msg.role === 'user' ? '#DCF8C6' : '#F0F0F0',
+//                         }}
+//                       >
+//                         <ListItemText
+//                           primary={msg.content || 'No content'}
+//                           secondary={formatDateTime(msg.created_at)}
+//                           sx={{
+//                             wordBreak: 'break-word',
+//                             textAlign: 'left',
+//                           }}
+//                         />
+//                       </Box>
+//                     </Box>
+//                   </ListItem>
+//                 ))}
+//                 <div ref={chatEndRef} />
+//               </List>
+//               <Box sx={{ display: 'flex', mt: 2 }}>
+//                 <TextField
+//                   fullWidth
+//                   value={userInput}
+//                   onChange={(e) => setUserInput(e.target.value)}
+//                   placeholder="請輸入與寫作主題相關的內容..."
+//                   onKeyPress={(e) => {
+//                     if (e.key === 'Enter' && !e.shiftKey) {
+//                       e.preventDefault();
+//                       handleSendMessage(userInput);
+//                     }
+//                   }}
+//                   variant="standard"
+//                   sx={{ marginRight: '8px' }}
+//                 />
+//                 <IconButton
+//                   color="primary"
+//                   onClick={() => handleSendMessage(userInput)}
+//                   sx={{ padding: '8px' }}
+//                 >
+//                   <img src={sendArrow} alt="Send" style={{ width: '40px', height: '40px' }} />
+//                 </IconButton>
+//               </Box>
+//             </Box>
+//           </Box>
+//         </Box>
+
+//         {/* 右邊容器：文字編輯器與側欄 */}
+//         <Box
+//           sx={{
+//             width: { md: '50%', xs: '100%' },
+//             borderLeft: { md: '1px solid #ccc', xs: 'none' },
+//             position: 'relative',
+//             height: { md: '600px', sm: '800px', xs: 'auto' },
+//             display: 'flex',
+//             flexDirection: 'row',
+//             '@media (max-width: 700px)': {
+//               width: '100%',
+//               padding: '10px',
+//               height: '800px',
+//               borderLeft: 'none',
+//             },
+//             '@media (max-width: 600px)': {
+//               width: '100%',
+//             },
+//           }}
+//         >
+//           {/* 編輯器區域 */}
+//           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+//             <Box
+//               sx={{
+//                 width: '100%',
+//                 height: '100px',
+//                 display: 'flex',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//                 backgroundColor: '#B7C5FF',
+//                 fontSize: '18px',
+//                 fontWeight: 'bold',
+//                 padding: '0 10px',
+//               }}
+//             >
+//               <Box>
+//                 <span style={{ fontSize: '16px' }}>
+//                   {username && `User: ${username}`}
+//                   {activityTitle && ` Class: ${activityTitle}`}<br />
+//                   {groupName && ` Topic: ${groupName}`}
+//                 </span>
+//               </Box>
+//               {/* 筆記側欄 */}
+//               <Box
+//                 sx={{
+//                   width: '50px',
+//                   backgroundColor: 'transparent',
+//                   display: 'flex',
+//                   flexDirection: 'column',
+//                   alignItems: 'center',
+//                   paddingTop: '10px',
+//                 }}
+//               >
+//                 <IconButton
+//                   onClick={handleToggleNoteDrawer}
+//                   sx={{
+//                     color: '#1976d2',
+//                     '&:hover': {
+//                       backgroundColor: 'rgba(0, 0, 0, 0.04)',
+//                     },
+//                     display: 'flex',
+//                     flexDirection: 'column',
+//                     fontSize: '16px',
+//                     fontWeight: 'bold',
+//                     lineHeight: '1.2',
+//                     padding: '8px',
+//                   }}
+//                 >
+//                   <span>N</span>
+//                   <span>O</span>
+//                   <span>T</span>
+//                   <span>E</span>
+//                 </IconButton>
+//               </Box>
+//             </Box>
+//             <Box sx={{ flex: 1, overflowY: 'auto' }}>
+//               <FroalaEditor
+//                 tag="textarea"
+//                 config={config}
+//                 model={editorContent}
+//                 onModelChange={(value) => setEditorContent(value)}
+//                 style={{ height: '100%' }}
+//               />
+//             </Box>
+//             <Box sx={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '10px' }}>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={handleTempSave}
+//               >
+//                 Temporary
+//               </Button>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={handleEssaySuggestion}
+//               >
+//                 Essay Suggestion
+//               </Button>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={() => setOpenConfirmSubmitDialog(true)}
+//                 disabled={isSubmitDisabled}
+//               >
+//                 Submit
+//               </Button>
+//             </Box>
+//           </Box>
+//         </Box>
+//       </Box>
+
+//       {/* 提交確認提示 */}
+//       <Dialog open={openConfirmSubmitDialog} onClose={() => setOpenConfirmSubmitDialog(false)}>
+//         <DialogTitle>確認提交</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             您確定要提交嗎？提交後無法編輯內容。
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setOpenConfirmSubmitDialog(false)} color="primary">
+//             關閉
+//           </Button>
+//           <Button onClick={handleConfirmSubmit} color="primary" autoFocus>
+//             確定
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Dialog open={openReminderDialog} onClose={handleCloseReminderDialog}>
+//         <DialogTitle>Notice</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             Please discuss with the AI Writing Assistant before you start writing!
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={handleCloseReminderDialog} color="primary">
+//             OK！
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Dialog open={openTempSaveDialog} onClose={handleCloseTempSaveDialog}>
+//         <DialogTitle>提示</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             暫存成功！
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={handleCloseTempSaveDialog} color="primary">
+//             確定
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       {/* 筆記側欄 Drawer */}
+//       <Drawer
+//         anchor="right"
+//         open={openNoteDrawer}
+//         onClose={handleToggleNoteDrawer}
+//         sx={{
+//           '& .MuiDrawer-paper': {
+//             width: '500px',
+//             maxWidth: '90vw',
+//             height: '100%',
+//             '@media (max-width: 600px)': {
+//               width: '90vw',
+//             },
+//           },
+//         }}
+//       >
+//         <Box sx={{ p: 2 }}>
+//           <DialogTitle>Note Area</DialogTitle>
+//           <Tooltip
+//             title="Capture your thoughts before they fly away！"
+//             placement="top"
+//             arrow
+//           >
+//             <IconButton sx={{ padding: 0, color: '#000000' }}>
+//               <HelpOutline sx={{ fontSize: '28px' }} />
+//             </IconButton>
+//           </Tooltip>
+//           <DialogContent>
+//             <TextField
+//               label="Jot down your ideas"
+//               value={noteContent}
+//               onChange={handleNoteChange}
+//               multiline
+//               rows={15}
+//               fullWidth
+//               variant="outlined"
+//               sx={{ height: '90%' }}
+//             />
+//           </DialogContent>
+//           <DialogActions>
+//             <Button onClick={handleToggleNoteDrawer} color="primary">
+//               Save & Close
+//             </Button>
+//           </DialogActions>
+//         </Box>
+//       </Drawer>
+
+//       {/* 聊天室側欄 Drawer */}
+//       <Drawer
+//         anchor="left"
+//         open={openChatSidebar}
+//         onClose={handleToggleChatSidebar}
+//         sx={{
+//           '& .MuiDrawer-paper': {
+//             width: '200px',
+//             maxWidth: '90vw',
+//             height: '100%',
+//             backgroundColor: '#f5f5f5',
+//             padding: '10px',
+//             '@media (max-width: 600px)': {
+//               width: '80vw',
+//             },
+//           },
+//         }}
+//       >
+//         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px', p: 2 }}>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={handleViewHistory}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             View History
+//           </Button>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={handleCreateSession}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             Create New Chat
+//           </Button>
+
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={() => {
+//               navigate('/teacher/teacher_home');
+//               setOpenChatSidebar(false);
+//             }}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             Home
+//           </Button>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={() => {
+//               navigate('/About_teacher');
+//               setOpenChatSidebar(false);
+//             }}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             About
+//           </Button>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={() => {
+//               navigate('/manual');
+//               setOpenChatSidebar(false);
+//             }}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             Manual
+//           </Button>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={() => {
+//               navigate('/home');
+//               setOpenChatSidebar(false);
+//             }}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             WritingArea
+//           </Button>
+
+//           <Button
+//             variant="contained"
+//             color="primary"
+//              onClick={() => window.open('https://kf6.nccu.edu.tw/', '_blank')}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             KF
+//           </Button>
+
+//         </Box>
+//       </Drawer>
+
+//       {/* 歷史紀錄對話框 */}
+//       <Dialog
+//         open={openHistoryDialog}
+//         onClose={() => setOpenHistoryDialog(false)}
+//         sx={{
+//           '& .MuiDialog-container .MuiPaper-root': {
+//             width: '500px',
+//             maxWidth: '90vw',
+//           },
+//         }}
+//       >
+//         <DialogTitle>聊天歷史紀錄</DialogTitle>
+//         <DialogContent>
+//           {chatHistory.length === 0 ? (
+//             <DialogContentText>暫無歷史紀錄</DialogContentText>
+//           ) : (
+//             <List>
+//               {chatHistory.map((session, index) => (
+//                 <ListItem key={index} disablePadding>
+//                   <ListItemButton onClick={() => handleLoadHistory(session)}>
+//                     <ListItemText
+//                       primary={`會話 ${session.sessionId}`}
+//                       secondary={
+//                         <>
+//                           {`創建時間: ${formatDateTime(session.createdAt)}`}<br />
+//                           {session.messages[0]?.content
+//                             ? session.messages[0].content.substring(0, 50) + '...'
+//                             : '無訊息'}
+//                         </>
+//                       }
+//                     />
+//                   </ListItemButton>
+//                 </ListItem>
+//               ))}
+//             </List>
+//           )}
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setOpenHistoryDialog(false)} color="primary">
+//             關閉
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+//     </div>
+//   );
+// };
+
+// export default WritingArea;
+
+
+
+//+框限版本
+// import React, { useState, useEffect, useRef } from 'react';
+// import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField, List, ListItem, ListItemText, Avatar, IconButton, ListItemButton, Drawer, Tooltip } from '@mui/material';
+// import { Box } from '@mui/system';
+// import FroalaEditor from 'react-froala-wysiwyg';
+// import 'froala-editor/js/plugins.pkgd.min.js';
+// import 'froala-editor/css/froala_editor.pkgd.min.css';
+// import 'froala-editor/css/froala_style.min.css';
+// import axios from 'axios';
+// import Navbar from "../components/Navbar_Student";
+// import userAvatar from "../assets/學生ICON.png";
+// import assistantAvatar from "../assets/AI_LOGOICON.png";
+// import sendArrow from '../assets/發送.png';
+// import HelpOutline from '@mui/icons-material/HelpOutline';
+
+// const apiAxios = axios.create({
+//   baseURL: 'http://140.115.126.27:4000',
+//   timeout: 10000,
+// });
+
+// apiAxios.interceptors.request.use(
+//   (config) => {
+//     const token = localStorage.getItem('token');
+//     if (token) {
+//       config.headers.Authorization = `Bearer ${token}`;
+//     }
+//     return config;
+//   },
+//   (error) => Promise.reject(error)
+// );
+
+// const WritingArea = () => {
+//   const [editorContent, setEditorContent] = useState('');
+//   const [openReminderDialog, setOpenReminderDialog] = useState(false);
+//   const [openTempSaveDialog, setOpenTempSaveDialog] = useState(false);
+//   const [openNoteDrawer, setOpenNoteDrawer] = useState(false);
+//   const [openHistoryDialog, setOpenHistoryDialog] = useState(false);
+//   const [openChatSidebar, setOpenChatSidebar] = useState(false);
+//   const [noteContent, setNoteContent] = useState('');
+//   const [currentMessages, setCurrentMessages] = useState([]);
+//   const [chatHistory, setChatHistory] = useState([]);
+//   const [userInput, setUserInput] = useState('');
+//   const [errorMessage, setErrorMessage] = useState('');
+//   const [sessionId, setSessionId] = useState('');
+//   const [activityTitle, setActivityTitle] = useState('');
+//   const [groupName, setGroupName] = useState('');
+//   const [username, setUsername] = useState('');
+//   const [isSubmitDisabled, setIsSubmitDisabled] = useState(false);
+//   const [openConfirmSubmitDialog, setOpenConfirmSubmitDialog] = useState(false);
+//   const chatEndRef = useRef(null);
+
+//   const RAGFLOW_API_URL = 'https://ragflow.lazyinwork.com/api/v1';
+//   const RAGFLOW_API_KEY = 'ragflow-hmY2YzMjRjMWQ5YTExZjBhMGQ5MDI0Mm';
+//   const AGENT_ID = '8f34f200ef5911ef91480242ac120005';
+
+//   const scrollToBottom = () => {
+//     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+//   };
+
+//   useEffect(() => {
+//     scrollToBottom();
+//   }, [currentMessages]);
+
+//   useEffect(() => {
+//     const savedActivityTitle = localStorage.getItem('activityTitle');
+//     if (savedActivityTitle) {
+//       setActivityTitle(savedActivityTitle);
+//     }
+
+//     const savedGroupName = localStorage.getItem('groupName');
+//     if (savedGroupName) {
+//       setGroupName(savedGroupName);
+//     }
+
+//     const savedUsername = localStorage.getItem('name');
+//     if (savedUsername && savedActivityTitle && savedGroupName) {
+//       setUsername(savedUsername);
+
+//       const fetchEssayContent = async () => {
+//         try {
+//           const response = await apiAxios.get(`/api/get-essay/${encodeURIComponent(savedUsername)}`, {
+//             params: { className: savedActivityTitle, theme: savedGroupName },
+//           });
+//           if (response.data.success) {
+//             setEditorContent(response.data.data.essayContent || '');
+//             setNoteContent(response.data.data.noteContent || '');
+//           } else {
+//             console.warn('未找到符合學生姓名、班級和主題的議論文內容，使用空白內容');
+//             setEditorContent('');
+//             setNoteContent('');
+//           }
+//         } catch (error) {
+//           console.error('從 Notion 獲取議論文內容失敗:', error);
+//           setEditorContent('');
+//           setNoteContent('');
+//         }
+//       };
+
+//       fetchEssayContent();
+//     }
+
+//     const savedNote = localStorage.getItem('noteData');
+//     if (savedNote) {
+//       setNoteContent(savedNote);
+//     }
+
+//     setOpenReminderDialog(true);
+
+//     handleCreateSession();
+//   }, []);
+
+//   const handleCreateSession = async () => {
+//     if (sessionId && currentMessages.length > 0) {
+//       setChatHistory((prev) => [
+//         ...prev,
+//         { sessionId, messages: [...currentMessages], createdAt: new Date().toISOString() },
+//       ]);
+//     }
+
+//     setCurrentMessages([]);
+//     setErrorMessage('');
+
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/sessions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({}),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('創建會話回應:', data);
+
+//       if (data.code === 0) {
+//         const newSessionId = data.data?.id;
+//         setSessionId(newSessionId);
+//         setErrorMessage(`✅ 成功創建聊天會話：${newSessionId}`);
+
+//         await fetchOpeningMessage(newSessionId);
+//       } else {
+//         setErrorMessage(`❌ 創建會話失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 創建會話錯誤：${error.message}`);
+//       console.error('創建會話失敗:', error);
+//     }
+//   };
+
+//   const fetchOpeningMessage = async (sessionId) => {
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/completions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({
+//           question: "Hello",
+//           stream: false,
+//           session_id: sessionId,
+//         }),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('開場白回應:', data);
+
+//       if (data.code === 0) {
+//         const content = data.data?.answer || 'No opening message received';
+//         setCurrentMessages((prev) => [
+//           ...prev,
+//           { role: 'assistant', content, created_at: new Date().toISOString() },
+//         ]);
+//       } else {
+//         setErrorMessage(`❌ 獲取開場白失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 獲取開場白錯誤：${error.message}`);
+//       console.error('獲取開場白失敗:', error);
+//     }
+//   };
+
+//   const handleSendMessage = async (message) => {
+//     if (!message.trim()) {
+//       setErrorMessage('❌ 請輸入問題！');
+//       return;
+//     }
+
+//     if (!sessionId) {
+//       setErrorMessage('❌ 請先創建聊天會話！');
+//       return;
+//     }
+
+//     const newMessage = { role: 'user', content: message, created_at: new Date().toISOString() };
+//     setCurrentMessages((prev) => [...prev, newMessage]);
+//     setErrorMessage('');
+
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/completions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({
+//           question: message,
+//           stream: false,
+//           session_id: sessionId,
+//         }),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('API 回應:', data);
+
+//       if (data.code === 0) {
+//         const content = data.data?.answer || 'No content received from API';
+//         setCurrentMessages((prev) => [
+//           ...prev,
+//           { role: 'assistant', content, created_at: new Date().toISOString() },
+//         ]);
+//       } else {
+//         setErrorMessage(`❌ 回應失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 發送訊息失敗：${error.message}`);
+//       console.error('發送訊息失敗:', error);
+//     }
+//   };
+
+//   const stripHtml = (html) => {
+//     const tempDiv = document.createElement('div');
+//     tempDiv.innerHTML = html;
+//     const watermark = tempDiv.querySelector('p[data-f-id="pbf"]');
+//     if (watermark) {
+//       watermark.remove();
+//     }
+//     return tempDiv.textContent.trim();
+//   };
+
+//   const handleEssaySuggestion = () => {
+//     if (!editorContent.trim()) {
+//       setErrorMessage('❌ 寫作區內容為空，請先輸入議論文內容！');
+//       return;
+//     }
+//     const plainText = stripHtml(editorContent);
+//     if (!plainText) {
+//       setErrorMessage('❌ 寫作區無有效文字內容！');
+//       return;
+//     }
+//     const suggestionPrompt = `Please provide suggestions for improving the following essay content:\n\n${plainText}`;
+//     handleSendMessage(suggestionPrompt);
+//   };
+
+//   const handleViewHistory = () => {
+//     if (sessionId && currentMessages.length > 0) {
+//       setChatHistory((prev) => {
+//         const existingSession = prev.find((session) => session.sessionId === sessionId);
+//         if (existingSession) {
+//           existingSession.messages = [...currentMessages];
+//           existingSession.createdAt = new Date().toISOString();
+//           return [...prev];
+//         } else {
+//           return [
+//             ...prev,
+//             { sessionId, messages: [...currentMessages], createdAt: new Date().toISOString() },
+//           ];
+//         }
+//       });
+//     }
+//     setOpenHistoryDialog(true);
+//   };
+
+//   const handleLoadHistory = (session) => {
+//     setCurrentMessages(session.messages);
+//     setSessionId(session.sessionId);
+//     setOpenHistoryDialog(false);
+//   };
+
+//   const formatDateTime = (isoString) => {
+//     const date = new Date(isoString);
+//     return date.toLocaleString('zh-TW', {
+//       year: 'numeric',
+//       month: '2-digit',
+//       day: '2-digit',
+//       hour: '2-digit',
+//       minute: '2-digit',
+//       second: '2-digit',
+//     });
+//   };
+
+//   const handleSubmit = async () => {
+//     if (editorContent.length > 2000) {
+//       alert('議論文內容超過 2000 字元，將自動分段儲存至資料庫');
+//     }
+//     if (noteContent.length > 2000) {
+//       alert('筆記內容超過 2000 字元，將自動分段儲存至資料庫');
+//     }
+
+//     try {
+//       const response = await apiAxios.post('/api/submit-to-notion', {
+//         studentName: username || '未命名使用者',
+//         theme: groupName || '未指定主題',
+//         essayContent: editorContent || '無內容',
+//         className: activityTitle || '未指定班級',
+//         noteContent: noteContent || '',
+//       });
+
+//       if (response.data.success) {
+//         alert('繳交上傳成功！');
+//         setIsSubmitDisabled(true);
+//       } else {
+//         alert(`繳交上傳失敗：${response.data.message || '未知錯誤'}`);
+//       }
+//     } catch (error) {
+//       console.error('發送到 Notion 時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       alert(`繳交上傳失敗：${errorMessage}`);
+//     }
+//   };
+
+//   const handleConfirmSubmit = () => {
+//     setOpenConfirmSubmitDialog(false);
+//     handleSubmit();
+//   };
+
+//   const handleTempSave = () => {
+//     setOpenTempSaveDialog(true);
+//   };
+
+//   const handleUpdateNote = async () => {
+//     try {
+//       const response = await apiAxios.patch('/api/update-note', {
+//         studentName: username || '未命名使用者',
+//         className: activityTitle || '未指定班級',
+//         theme: groupName || '未指定主題',
+//         noteContent: noteContent || '',
+//         essayContent: editorContent || '',
+//       });
+
+//       if (response.data.success) {
+//         console.log('筆記區和寫作區內容已更新到 Notion');
+//       } else {
+//         console.warn('更新筆記區和寫作區內容失敗:', response.data.error);
+//       }
+//     } catch (error) {
+//       console.error('更新筆記區和寫作區內容時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       console.warn(`更新失敗：${errorMessage}`);
+//     }
+//   };
+
+//   const config = {
+//     placeholderText: '開始編輯...',
+//     charCounterCount: false,
+//     toolbarButtons: ['bold', 'italic', 'underline', 'strikeThrough', 'fontSize', 'color', 'fontFamily', 'backColor',
+//       'align', 'orderedList', 'unorderedList', 'insertImage', 'insertTable', 'link', 'undo', 'redo',
+//       'clearFormatting', 'fullscreen', 'html', 'insertHR', 'specialCharacters'],
+//   };
+
+//   const handleCloseReminderDialog = () => {
+//     setOpenReminderDialog(false);
+//   };
+
+//   const handleCloseTempSaveDialog = () => {
+//     setOpenTempSaveDialog(false);
+//   };
+
+//   const handleToggleNoteDrawer = () => {
+//     setOpenNoteDrawer((prev) => {
+//       if (prev) {
+//         localStorage.setItem('noteData', noteContent);
+//         handleUpdateNote();
+//       }
+//       return !prev;
+//     });
+//   };
+
+//   const handleNoteChange = (e) => {
+//     setNoteContent(e.target.value);
+//   };
+
+//   const handleToggleChatSidebar = () => {
+//     setOpenChatSidebar((prev) => !prev);
+//   };
+
+//   return (
+//     <div>
+//       <Navbar />
+//       <Box
+//         sx={{
+//           display: 'flex',
+//           flexDirection: { xs: 'column', md: 'row' },
+//           minHeight: 'calc(100vh - 120px)',
+//           padding: '10px',
+//           gap: '10px',
+//         }}
+//       >
+//         {/* 左邊容器：聊天室與側欄 */}
+//         <Box
+//           sx={{
+//             width: { md: '50%', xs: '100%' },
+//             padding: '5px',
+//             borderRight: { md: '1px solid #ccc', xs: 'none' },
+//             display: 'flex',
+//             flexDirection: 'row',
+//             height: { md: '600px', sm: '800px', xs: 'auto' },
+//             '@media (max-width: 700px)': {
+//               height: '800px',
+//             },
+//           }}
+//         >
+//           {/* 聊天室側欄 */}
+//           <Box
+//             sx={{
+//               width: '50px',
+//               backgroundColor: 'transparent',
+//               display: 'flex',
+//               flexDirection: 'column',
+//               alignItems: 'center',
+//               paddingTop: '10px',
+//             }}
+//           >
+//             <IconButton
+//               onClick={handleToggleChatSidebar}
+//               sx={{
+//                 color: '#1976d2',
+//                 '&:hover': {
+//                   backgroundColor: 'rgba(0, 0, 0, 0.04)',
+//                 },
+//                 display: 'flex',
+//                 flexDirection: 'column',
+//                 fontSize: '16px',
+//                 fontWeight: 'bold',
+//                 lineHeight: '1.2',
+//                 padding: '8px',
+//                 border: '2px solid #1976d2',
+//                 borderRadius: '8px',
+//               }}
+//             >
+//               <span>M</span>
+//               <span>E</span>
+//               <span>N</span>
+//               <span>U</span>
+//             </IconButton>
+//           </Box>
+
+//           {/* 聊天室區域 */}
+//           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+//             <Box
+//               sx={{
+//                 width: '100%',
+//                 height: '100px',
+//                 display: 'flex',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//                 backgroundColor: '#B7C5FF',
+//                 fontSize: '18px',
+//                 fontWeight: 'bold',
+//                 padding: '0 10px',
+//               }}
+//             >
+//               <span style={{ fontSize: '16px' }}>AI Writing Assistant</span>
+//               <Tooltip
+//                 title="I'm here to help you brainstorm, explore, and organize your ideas for a great essay！"
+//                 placement="top"
+//                 arrow
+//               >
+//                 <IconButton sx={{ padding: '0', color: '#000000' }}>
+//                   <HelpOutline sx={{ fontSize: '28px' }} />
+//                 </IconButton>
+//               </Tooltip>
+//             </Box>
+//             <Box
+//               sx={{
+//                 border: '2px solid black',
+//                 borderRadius: '8px',
+//                 padding: '10px',
+//                 flex: 1,
+//                 overflowY: 'auto',
+//                 backgroundColor: '#FFFFFF',
+//                 marginBottom: '5px',
+//                 marginTop: '10px',
+//                 display: 'flex',
+//                 flexDirection: 'column',
+//               }}
+//             >
+//               {errorMessage && (
+//                 <Box
+//                   sx={{
+//                     mt: 1,
+//                     p: 1,
+//                     backgroundColor: '#f0f0f0',
+//                     borderRadius: '4px',
+//                     fontSize: '14px',
+//                   }}
+//                 >
+//                   {errorMessage}
+//                 </Box>
+//               )}
+//               <List
+//                 sx={{ flexGrow: 1, overflowY: 'auto', paddingBottom: '5px' }}
+//               >
+//                 {currentMessages.map((msg, index) => (
+//                   <ListItem
+//                     key={index}
+//                     sx={{
+//                       justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+//                       textAlign: msg.role === 'user' ? 'right' : 'left',
+//                       marginBottom: '5px',
+//                     }}
+//                   >
+//                     <Box
+//                       sx={{
+//                         display: 'flex',
+//                         flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+//                         alignItems: 'flex-start',
+//                       }}
+//                     >
+//                       <Avatar
+//                         alt={msg.role === 'user' ? 'User' : 'AI Assistant'}
+//                         src={msg.role === 'user' ? userAvatar : assistantAvatar}
+//                         sx={{ width: 40, height: 40, margin: '0 8px' }}
+//                       />
+//                       <Box
+//                         sx={{
+//                           maxWidth: '80%',
+//                           p: 2,
+//                           borderRadius: '8px',
+//                           backgroundColor: msg.role === 'user' ? '#DCF8C6' : '#F0F0F0',
+//                         }}
+//                       >
+//                         <ListItemText
+//                           primary={msg.content || 'No content'}
+//                           secondary={formatDateTime(msg.created_at)}
+//                           sx={{
+//                             wordBreak: 'break-word',
+//                             textAlign: 'left',
+//                           }}
+//                         />
+//                       </Box>
+//                     </Box>
+//                   </ListItem>
+//                 ))}
+//                 <div ref={chatEndRef} />
+//               </List>
+//               <Box sx={{ display: 'flex', mt: 2 }}>
+//                 <TextField
+//                   fullWidth
+//                   value={userInput}
+//                   onChange={(e) => setUserInput(e.target.value)}
+//                   placeholder="請輸入與寫作主題相關的內容..."
+//                   onKeyPress={(e) => {
+//                     if (e.key === 'Enter' && !e.shiftKey) {
+//                       e.preventDefault();
+//                       handleSendMessage(userInput);
+//                     }
+//                   }}
+//                   variant="standard"
+//                   sx={{ marginRight: '8px' }}
+//                 />
+//                 <IconButton
+//                   color="primary"
+//                   onClick={() => handleSendMessage(userInput)}
+//                   sx={{ padding: '8px' }}
+//                 >
+//                   <img src={sendArrow} alt="Send" style={{ width: '40px', height: '40px' }} />
+//                 </IconButton>
+//               </Box>
+//             </Box>
+//           </Box>
+//         </Box>
+
+//         {/* 右邊容器：文字編輯器與側欄 */}
+//         <Box
+//           sx={{
+//             width: { md: '50%', xs: '100%' },
+//             borderLeft: { md: '1px solid #ccc', xs: 'none' },
+//             position: 'relative',
+//             height: { md: '600px', sm: '800px', xs: 'auto' },
+//             display: 'flex',
+//             flexDirection: 'row',
+//             '@media (max-width: 700px)': {
+//               width: '100%',
+//               padding: '10px',
+//               height: '800px',
+//               borderLeft: 'none',
+//             },
+//             '@media (max-width: 600px)': {
+//               width: '100%',
+//             },
+//           }}
+//         >
+//           {/* 編輯器區域 */}
+//           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+//             <Box
+//               sx={{
+//                 width: '100%',
+//                 height: '100px',
+//                 display: 'flex',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//                 backgroundColor: '#B7C5FF',
+//                 fontSize: '18px',
+//                 fontWeight: 'bold',
+//                 padding: '0 10px',
+//               }}
+//             >
+//               <Box>
+//                 <span style={{ fontSize: '16px' }}>
+//                   {username && `User: ${username}`}
+//                   {activityTitle && ` Class: ${activityTitle}`}<br />
+//                   {groupName && ` Topic: ${groupName}`}
+//                 </span>
+//               </Box>
+//               {/* 筆記側欄 */}
+//               <Box
+//                 sx={{
+//                   width: '50px',
+//                   backgroundColor: 'transparent',
+//                   display: 'flex',
+//                   flexDirection: 'column',
+//                   alignItems: 'center',
+//                   paddingTop: '10px',
+//                 }}
+//               >
+//                 <IconButton
+//                   onClick={handleToggleNoteDrawer}
+//                   sx={{
+//                     color: '#1976d2',
+//                     '&:hover': {
+//                       backgroundColor: 'rgba(0, 0, 0, 0.04)',
+//                     },
+//                     display: 'flex',
+//                     flexDirection: 'column',
+//                     fontSize: '16px',
+//                     fontWeight: 'bold',
+//                     lineHeight: '1.2',
+//                     padding: '8px',
+//                     border: '2px solid #1976d2',
+//                     borderRadius: '8px',
+//                   }}
+//                 >
+//                   <span>N</span>
+//                   <span>O</span>
+//                   <span>T</span>
+//                   <span>E</span>
+//                 </IconButton>
+//               </Box>
+//             </Box>
+//             <Box sx={{ flex: 1, overflowY: 'auto' }}>
+//               <FroalaEditor
+//                 tag="textarea"
+//                 config={config}
+//                 model={editorContent}
+//                 onModelChange={(value) => setEditorContent(value)}
+//                 style={{ height: '100%' }}
+//               />
+//             </Box>
+//             <Box sx={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '10px' }}>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={handleTempSave}
+//               >
+//                 Temporary
+//               </Button>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={handleEssaySuggestion}
+//               >
+//                 Essay Suggestion
+//               </Button>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={() => setOpenConfirmSubmitDialog(true)}
+//                 disabled={isSubmitDisabled}
+//               >
+//                 Submit
+//               </Button>
+//             </Box>
+//           </Box>
+//         </Box>
+//       </Box>
+
+//       {/* 提交確認提示 */}
+//       <Dialog open={openConfirmSubmitDialog} onClose={() => setOpenConfirmSubmitDialog(false)}>
+//         <DialogTitle>確認提交</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             您確定要提交嗎？提交後無法編輯內容。
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setOpenConfirmSubmitDialog(false)} color="primary">
+//             關閉
+//           </Button>
+//           <Button onClick={handleConfirmSubmit} color="primary" autoFocus>
+//             確定
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Dialog open={openReminderDialog} onClose={handleCloseReminderDialog}>
+//         <DialogTitle>Notice</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             Please discuss with the AI Writing Assistant before you start writing!
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={handleCloseReminderDialog} color="primary">
+//             OK！
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Dialog open={openTempSaveDialog} onClose={handleCloseTempSaveDialog}>
+//         <DialogTitle>提示</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             暫存成功！
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={handleCloseTempSaveDialog} color="primary">
+//             確定
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       {/* 筆記側欄 Drawer */}
+//       <Drawer
+//         anchor="right"
+//         open={openNoteDrawer}
+//         onClose={handleToggleNoteDrawer}
+//         sx={{
+//           '& .MuiDrawer-paper': {
+//             width: '500px',
+//             maxWidth: '90vw',
+//             height: '100%',
+//             '@media (max-width: 600px)': {
+//               width: '90vw',
+//             },
+//           },
+//         }}
+//       >
+//         <Box sx={{ p: 2 }}>
+//           <DialogTitle>Note Area</DialogTitle>
+//           <Tooltip
+//             title="Capture your thoughts before they fly away！"
+//             placement="top"
+//             arrow
+//           >
+//             <IconButton sx={{ padding: 0, color: '#000000' }}>
+//               <HelpOutline sx={{ fontSize: '28px' }} />
+//             </IconButton>
+//           </Tooltip>
+//           <DialogContent>
+//             <TextField
+//               label="Jot down your ideas"
+//               value={noteContent}
+//               onChange={handleNoteChange}
+//               multiline
+//               rows={15}
+//               fullWidth
+//               variant="outlined"
+//               sx={{ height: '90%' }}
+//             />
+//           </DialogContent>
+//           <DialogActions>
+//             <Button onClick={handleToggleNoteDrawer} color="primary">
+//               Save & Close
+//             </Button>
+//           </DialogActions>
+//         </Box>
+//       </Drawer>
+
+//       {/* 聊天室側欄 Drawer */}
+//       <Drawer
+//         anchor="left"
+//         open={openChatSidebar}
+//         onClose={handleToggleChatSidebar}
+//         sx={{
+//           '& .MuiDrawer-paper': {
+//             width: '200px',
+//             maxWidth: '90vw',
+//             height: '100%',
+//             backgroundColor: '#f5f5f5',
+//             padding: '10px',
+//             '@media (max-width: 600px)': {
+//               width: '80vw',
+//             },
+//           },
+//         }}
+//       >
+//         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px', p: 2 }}>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={handleViewHistory}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             View History
+//           </Button>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={handleCreateSession}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             Create New Chat
+//           </Button>
+//         </Box>
+//       </Drawer>
+
+//       {/* 歷史紀錄對話框 */}
+//       <Dialog
+//         open={openHistoryDialog}
+//         onClose={() => setOpenHistoryDialog(false)}
+//         sx={{
+//           '& .MuiDialog-container .MuiPaper-root': {
+//             width: '500px',
+//             maxWidth: '90vw',
+//           },
+//         }}
+//       >
+//         <DialogTitle>聊天歷史紀錄</DialogTitle>
+//         <DialogContent>
+//           {chatHistory.length === 0 ? (
+//             <DialogContentText>暫無歷史紀錄</DialogContentText>
+//           ) : (
+//             <List>
+//               {chatHistory.map((session, index) => (
+//                 <ListItem key={index} disablePadding>
+//                   <ListItemButton onClick={() => handleLoadHistory(session)}>
+//                     <ListItemText
+//                       primary={`會話 ${session.sessionId}`}
+//                       secondary={
+//                         <>
+//                           {`創建時間: ${formatDateTime(session.createdAt)}`}<br />
+//                           {session.messages[0]?.content
+//                             ? session.messages[0].content.substring(0, 50) + '...'
+//                             : '無訊息'}
+//                         </>
+//                       }
+//                     />
+//                   </ListItemButton>
+//                 </ListItem>
+//               ))}
+//             </List>
+//           )}
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setOpenHistoryDialog(false)} color="primary">
+//             關閉
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+//     </div>
+//   );
+// };
+
+// export default WritingArea;
+
+
+
+// import React, { useState, useEffect, useRef } from 'react';
+// import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField, List, ListItem, ListItemText, Avatar, IconButton, ListItemButton, Drawer, Tooltip } from '@mui/material';
+// import { Box } from '@mui/system';
+// import FroalaEditor from 'react-froala-wysiwyg';
+// import 'froala-editor/js/plugins.pkgd.min.js';
+// import 'froala-editor/css/froala_editor.pkgd.min.css';
+// import 'froala-editor/css/froala_style.min.css';
+// import axios from 'axios';
+// import Navbar from "../components/Navbar_Student";
+// import userAvatar from "../assets/學生ICON.png";
+// import assistantAvatar from "../assets/AI_LOGOICON.png";
+// import sendArrow from '../assets/發送.png';
+// import HelpOutline from '@mui/icons-material/HelpOutline';
+
+// const apiAxios = axios.create({
+//   baseURL: 'http://140.115.126.27:4000',
+//   timeout: 10000,
+// });
+
+// apiAxios.interceptors.request.use(
+//   (config) => {
+//     const token = localStorage.getItem('token');
+//     if (token) {
+//       config.headers.Authorization = `Bearer ${token}`;
+//     }
+//     return config;
+//   },
+//   (error) => Promise.reject(error)
+// );
+
+// const WritingArea = () => {
+//   const [editorContent, setEditorContent] = useState('');
+//   const [openReminderDialog, setOpenReminderDialog] = useState(false);
+//   const [openTempSaveDialog, setOpenTempSaveDialog] = useState(false);
+//   const [openNoteDrawer, setOpenNoteDrawer] = useState(false);
+//   const [openHistoryDialog, setOpenHistoryDialog] = useState(false);
+//   const [openChatSidebar, setOpenChatSidebar] = useState(false);
+//   const [noteContent, setNoteContent] = useState('');
+//   const [currentMessages, setCurrentMessages] = useState([]);
+//   const [chatHistory, setChatHistory] = useState([]);
+//   const [userInput, setUserInput] = useState('');
+//   const [errorMessage, setErrorMessage] = useState('');
+//   const [sessionId, setSessionId] = useState('');
+//   const [activityTitle, setActivityTitle] = useState('');
+//   const [groupName, setGroupName] = useState('');
+//   const [username, setUsername] = useState('');
+//   const [isSubmitDisabled, setIsSubmitDisabled] = useState(false);
+//   const [openConfirmSubmitDialog, setOpenConfirmSubmitDialog] = useState(false);
+//   const chatEndRef = useRef(null);
+
+//   const RAGFLOW_API_URL = 'https://ragflow.lazyinwork.com/api/v1';
+//   const RAGFLOW_API_KEY = 'ragflow-hmY2YzMjRjMWQ5YTExZjBhMGQ5MDI0Mm';
+//   const AGENT_ID = '8f34f200ef5911ef91480242ac120005';
+
+//   const scrollToBottom = () => {
+//     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+//   };
+
+//   useEffect(() => {
+//     scrollToBottom();
+//   }, [currentMessages]);
+
+//   useEffect(() => {
+//     const savedActivityTitle = localStorage.getItem('activityTitle');
+//     if (savedActivityTitle) {
+//       setActivityTitle(savedActivityTitle);
+//     }
+
+//     const savedGroupName = localStorage.getItem('groupName');
+//     if (savedGroupName) {
+//       setGroupName(savedGroupName);
+//     }
+
+//     const savedUsername = localStorage.getItem('name');
+//     if (savedUsername && savedActivityTitle && savedGroupName) {
+//       setUsername(savedUsername);
+
+//       const fetchEssayContent = async () => {
+//         try {
+//           const response = await apiAxios.get(`/api/get-essay/${encodeURIComponent(savedUsername)}`, {
+//             params: { className: savedActivityTitle, theme: savedGroupName },
+//           });
+//           if (response.data.success) {
+//             setEditorContent(response.data.data.essayContent || '');
+//             setNoteContent(response.data.data.noteContent || '');
+//           } else {
+//             console.warn('未找到符合學生姓名、班級和主題的議論文內容，使用空白內容');
+//             setEditorContent('');
+//             setNoteContent('');
+//           }
+//         } catch (error) {
+//           console.error('從 Notion 獲取議論文內容失敗:', error);
+//           setEditorContent('');
+//           setNoteContent('');
+//         }
+//       };
+
+//       fetchEssayContent();
+//     }
+
+//     const savedNote = localStorage.getItem('noteData');
+//     if (savedNote) {
+//       setNoteContent(savedNote);
+//     }
+
+//     setOpenReminderDialog(true);
+
+//     handleCreateSession();
+//   }, []);
+
+//   const handleCreateSession = async () => {
+//     if (sessionId && currentMessages.length > 0) {
+//       setChatHistory((prev) => [
+//         ...prev,
+//         { sessionId, messages: [...currentMessages], createdAt: new Date().toISOString() },
+//       ]);
+//     }
+
+//     setCurrentMessages([]);
+//     setErrorMessage('');
+
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/sessions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({}),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('創建會話回應:', data);
+
+//       if (data.code === 0) {
+//         const newSessionId = data.data?.id;
+//         setSessionId(newSessionId);
+//         setErrorMessage(`✅ 成功創建聊天會話：${newSessionId}`);
+
+//         await fetchOpeningMessage(newSessionId);
+//       } else {
+//         setErrorMessage(`❌ 創建會話失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 創建會話錯誤：${error.message}`);
+//       console.error('創建會話失敗:', error);
+//     }
+//   };
+
+//   const fetchOpeningMessage = async (sessionId) => {
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/completions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({
+//           question: "Hello",
+//           stream: false,
+//           session_id: sessionId,
+//         }),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('開場白回應:', data);
+
+//       if (data.code === 0) {
+//         const content = data.data?.answer || 'No opening message received';
+//         setCurrentMessages((prev) => [
+//           ...prev,
+//           { role: 'assistant', content, created_at: new Date().toISOString() },
+//         ]);
+//       } else {
+//         setErrorMessage(`❌ 獲取開場白失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 獲取開場白錯誤：${error.message}`);
+//       console.error('獲取開場白失敗:', error);
+//     }
+//   };
+
+//   const handleSendMessage = async (message) => {
+//     if (!message.trim()) {
+//       setErrorMessage('❌ 請輸入問題！');
+//       return;
+//     }
+
+//     if (!sessionId) {
+//       setErrorMessage('❌ 請先創建聊天會話！');
+//       return;
+//     }
+
+//     const newMessage = { role: 'user', content: message, created_at: new Date().toISOString() };
+//     setCurrentMessages((prev) => [...prev, newMessage]);
+//     setErrorMessage('');
+
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/completions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({
+//           question: message,
+//           stream: false,
+//           session_id: sessionId,
+//         }),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('API 回應:', data);
+
+//       if (data.code === 0) {
+//         const content = data.data?.answer || 'No content received from API';
+//         setCurrentMessages((prev) => [
+//           ...prev,
+//           { role: 'assistant', content, created_at: new Date().toISOString() },
+//         ]);
+//       } else {
+//         setErrorMessage(`❌ 回應失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 發送訊息失敗：${error.message}`);
+//       console.error('發送訊息失敗:', error);
+//     }
+//   };
+
+//   const stripHtml = (html) => {
+//     const tempDiv = document.createElement('div');
+//     tempDiv.innerHTML = html;
+//     const watermark = tempDiv.querySelector('p[data-f-id="pbf"]');
+//     if (watermark) {
+//       watermark.remove();
+//     }
+//     return tempDiv.textContent.trim();
+//   };
+
+//   const handleEssaySuggestion = () => {
+//     if (!editorContent.trim()) {
+//       setErrorMessage('❌ 寫作區內容為空，請先輸入議論文內容！');
+//       return;
+//     }
+//     const plainText = stripHtml(editorContent);
+//     if (!plainText) {
+//       setErrorMessage('❌ 寫作區無有效文字內容！');
+//       return;
+//     }
+//     const suggestionPrompt = `Please provide suggestions for improving the following essay content:\n\n${plainText}`;
+//     handleSendMessage(suggestionPrompt);
+//   };
+
+//   const handleViewHistory = () => {
+//     if (sessionId && currentMessages.length > 0) {
+//       setChatHistory((prev) => {
+//         const existingSession = prev.find((session) => session.sessionId === sessionId);
+//         if (existingSession) {
+//           existingSession.messages = [...currentMessages];
+//           existingSession.createdAt = new Date().toISOString();
+//           return [...prev];
+//         } else {
+//           return [
+//             ...prev,
+//             { sessionId, messages: [...currentMessages], createdAt: new Date().toISOString() },
+//           ];
+//         }
+//       });
+//     }
+//     setOpenHistoryDialog(true);
+//   };
+
+//   const handleLoadHistory = (session) => {
+//     setCurrentMessages(session.messages);
+//     setSessionId(session.sessionId);
+//     setOpenHistoryDialog(false);
+//   };
+
+//   const formatDateTime = (isoString) => {
+//     const date = new Date(isoString);
+//     return date.toLocaleString('zh-TW', {
+//       year: 'numeric',
+//       month: '2-digit',
+//       day: '2-digit',
+//       hour: '2-digit',
+//       minute: '2-digit',
+//       second: '2-digit',
+//     });
+//   };
+
+//   const handleSubmit = async () => {
+//     if (editorContent.length > 2000) {
+//       alert('議論文內容超過 2000 字元，將自動分段儲存至資料庫');
+//     }
+//     if (noteContent.length > 2000) {
+//       alert('筆記內容超過 2000 字元，將自動分段儲存至資料庫');
+//     }
+
+//     try {
+//       const response = await apiAxios.post('/api/submit-to-notion', {
+//         studentName: username || '未命名使用者',
+//         theme: groupName || '未指定主題',
+//         essayContent: editorContent || '無內容',
+//         className: activityTitle || '未指定班級',
+//         noteContent: noteContent || '',
+//       });
+
+//       if (response.data.success) {
+//         alert('繳交上傳成功！');
+//         setIsSubmitDisabled(true);
+//       } else {
+//         alert(`繳交上傳失敗：${response.data.message || '未知錯誤'}`);
+//       }
+//     } catch (error) {
+//       console.error('發送到 Notion 時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       alert(`繳交上傳失敗：${errorMessage}`);
+//     }
+//   };
+
+//   const handleConfirmSubmit = () => {
+//     setOpenConfirmSubmitDialog(false);
+//     handleSubmit();
+//   };
+
+//   const handleTempSave = () => {
+//     setOpenTempSaveDialog(true);
+//   };
+
+//   const handleUpdateNote = async () => {
+//     try {
+//       const response = await apiAxios.patch('/api/update-note', {
+//         studentName: username || '未命名使用者',
+//         className: activityTitle || '未指定班級',
+//         theme: groupName || '未指定主題',
+//         noteContent: noteContent || '',
+//         essayContent: editorContent || '',
+//       });
+
+//       if (response.data.success) {
+//         console.log('筆記區和寫作區內容已更新到 Notion');
+//       } else {
+//         console.warn('更新筆記區和寫作區內容失敗:', response.data.error);
+//       }
+//     } catch (error) {
+//       console.error('更新筆記區和寫作區內容時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       console.warn(`更新失敗：${errorMessage}`);
+//     }
+//   };
+
+//   const config = {
+//     placeholderText: '開始編輯...',
+//     charCounterCount: false,
+//     toolbarButtons: ['bold', 'italic', 'underline', 'strikeThrough', 'fontSize', 'color', 'fontFamily', 'backColor',
+//       'align', 'orderedList', 'unorderedList', 'insertImage', 'insertTable', 'link', 'undo', 'redo',
+//       'clearFormatting', 'fullscreen', 'html', 'insertHR', 'specialCharacters'],
+//   };
+
+//   const handleCloseReminderDialog = () => {
+//     setOpenReminderDialog(false);
+//   };
+
+//   const handleCloseTempSaveDialog = () => {
+//     setOpenTempSaveDialog(false);
+//   };
+
+//   const handleNoteMouseEnter = () => {
+//     setOpenNoteDrawer(true);
+//   };
+
+//   const handleNoteMouseLeave = () => {
+//     if (openNoteDrawer) {
+//       localStorage.setItem('noteData', noteContent);
+//       handleUpdateNote();
+//       setOpenNoteDrawer(false);
+//     }
+//   };
+
+//   const handleNoteChange = (e) => {
+//     setNoteContent(e.target.value);
+//   };
+
+//   const handleToggleChatSidebar = () => {
+//     setOpenChatSidebar((prev) => !prev);
+//   };
+
+//   return (
+//     <div>
+//       <Navbar />
+//       <Box
+//         sx={{
+//           display: 'flex',
+//           flexDirection: { xs: 'column', md: 'row' },
+//           minHeight: 'calc(100vh - 120px)',
+//           padding: '10px',
+//           gap: '10px',
+//         }}
+//       >
+//         {/* 左邊容器：聊天室與側欄 */}
+//         <Box
+//           sx={{
+//             width: { md: '50%', xs: '100%' },
+//             padding: '5px',
+//             borderRight: { md: '1px solid #ccc', xs: 'none' },
+//             display: 'flex',
+//             flexDirection: 'row',
+//             height: { md: '600px', sm: '800px', xs: 'auto' },
+//             '@media (max-width: 700px)': {
+//               height: '800px',
+//             },
+//           }}
+//         >
+//           {/* 聊天室側欄 */}
+//           <Box
+//             sx={{
+//               width: '50px',
+//               backgroundColor: 'transparent',
+//               display: 'flex',
+//               flexDirection: 'column',
+//               alignItems: 'center',
+//               paddingTop: '10px',
+//             }}
+//           >
+//             <IconButton
+//               onClick={handleToggleChatSidebar}
+//               sx={{
+//                 color: '#1976d2',
+//                 '&:hover': {
+//                   backgroundColor: 'rgba(0, 0, 0, 0.04)',
+//                 },
+//                 display: 'flex',
+//                 flexDirection: 'column',
+//                 fontSize: '16px',
+//                 fontWeight: 'bold',
+//                 lineHeight: '1.2',
+//                 padding: '8px',
+//                 border: '2px solid #1976d2',
+//                 borderRadius: '8px',
+//               }}
+//             >
+//               <span>M</span>
+//               <span>E</span>
+//               <span>N</span>
+//               <span>U</span>
+//             </IconButton>
+//           </Box>
+
+//           {/* 聊天室區域 */}
+//           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+//             <Box
+//               sx={{
+//                 width: '100%',
+//                 height: '100px',
+//                 display: 'flex',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//                 backgroundColor: '#B7C5FF',
+//                 fontSize: '18px',
+//                 fontWeight: 'bold',
+//                 padding: '0 10px',
+//               }}
+//             >
+//               <span style={{ fontSize: '16px' }}>AI Writing Assistant</span>
+//               <Tooltip
+//                 title="I'm here to help you brainstorm, explore, and organize your ideas for a great essay！"
+//                 placement="top"
+//                 arrow
+//                 componentsProps={{
+//                   tooltip: {
+//                     sx: {
+//                       fontSize: '16px',
+//                       padding: '8px 12px',
+//                     },
+//                   },
+//                 }}
+//               >
+//                 <IconButton sx={{ padding: '0', color: '#000000' }}>
+//                   <HelpOutline sx={{ fontSize: '28px' }} />
+//                 </IconButton>
+//               </Tooltip>
+//             </Box>
+//             <Box
+//               sx={{
+//                 border: '2px solid black',
+//                 borderRadius: '8px',
+//                 padding: '10px',
+//                 flex: 1,
+//                 overflowY: 'auto',
+//                 backgroundColor: '#FFFFFF',
+//                 marginBottom: '5px',
+//                 marginTop: '10px',
+//                 display: 'flex',
+//                 flexDirection: 'column',
+//               }}
+//             >
+//               {errorMessage && (
+//                 <Box
+//                   sx={{
+//                     mt: 1,
+//                     p: 1,
+//                     backgroundColor: '#f0f0f0',
+//                     borderRadius: '4px',
+//                     fontSize: '14px',
+//                   }}
+//                 >
+//                   {errorMessage}
+//                 </Box>
+//               )}
+//               <List
+//                 sx={{ flexGrow: 1, overflowY: 'auto', paddingBottom: '5px' }}
+//               >
+//                 {currentMessages.map((msg, index) => (
+//                   <ListItem
+//                     key={index}
+//                     sx={{
+//                       justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+//                       textAlign: msg.role === 'user' ? 'right' : 'left',
+//                       marginBottom: '5px',
+//                     }}
+//                   >
+//                     <Box
+//                       sx={{
+//                         display: 'flex',
+//                         flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+//                         alignItems: 'flex-start',
+//                       }}
+//                     >
+//                       <Avatar
+//                         alt={msg.role === 'user' ? 'User' : 'AI Assistant'}
+//                         src={msg.role === 'user' ? userAvatar : assistantAvatar}
+//                         sx={{ width: 40, height: 40, margin: '0 8px' }}
+//                       />
+//                       <Box
+//                         sx={{
+//                           maxWidth: '80%',
+//                           p: 2,
+//                           borderRadius: '8px',
+//                           backgroundColor: msg.role === 'user' ? '#DCF8C6' : '#F0F0F0',
+//                         }}
+//                       >
+//                         <ListItemText
+//                           primary={msg.content || 'No content'}
+//                           secondary={formatDateTime(msg.created_at)}
+//                           sx={{
+//                             wordBreak: 'break-word',
+//                             textAlign: 'left',
+//                           }}
+//                         />
+//                       </Box>
+//                     </Box>
+//                   </ListItem>
+//                 ))}
+//                 <div ref={chatEndRef} />
+//               </List>
+//               <Box sx={{ display: 'flex', mt: 2 }}>
+//                 <TextField
+//                   fullWidth
+//                   value={userInput}
+//                   onChange={(e) => setUserInput(e.target.value)}
+//                   placeholder="請輸入與寫作主題相關的內容..."
+//                   onKeyPress={(e) => {
+//                     if (e.key === 'Enter' && !e.shiftKey) {
+//                       e.preventDefault();
+//                       handleSendMessage(userInput);
+//                     }
+//                   }}
+//                   variant="standard"
+//                   sx={{ marginRight: '8px' }}
+//                 />
+//                 <IconButton
+//                   color="primary"
+//                   onClick={() => handleSendMessage(userInput)}
+//                   sx={{ padding: '8px' }}
+//                 >
+//                   <img src={sendArrow} alt="Send" style={{ width: '40px', height: '40px' }} />
+//                 </IconButton>
+//               </Box>
+//             </Box>
+//           </Box>
+//         </Box>
+
+//         {/* 右邊容器：文字編輯器與側欄 */}
+//         <Box
+//           sx={{
+//             width: { md: '50%', xs: '100%' },
+//             borderLeft: { md: '1px solid #ccc', xs: 'none' },
+//             position: 'relative',
+//             height: { md: '600px', sm: '800px', xs: 'auto' },
+//             display: 'flex',
+//             flexDirection: 'row',
+//             '@media (max-width: 700px)': {
+//               width: '100%',
+//               padding: '10px',
+//               height: '800px',
+//               borderLeft: 'none',
+//             },
+//             '@media (max-width: 600px)': {
+//               width: '100%',
+//             },
+//           }}
+//         >
+//           {/* 編輯器區域 */}
+//           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+//             <Box
+//               sx={{
+//                 width: '100%',
+//                 height: '100px',
+//                 display: 'flex',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//                 backgroundColor: '#B7C5FF',
+//                 fontSize: '18px',
+//                 fontWeight: 'bold',
+//                 padding: '0 10px',
+//               }}
+//             >
+//               <Box>
+//                 <span style={{ fontSize: '16px' }}>
+//                   {username && `User: ${username}`}
+//                   {activityTitle && ` Class: ${activityTitle}`}<br />
+//                   {groupName && ` Topic: ${groupName}`}
+//                 </span>
+//               </Box>
+//               {/* 筆記側欄 */}
+//               <Box
+//                 sx={{
+//                   width: '50px',
+//                   backgroundColor: 'transparent',
+//                   display: 'flex',
+//                   flexDirection: 'column',
+//                   alignItems: 'center',
+//                   paddingTop: '10px',
+//                 }}
+//               >
+//                 <IconButton
+//                   onMouseEnter={handleNoteMouseEnter}
+//                   sx={{
+//                     color: '#1976d2',
+//                     '&:hover': {
+//                       backgroundColor: 'rgba(0, 0, 0, 0.04)',
+//                     },
+//                     display: 'flex',
+//                     flexDirection: 'column',
+//                     fontSize: '16px',
+//                     fontWeight: 'bold',
+//                     lineHeight: '1.2',
+//                     padding: '8px',
+//                     border: '2px solid #1976d2',
+//                     borderRadius: '8px',
+//                   }}
+//                 >
+//                   <span>N</span>
+//                   <span>O</span>
+//                   <span>T</span>
+//                   <span>E</span>
+//                 </IconButton>
+//               </Box>
+//             </Box>
+//             <Box sx={{ flex: 1, overflowY: 'auto' }}>
+//               <FroalaEditor
+//                 tag="textarea"
+//                 config={config}
+//                 model={editorContent}
+//                 onModelChange={(value) => setEditorContent(value)}
+//                 style={{ height: '100%' }}
+//               />
+//             </Box>
+//             <Box sx={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '10px' }}>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={handleTempSave}
+//               >
+//                 Temporary
+//               </Button>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={handleEssaySuggestion}
+//               >
+//                 Essay Suggestion
+//               </Button>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={() => setOpenConfirmSubmitDialog(true)}
+//                 disabled={isSubmitDisabled}
+//               >
+//                 Submit
+//               </Button>
+//             </Box>
+//           </Box>
+//         </Box>
+//       </Box>
+
+//       {/* 提交確認提示 */}
+//       <Dialog open={openConfirmSubmitDialog} onClose={() => setOpenConfirmSubmitDialog(false)}>
+//         <DialogTitle>確認提交</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             您確定要提交嗎？提交後無法編輯內容。
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setOpenConfirmSubmitDialog(false)} color="primary">
+//             關閉
+//           </Button>
+//           <Button onClick={handleConfirmSubmit} color="primary" autoFocus>
+//             確定
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Dialog open={openReminderDialog} onClose={handleCloseReminderDialog}>
+//         <DialogTitle>Notice</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             Please discuss with the AI Writing Assistant before you start writing!
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={handleCloseReminderDialog} color="primary">
+//             OK！
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Dialog open={openTempSaveDialog} onClose={handleCloseTempSaveDialog}>
+//         <DialogTitle>提示</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             暫存成功！
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={handleCloseTempSaveDialog} color="primary">
+//             確定
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       {/* 筆記側欄 Drawer */}
+//       <Drawer
+//         anchor="right"
+//         open={openNoteDrawer}
+//         onClose={handleNoteMouseLeave}
+//         sx={{
+//           '& .MuiDrawer-paper': {
+//             width: '500px',
+//             maxWidth: '90vw',
+//             height: '100%',
+//             '@media (max-width: 600px)': {
+//               width: '90vw',
+//             },
+//           },
+//         }}
+//       >
+//         <Box sx={{ p: 2 }}>
+//           <DialogTitle>Note Area</DialogTitle>
+//           <Tooltip
+//             title="Capture your thoughts before they fly away！"
+//             placement="top"
+//             arrow
+//             componentsProps={{
+//               tooltip: {
+//                 sx: {
+//                   fontSize: '16px',
+//                   padding: '8px 12px',
+//                 },
+//               },
+//             }}
+//           >
+//             <IconButton sx={{ padding: 0, color: '#000000' }}>
+//               <HelpOutline sx={{ fontSize: '28px' }} />
+//             </IconButton>
+//           </Tooltip>
+//           您的寫作大綱:
+//           <DialogContent>
+//             <TextField
+//               label=""
+//               value={noteContent}
+//               onChange={handleNoteChange}
+//               multiline
+//               rows={15}
+//               fullWidth
+//               variant="outlined"
+//               sx={{ height: '50%' }}
+//             />
+//           </DialogContent>
+
+//           <DialogContent>
+//             <TextField
+//               label="Jot down your ideas"
+//               value={noteContent}
+//               onChange={handleNoteChange}
+//               multiline
+//               rows={15}
+//               fullWidth
+//               variant="outlined"
+//               sx={{ height: '90%' }}
+//             />
+//           </DialogContent>
+//           <DialogActions>
+//             <Button onClick={handleNoteMouseLeave} color="primary">
+//               Save & Close
+//             </Button>
+//           </DialogActions>
+//         </Box>
+//       </Drawer>
+
+//       {/* 聊天室側欄 Drawer */}
+//       <Drawer
+//         anchor="left"
+//         open={openChatSidebar}
+//         onClose={handleToggleChatSidebar}
+//         sx={{
+//           '& .MuiDrawer-paper': {
+//             width: '200px',
+//             maxWidth: '90vw',
+//             height: '100%',
+//             backgroundColor: '#f5f5f5',
+//             padding: '10px',
+//             '@media (max-width: 600px)': {
+//               width: '80vw',
+//             },
+//           },
+//         }}
+//       >
+//         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px', p: 2 }}>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={handleViewHistory}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             View History
+//           </Button>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={handleCreateSession}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             Create New Chat
+//           </Button>
+//         </Box>
+//       </Drawer>
+
+//       {/* 歷史紀錄對話框 */}
+//       <Dialog
+//         open={openHistoryDialog}
+//         onClose={() => setOpenHistoryDialog(false)}
+//         sx={{
+//           '& .MuiDialog-container .MuiPaper-root': {
+//             width: '500px',
+//             maxWidth: '90vw',
+//           },
+//         }}
+//       >
+//         <DialogTitle>聊天歷史紀錄</DialogTitle>
+//         <DialogContent>
+//           {chatHistory.length === 0 ? (
+//             <DialogContentText>暫無歷史紀錄</DialogContentText>
+//           ) : (
+//             <List>
+//               {chatHistory.map((session, index) => (
+//                 <ListItem key={index} disablePadding>
+//                   <ListItemButton onClick={() => handleLoadHistory(session)}>
+//                     <ListItemText
+//                       primary={`會話 ${session.sessionId}`}
+//                       secondary={
+//                         <>
+//                           {`創建時間: ${formatDateTime(session.createdAt)}`}<br />
+//                           {session.messages[0]?.content
+//                             ? session.messages[0].content.substring(0, 50) + '...'
+//                             : '無訊息'}
+//                         </>
+//                       }
+//                     />
+//                   </ListItemButton>
+//                 </ListItem>
+//               ))}
+//             </List>
+//           )}
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setOpenHistoryDialog(false)} color="primary">
+//             關閉
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+//     </div>
+//   );
+// };
+
+// export default WritingArea;
+
+
+
+// import React, { useState, useEffect, useRef } from 'react';
+// import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField, List, ListItem, ListItemText, Avatar, IconButton, ListItemButton, Drawer, Tooltip } from '@mui/material';
+// import { Box } from '@mui/system';
+// import FroalaEditor from 'react-froala-wysiwyg';
+// import 'froala-editor/js/plugins.pkgd.min.js';
+// import 'froala-editor/css/froala_editor.pkgd.min.css';
+// import 'froala-editor/css/froala_style.min.css';
+// import axios from 'axios';
+// import Navbar from "../components/Navbar_Student";
+// import userAvatar from "../assets/學生ICON.png";
+// import assistantAvatar from "../assets/AI_LOGOICON.png";
+// import sendArrow from '../assets/發送.png';
+// import HelpOutline from '@mui/icons-material/HelpOutline';
+
+// const apiAxios = axios.create({
+//   baseURL: 'http://140.115.126.27:4000',
+//   timeout: 10000,
+// });
+
+// apiAxios.interceptors.request.use(
+//   (config) => {
+//     const token = localStorage.getItem('token');
+//     if (token) {
+//       config.headers.Authorization = `Bearer ${token}`;
+//     }
+//     return config;
+//   },
+//   (error) => Promise.reject(error)
+// );
+
+// const WritingArea = () => {
+//   const [editorContent, setEditorContent] = useState('');
+//   const [openReminderDialog, setOpenReminderDialog] = useState(false);
+//   const [openTempSaveDialog, setOpenTempSaveDialog] = useState(false);
+//   const [openNoteDrawer, setOpenNoteDrawer] = useState(false);
+//   const [openHistoryDialog, setOpenHistoryDialog] = useState(false);
+//   const [openChatSidebar, setOpenChatSidebar] = useState(false);
+//   const [outlineContent, setOutlineContent] = useState(''); // 寫作大綱
+//   const [noteContent, setNoteContent] = useState(''); // 其他筆記
+//   const [currentMessages, setCurrentMessages] = useState([]);
+//   const [chatHistory, setChatHistory] = useState([]);
+//   const [userInput, setUserInput] = useState('');
+//   const [errorMessage, setErrorMessage] = useState('');
+//   const [sessionId, setSessionId] = useState('');
+//   const [activityTitle, setActivityTitle] = useState('');
+//   const [groupName, setGroupName] = useState('');
+//   const [username, setUsername] = useState('');
+//   const [isSubmitDisabled, setIsSubmitDisabled] = useState(false);
+//   const [openConfirmSubmitDialog, setOpenConfirmSubmitDialog] = useState(false);
+//   const chatEndRef = useRef(null);
+
+//   const RAGFLOW_API_URL = 'https://ragflow.lazyinwork.com/api/v1';
+//   const RAGFLOW_API_KEY = 'ragflow-hmY2YzMjRjMWQ5YTExZjBhMGQ5MDI0Mm';
+//   const AGENT_ID = '8f34f200ef5911ef91480242ac120005';
+
+//   const scrollToBottom = () => {
+//     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+//   };
+
+//   useEffect(() => {
+//     scrollToBottom();
+//   }, [currentMessages]);
+
+//   useEffect(() => {
+//     const savedActivityTitle = localStorage.getItem('activityTitle');
+//     if (savedActivityTitle) {
+//       setActivityTitle(savedActivityTitle);
+//     }
+
+//     const savedGroupName = localStorage.getItem('groupName');
+//     if (savedGroupName) {
+//       setGroupName(savedGroupName);
+//     }
+
+//     const savedUsername = localStorage.getItem('name');
+//     if (savedUsername && savedActivityTitle && savedGroupName) {
+//       setUsername(savedUsername);
+
+//       const fetchEssayContent = async () => {
+//         try {
+//           const response = await apiAxios.get(`/api/get-essay/${encodeURIComponent(savedUsername)}`, {
+//             params: { className: savedActivityTitle, theme: savedGroupName },
+//           });
+//           if (response.data.success) {
+//             setEditorContent(response.data.data.essayContent || '');
+//             setOutlineContent(response.data.data.outlineContent || '');
+//             setNoteContent(response.data.data.noteContent || '');
+//           } else {
+//             console.warn('未找到符合學生姓名、班級和主題的議論文內容，使用空白內容');
+//             setEditorContent('');
+//             setOutlineContent('');
+//             setNoteContent('');
+//           }
+//         } catch (error) {
+//           console.error('從 Notion 獲取議論文內容失敗:', error);
+//           setEditorContent('');
+//           setOutlineContent('');
+//           setNoteContent('');
+//         }
+//       };
+
+//       fetchEssayContent();
+//     }
+
+//     const savedOutline = localStorage.getItem('outlineData');
+//     if (savedOutline) {
+//       setOutlineContent(savedOutline);
+//     }
+
+//     const savedNote = localStorage.getItem('noteData');
+//     if (savedNote) {
+//       setNoteContent(savedNote);
+//     }
+
+//     setOpenReminderDialog(true);
+
+//     handleCreateSession();
+//   }, []);
+
+//   const handleCreateSession = async () => {
+//     if (sessionId && currentMessages.length > 0) {
+//       setChatHistory((prev) => [
+//         ...prev,
+//         { sessionId, messages: [...currentMessages], createdAt: new Date().toISOString() },
+//       ]);
+//     }
+
+//     setCurrentMessages([]);
+//     setErrorMessage('');
+
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/sessions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({}),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('創建會話回應:', data);
+
+//       if (data.code === 0) {
+//         const newSessionId = data.data?.id;
+//         setSessionId(newSessionId);
+//         setErrorMessage(`✅ 成功創建聊天會話：${newSessionId}`);
+
+//         await fetchOpeningMessage(newSessionId);
+//       } else {
+//         setErrorMessage(`❌ 創建會話失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 創建會話錯誤：${error.message}`);
+//       console.error('創建會話失敗:', error);
+//     }
+//   };
+
+//   const fetchOpeningMessage = async (sessionId) => {
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/completions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({
+//           question: "Hello",
+//           stream: false,
+//           session_id: sessionId,
+//         }),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('開場白回應:', data);
+
+//       if (data.code === 0) {
+//         const content = data.data?.answer || 'No opening message received';
+//         setCurrentMessages((prev) => [
+//           ...prev,
+//           { role: 'assistant', content, created_at: new Date().toISOString() },
+//         ]);
+//       } else {
+//         setErrorMessage(`❌ 獲取開場白失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 獲取開場白錯誤：${error.message}`);
+//       console.error('獲取開場白失敗:', error);
+//     }
+//   };
+
+//   const handleSendMessage = async (message) => {
+//     if (!message.trim()) {
+//       setErrorMessage('❌ 請輸入問題！');
+//       return;
+//     }
+
+//     if (!sessionId) {
+//       setErrorMessage('❌ 請先創建聊天會話！');
+//       return;
+//     }
+
+//     const newMessage = { role: 'user', content: message, created_at: new Date().toISOString() };
+//     setCurrentMessages((prev) => [...prev, newMessage]);
+//     setErrorMessage('');
+
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${AGENT_ID}/completions`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${RAGFLOW_API_KEY}`,
+//         },
+//         body: JSON.stringify({
+//           question: message,
+//           stream: false,
+//           session_id: sessionId,
+//         }),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log('API 回應:', data);
+
+//       if (data.code === 0) {
+//         const content = data.data?.answer || 'No content received from API';
+//         setCurrentMessages((prev) => [
+//           ...prev,
+//           { role: 'assistant', content, created_at: new Date().toISOString() },
+//         ]);
+//       } else {
+//         setErrorMessage(`❌ 回應失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 發送訊息失敗：${error.message}`);
+//       console.error('發送訊息失敗:', error);
+//     }
+//   };
+
+//   const stripHtml = (html) => {
+//     const tempDiv = document.createElement('div');
+//     tempDiv.innerHTML = html;
+//     const watermark = tempDiv.querySelector('p[data-f-id="pbf"]');
+//     if (watermark) {
+//       watermark.remove();
+//     }
+//     return tempDiv.textContent.trim();
+//   };
+
+//   const handleEssaySuggestion = () => {
+//     if (!editorContent.trim()) {
+//       setErrorMessage('❌ 寫作區內容為空，請先輸入議論文內容！');
+//       return;
+//     }
+//     const plainText = stripHtml(editorContent);
+//     if (!plainText) {
+//       setErrorMessage('❌ 寫作區無有效文字內容！');
+//       return;
+//     }
+//     const suggestionPrompt = `Please provide suggestions for improving the following essay content:\n\n${plainText}`;
+//     handleSendMessage(suggestionPrompt);
+//   };
+
+//   const handleViewHistory = () => {
+//     if (sessionId && currentMessages.length > 0) {
+//       setChatHistory((prev) => {
+//         const existingSession = prev.find((session) => session.sessionId === sessionId);
+//         if (existingSession) {
+//           existingSession.messages = [...currentMessages];
+//           existingSession.createdAt = new Date().toISOString();
+//           return [...prev];
+//         } else {
+//           return [
+//             ...prev,
+//             { sessionId, messages: [...currentMessages], createdAt: new Date().toISOString() },
+//           ];
+//         }
+//       });
+//     }
+//     setOpenHistoryDialog(true);
+//   };
+
+//   const handleLoadHistory = (session) => {
+//     setCurrentMessages(session.messages);
+//     setSessionId(session.sessionId);
+//     setOpenHistoryDialog(false);
+//   };
+
+//   const formatDateTime = (isoString) => {
+//     const date = new Date(isoString);
+//     return date.toLocaleString('zh-TW', {
+//       year: 'numeric',
+//       month: '2-digit',
+//       day: '2-digit',
+//       hour: '2-digit',
+//       minute: '2-digit',
+//       second: '2-digit',
+//     });
+//   };
+
+//   const handleSubmit = async () => {
+//     // if (editorContent.length > 2000) {
+//     //   alert('議論文內容超過 2000 字元，將自動分段儲存至資料庫');
+//     // }
+//     // if (outlineContent.length > 2000 || noteContent.length > 2000) {
+//     //   alert('筆記內容超過 2000 字元，將自動分段儲存至資料庫');
+//     // }
+
+//     try {
+//       const response = await apiAxios.post('/api/submit-to-notion', {
+//         studentName: username || '未命名使用者',
+//         theme: groupName || '未指定主題',
+//         essayContent: editorContent || '無內容',
+//         className: activityTitle || '未指定班級',
+//         outlineContent: outlineContent || '',
+//         noteContent: noteContent || '',
+//       });
+
+//       if (response.data.success) {
+//         alert('繳交上傳成功！');
+//         setIsSubmitDisabled(true);
+//       } else {
+//         alert(`繳交上傳失敗：${response.data.message || '未知錯誤'}`);
+//       }
+//     } catch (error) {
+//       console.error('發送到 Notion 時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       alert(`繳交上傳失敗：${errorMessage}`);
+//     }
+//   };
+
+//   const handleConfirmSubmit = () => {
+//     setOpenConfirmSubmitDialog(false);
+//     handleSubmit();
+//   };
+
+//   const handleTempSave = () => {
+//     localStorage.setItem('outlineData', outlineContent);
+//     localStorage.setItem('noteData', noteContent);
+//     handleUpdateNote();
+//     setOpenTempSaveDialog(true);
+//   };
+
+//   const handleUpdateNote = async () => {
+//     try {
+//       const response = await apiAxios.patch('/api/update-note', {
+//         studentName: username || '未命名使用者',
+//         className: activityTitle || '未指定班級',
+//         theme: groupName || '未指定主題',
+//         outlineContent: outlineContent || '',
+//         noteContent: noteContent || '',
+//         essayContent: editorContent || '',
+//       });
+
+//       if (response.data.success) {
+//         console.log('筆記區和寫作區內容已更新到 Notion');
+//       } else {
+//         console.warn('更新筆記區和寫作區內容失敗:', response.data.error);
+//       }
+//     } catch (error) {
+//       console.error('更新筆記區和寫作區內容時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       console.warn(`更新失敗：${errorMessage}`);
+//     }
+//   };
+
+//   const config = {
+//     placeholderText: '開始編輯...',
+//     charCounterCount: false,
+//     toolbarButtons: ['bold', 'italic', 'underline', 'strikeThrough', 'fontSize', 'color', 'fontFamily', 'backColor',
+//       'align', 'orderedList', 'unorderedList', 'insertImage', 'insertTable', 'link', 'undo', 'redo',
+//       'clearFormatting', 'fullscreen', 'html', 'insertHR', 'specialCharacters'],
+//   };
+
+//   const handleCloseReminderDialog = () => {
+//     setOpenReminderDialog(false);
+//   };
+
+//   const handleCloseTempSaveDialog = () => {
+//     setOpenTempSaveDialog(false);
+//   };
+
+//   const handleNoteMouseEnter = () => {
+//     setOpenNoteDrawer(true);
+//   };
+
+//   const handleNoteMouseLeave = () => {
+//     if (openNoteDrawer) {
+//       localStorage.setItem('outlineData', outlineContent);
+//       localStorage.setItem('noteData', noteContent);
+//       handleUpdateNote();
+//       setOpenNoteDrawer(false);
+//     }
+//   };
+
+//   const handleOutlineChange = (e) => {
+//     setOutlineContent(e.target.value);
+//   };
+
+//   const handleNoteChange = (e) => {
+//     setNoteContent(e.target.value);
+//   };
+
+//   const handleToggleChatSidebar = () => {
+//     setOpenChatSidebar((prev) => !prev);
+//   };
+
+//   return (
+//     <div>
+//       <Navbar />
+//       <Box
+//         sx={{
+//           display: 'flex',
+//           flexDirection: { xs: 'column', md: 'row' },
+//           minHeight: 'calc(100vh - 120px)',
+//           padding: '10px',
+//           gap: '10px',
+//         }}
+//       >
+//         {/* 左邊容器：聊天室與側欄 */}
+//         <Box
+//           sx={{
+//             width: { md: '50%', xs: '100%' },
+//             padding: '5px',
+//             borderRight: { md: '1px solid #ccc', xs: 'none' },
+//             display: 'flex',
+//             flexDirection: 'row',
+//             height: { md: '600px', sm: '800px', xs: 'auto' },
+//             '@media (max-width: 700px)': {
+//               height: '800px',
+//             },
+//           }}
+//         >
+//           {/* 聊天室側欄 */}
+//           <Box
+//             sx={{
+//               width: '50px',
+//               backgroundColor: 'transparent',
+//               display: 'flex',
+//               flexDirection: 'column',
+//               alignItems: 'center',
+//               paddingTop: '10px',
+//             }}
+//           >
+//             <IconButton
+//               onClick={handleToggleChatSidebar}
+//               sx={{
+//                 color: '#1976d2',
+//                 '&:hover': {
+//                   backgroundColor: 'rgba(0, 0, 0, 0.04)',
+//                 },
+//                 display: 'flex',
+//                 flexDirection: 'column',
+//                 fontSize: '16px',
+//                 fontWeight: 'bold',
+//                 lineHeight: '1.2',
+//                 padding: '8px',
+//                 border: '2px solid #1976d2',
+//                 borderRadius: '8px',
+//               }}
+//             >
+//               <span>M</span>
+//               <span>E</span>
+//               <span>N</span>
+//               <span>U</span>
+//             </IconButton>
+//           </Box>
+
+//           {/* 聊天室區域 */}
+//           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+//             <Box
+//               sx={{
+//                 width: '100%',
+//                 height: '100px',
+//                 display: 'flex',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//                 backgroundColor: '#B7C5FF',
+//                 fontSize: '18px',
+//                 fontWeight: 'bold',
+//                 padding: '0 10px',
+//               }}
+//             >
+//               <span style={{ fontSize: '16px' }}>AI Writing Assistant</span>
+//               <Tooltip
+//                 title="I'm here to help you brainstorm, explore, and organize your ideas for a great essay！"
+//                 placement="top"
+//                 arrow
+//                 componentsProps={{
+//                   tooltip: {
+//                     sx: {
+//                       fontSize: '16px',
+//                       padding: '8px 12px',
+//                     },
+//                   },
+//                 }}
+//               >
+//                 <IconButton sx={{ padding: '0', color: '#000000' }}>
+//                   <HelpOutline sx={{ fontSize: '28px' }} />
+//                 </IconButton>
+//               </Tooltip>
+//             </Box>
+//             <Box
+//               sx={{
+//                 border: '2px solid black',
+//                 borderRadius: '8px',
+//                 padding: '10px',
+//                 flex: 1,
+//                 overflowY: 'auto',
+//                 backgroundColor: '#FFFFFF',
+//                 marginBottom: '5px',
+//                 marginTop: '10px',
+//                 display: 'flex',
+//                 flexDirection: 'column',
+//               }}
+//             >
+//               {errorMessage && (
+//                 <Box
+//                   sx={{
+//                     mt: 1,
+//                     p: 1,
+//                     backgroundColor: '#f0f0f0',
+//                     borderRadius: '4px',
+//                     fontSize: '14px',
+//                   }}
+//                 >
+//                   {errorMessage}
+//                 </Box>
+//               )}
+//               <List
+//                 sx={{ flexGrow: 1, overflowY: 'auto', paddingBottom: '5px' }}
+//               >
+//                 {currentMessages.map((msg, index) => (
+//                   <ListItem
+//                     key={index}
+//                     sx={{
+//                       justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+//                       textAlign: msg.role === 'user' ? 'right' : 'left',
+//                       marginBottom: '5px',
+//                     }}
+//                   >
+//                     <Box
+//                       sx={{
+//                         display: 'flex',
+//                         flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+//                         alignItems: 'flex-start',
+//                       }}
+//                     >
+//                       <Avatar
+//                         alt={msg.role === 'user' ? 'User' : 'AI Assistant'}
+//                         src={msg.role === 'user' ? userAvatar : assistantAvatar}
+//                         sx={{ width: 40, height: 40, margin: '0 8px' }}
+//                       />
+//                       <Box
+//                         sx={{
+//                           maxWidth: '80%',
+//                           p: 2,
+//                           borderRadius: '8px',
+//                           backgroundColor: msg.role === 'user' ? '#DCF8C6' : '#F0F0F0',
+//                         }}
+//                       >
+//                         <ListItemText
+//                           primary={msg.content || 'No content'}
+//                           secondary={formatDateTime(msg.created_at)}
+//                           sx={{
+//                             wordBreak: 'break-word',
+//                             textAlign: 'left',
+//                           }}
+//                         />
+//                       </Box>
+//                     </Box>
+//                   </ListItem>
+//                 ))}
+//                 <div ref={chatEndRef} />
+//               </List>
+//               <Box sx={{ display: 'flex', mt: 2 }}>
+//                 <TextField
+//                   fullWidth
+//                   value={userInput}
+//                   onChange={(e) => setUserInput(e.target.value)}
+//                   placeholder="請輸入與寫作主題相關的內容..."
+//                   onKeyPress={(e) => {
+//                     if (e.key === 'Enter' && !e.shiftKey) {
+//                       e.preventDefault();
+//                       handleSendMessage(userInput);
+//                     }
+//                   }}
+//                   variant="standard"
+//                   sx={{ marginRight: '8px' }}
+//                 />
+//                 <IconButton
+//                   color="primary"
+//                   onClick={() => handleSendMessage(userInput)}
+//                   sx={{ padding: '8px' }}
+//                 >
+//                   <img src={sendArrow} alt="Send" style={{ width: '40px', height: '40px' }} />
+//                 </IconButton>
+//               </Box>
+//             </Box>
+//           </Box>
+//         </Box>
+
+//         {/* 右邊容器：文字編輯器與側欄 */}
+//         <Box
+//           sx={{
+//             width: { md: '50%', xs: '100%' },
+//             borderLeft: { md: '1px solid #ccc', xs: 'none' },
+//             position: 'relative',
+//             height: { md: '600px', sm: '800px', xs: 'auto' },
+//             display: 'flex',
+//             flexDirection: 'row',
+//             '@media (max-width: 700px)': {
+//               width: '100%',
+//               padding: '10px',
+//               height: '800px',
+//               borderLeft: 'none',
+//             },
+//             '@media (max-width: 600px)': {
+//               width: '100%',
+//             },
+//           }}
+//         >
+//           {/* 編輯器區域 */}
+//           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+//             <Box
+//               sx={{
+//                 width: '100%',
+//                 height: '100px',
+//                 display: 'flex',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//                 backgroundColor: '#B7C5FF',
+//                 fontSize: '18px',
+//                 fontWeight: 'bold',
+//                 padding: '0 10px',
+//               }}
+//             >
+//               <Box>
+//                 <span style={{ fontSize: '16px' }}>
+//                   {username && `User: ${username}`}
+//                   {activityTitle && ` Class: ${activityTitle}`}<br />
+//                   {groupName && ` Topic: ${groupName}`}
+//                 </span>
+//               </Box>
+//               {/* 筆記側欄按鈕 */}
+//               <Box
+//                 sx={{
+//                   width: '50px',
+//                   backgroundColor: 'transparent',
+//                   display: 'flex',
+//                   flexDirection: 'column',
+//                   alignItems: 'center',
+//                   paddingTop: '10px',
+//                 }}
+//               >
+//                 <IconButton
+//                   onMouseEnter={handleNoteMouseEnter}
+//                   sx={{
+//                     color: '#1976d2',
+//                     '&:hover': {
+//                       backgroundColor: 'rgba(0, 0, 0, 0.04)',
+//                     },
+//                     display: 'flex',
+//                     flexDirection: 'column',
+//                     fontSize: '16px',
+//                     fontWeight: 'bold',
+//                     lineHeight: '1.2',
+//                     padding: '8px',
+//                     border: '2px solid #1976d2',
+//                     borderRadius: '8px',
+//                   }}
+//                 >
+//                   <span>N</span>
+//                   <span>O</span>
+//                   <span>T</span>
+//                   <span>E</span>
+//                 </IconButton>
+//               </Box>
+//             </Box>
+//             <Box sx={{ flex: 1, overflowY: 'auto' }}>
+//               <FroalaEditor
+//                 tag="textarea"
+//                 config={config}
+//                 model={editorContent}
+//                 onModelChange={(value) => setEditorContent(value)}
+//                 style={{ height: '100%' }}
+//               />
+//             </Box>
+//             <Box sx={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '10px' }}>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={handleTempSave}
+//               >
+//                 Temporary Save
+//               </Button>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={handleEssaySuggestion}
+//               >
+//                 Essay Suggestion
+//               </Button>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={() => setOpenConfirmSubmitDialog(true)}
+//                 disabled={isSubmitDisabled}
+//               >
+//                 Submit
+//               </Button>
+//             </Box>
+//           </Box>
+//         </Box>
+//       </Box>
+
+//       {/* 提交確認提示 */}
+//       <Dialog open={openConfirmSubmitDialog} onClose={() => setOpenConfirmSubmitDialog(false)}>
+//         <DialogTitle>確認提交</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             您確定要提交嗎？提交後無法編輯內容。
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setOpenConfirmSubmitDialog(false)} color="primary">
+//             關閉
+//           </Button>
+//           <Button onClick={handleConfirmSubmit} color="primary" autoFocus>
+//             確定
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Dialog open={openReminderDialog} onClose={handleCloseReminderDialog}>
+//         <DialogTitle>Notice</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             Please discuss with the AI Writing Assistant before you start writing!
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={handleCloseReminderDialog} color="primary">
+//             OK！
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Dialog open={openTempSaveDialog} onClose={handleCloseTempSaveDialog}>
+//         <DialogTitle>提示</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             暫存成功！
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={handleCloseTempSaveDialog} color="primary">
+//             確定
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       {/* 筆記側欄 Drawer */}
+//       <Drawer
+//         anchor="right"
+//         open={openNoteDrawer}
+//         onClose={handleNoteMouseLeave}
+//         sx={{
+//           '& .MuiDrawer-paper': {
+//             width: '500px',
+//             maxWidth: '90vw',
+//             height: '700px', // 固定高度，與右邊容器一致
+//             overflowY: 'visible', // 移除內部滾動
+//             padding: '16px',
+//             display: 'flex',
+//             flexDirection: 'column',
+//             '@media (max-width: 600px)': {
+//               width: '90vw',
+//               height: 'auto', // 手機上自適應高度
+//             },
+//           },
+//         }}
+//       >
+//         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+//           <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+//             <DialogTitle sx={{ padding: 0, fontSize: '18px' }}>Note Area</DialogTitle>
+//             <Tooltip
+//               title="Capture your thoughts before they fly away！"
+//               placement="top"
+//               arrow
+//               componentsProps={{
+//                 tooltip: {
+//                   sx: {
+//                     fontSize: '16px',
+//                     padding: '8px 12px',
+//                   },
+//                 },
+//               }}
+//             >
+//               <IconButton sx={{ padding: 0, color: '#000000' }}>
+//                 <HelpOutline sx={{ fontSize: '28px' }} />
+//               </IconButton>
+//             </Tooltip>
+//           </Box>
+//           <Box sx={{ fontSize: '16px', fontWeight: 'bold' }}>您的寫作大綱:</Box>
+//           <TextField
+//             label="Writing Outline"
+//             value={outlineContent}
+//             onChange={handleOutlineChange}
+//             multiline
+//             rows={8}
+//             fullWidth
+//             variant="outlined"
+//             sx={{ flex: 1 }}
+//           />
+//           <Box sx={{ fontSize: '16px', fontWeight: 'bold' }}>筆記區:</Box>
+//           <TextField
+//             label="Jot down your ideas"
+//             value={noteContent}
+//             onChange={handleNoteChange}
+//             multiline
+//             rows={8}
+//             fullWidth
+//             variant="outlined"
+//             sx={{ flex: 1 }}
+//           />
+//           <DialogActions>
+//             <Button onClick={handleNoteMouseLeave} color="primary">
+//               Save & Close
+//             </Button>
+//           </DialogActions>
+//         </Box>
+//       </Drawer>
+
+//       {/* 聊天室側欄 Drawer */}
+//       <Drawer
+//         anchor="left"
+//         open={openChatSidebar}
+//         onClose={handleToggleChatSidebar}
+//         sx={{
+//           '& .MuiDrawer-paper': {
+//             width: '200px',
+//             maxWidth: '90vw',
+//             height: '100%',
+//             backgroundColor: '#f5f5f5',
+//             padding: '10px',
+//             '@media (max-width: 600px)': {
+//               width: '80vw',
+//             },
+//           },
+//         }}
+//       >
+//         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px', p: 2 }}>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={handleViewHistory}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             View History
+//           </Button>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={handleCreateSession}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             Create New Chat
+//           </Button>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={() => {
+//               navigate('/teacher/teacher_home');
+//               setOpenChatSidebar(false);
+//             }}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             Home
+//           </Button>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={() => {
+//               navigate('/About_teacher');
+//               setOpenChatSidebar(false);
+//             }}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             About
+//           </Button>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={() => {
+//               navigate('/manual');
+//               setOpenChatSidebar(false);
+//             }}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             Manual
+//           </Button>
+//           <Button
+//             variant="contained"
+//             color="primary"
+//             onClick={() => {
+//               navigate('/home');
+//               setOpenChatSidebar(false);
+//             }}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             WritingArea
+//           </Button>
+
+//           <Button
+//             variant="contained"
+//             color="primary"
+//              onClick={() => window.open('https://kf6.nccu.edu.tw/', '_blank')}
+//             sx={{ fontSize: '12px', padding: '6px 12px' }}
+//           >
+//             KF
+//           </Button>
+//         </Box>
+//       </Drawer>
+
+//       {/* 歷史紀錄對話框 */}
+//       <Dialog
+//         open={openHistoryDialog}
+//         onClose={() => setOpenHistoryDialog(false)}
+//         sx={{
+//           '& .MuiDialog-container .MuiPaper-root': {
+//             width: '500px',
+//             maxWidth: '90vw',
+//           },
+//         }}
+//       >
+//         <DialogTitle>聊天歷史紀錄</DialogTitle>
+//         <DialogContent>
+//           {chatHistory.length === 0 ? (
+//             <DialogContentText>暫無歷史紀錄</DialogContentText>
+//           ) : (
+//             <List>
+//               {chatHistory.map((session, index) => (
+//                 <ListItem key={index} disablePadding>
+//                   <ListItemButton onClick={() => handleLoadHistory(session)}>
+//                     <ListItemText
+//                       primary={`會話 ${session.sessionId}`}
+//                       secondary={
+//                         <>
+//                           {`創建時間: ${formatDateTime(session.createdAt)}`}<br />
+//                           {session.messages[0]?.content
+//                             ? session.messages[0].content.substring(0, 50) + '...'
+//                             : '無訊息'}
+//                         </>
+//                       }
+//                     />
+//                   </ListItemButton>
+//                 </ListItem>
+//               ))}
+//             </List>
+//           )}
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setOpenHistoryDialog(false)} color="primary">
+//             關閉
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+//     </div>
+//   );
+// };
+
+// export default WritingArea;
+
+
+
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField, List, ListItem, ListItemText, Avatar, IconButton, ListItemButton, Drawer, Tooltip } from '@mui/material';
 import { Box } from '@mui/system';
@@ -11986,13 +16563,16 @@ import 'froala-editor/js/plugins.pkgd.min.js';
 import 'froala-editor/css/froala_editor.pkgd.min.css';
 import 'froala-editor/css/froala_style.min.css';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import Navbar from "../components/Navbar_Student";
 import userAvatar from "../assets/學生ICON.png";
 import assistantAvatar from "../assets/AI_LOGOICON.png";
 import sendArrow from '../assets/發送.png';
-import notesIcon from '../assets/筆記工具.png';
-import MenuIcon from '../assets/側欄ICON.png';
 import HelpOutline from '@mui/icons-material/HelpOutline';
+import MenuIcon from "../assets/側欄ICON.png";
+import NotesIcon from "../assets/筆記工具.png";
+import historyIcon from "../assets/歷史紀錄.png";
+import NewchatIcon from "../assets/新聊天.png";
 
 const apiAxios = axios.create({
   baseURL: 'http://140.115.126.27:4000',
@@ -12017,6 +16597,7 @@ const WritingArea = () => {
   const [openNoteDrawer, setOpenNoteDrawer] = useState(false);
   const [openHistoryDialog, setOpenHistoryDialog] = useState(false);
   const [openChatSidebar, setOpenChatSidebar] = useState(false);
+  const [outlineContent, setOutlineContent] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [currentMessages, setCurrentMessages] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
@@ -12029,6 +16610,7 @@ const WritingArea = () => {
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(false);
   const [openConfirmSubmitDialog, setOpenConfirmSubmitDialog] = useState(false);
   const chatEndRef = useRef(null);
+  const navigate = useNavigate();
 
   const RAGFLOW_API_URL = 'https://ragflow.lazyinwork.com/api/v1';
   const RAGFLOW_API_KEY = 'ragflow-hmY2YzMjRjMWQ5YTExZjBhMGQ5MDI0Mm';
@@ -12064,20 +16646,28 @@ const WritingArea = () => {
           });
           if (response.data.success) {
             setEditorContent(response.data.data.essayContent || '');
+            setOutlineContent(response.data.data.outlineContent || '');
             setNoteContent(response.data.data.noteContent || '');
           } else {
             console.warn('未找到符合學生姓名、班級和主題的議論文內容，使用空白內容');
             setEditorContent('');
+            setOutlineContent('');
             setNoteContent('');
           }
         } catch (error) {
           console.error('從 Notion 獲取議論文內容失敗:', error);
           setEditorContent('');
+          setOutlineContent('');
           setNoteContent('');
         }
       };
 
       fetchEssayContent();
+    }
+
+    const savedOutline = localStorage.getItem('outlineData');
+    if (savedOutline) {
+      setOutlineContent(savedOutline);
     }
 
     const savedNote = localStorage.getItem('noteData');
@@ -12222,15 +16812,12 @@ const WritingArea = () => {
   };
 
   const stripHtml = (html) => {
-    // Create a temporary div to parse HTML
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-    // Remove Froala watermark
     const watermark = tempDiv.querySelector('p[data-f-id="pbf"]');
     if (watermark) {
       watermark.remove();
     }
-    // Get plain text and normalize whitespace
     return tempDiv.textContent.trim();
   };
 
@@ -12286,19 +16873,13 @@ const WritingArea = () => {
   };
 
   const handleSubmit = async () => {
-    if (editorContent.length > 2000) {
-      alert('議論文內容超過 2000 字元，將自動分段儲存至資料庫');
-    }
-    if (noteContent.length > 2000) {
-      alert('筆記內容超過 2000 字元，將自動分段儲存至資料庫');
-    }
-
     try {
       const response = await apiAxios.post('/api/submit-to-notion', {
         studentName: username || '未命名使用者',
         theme: groupName || '未指定主題',
         essayContent: editorContent || '無內容',
         className: activityTitle || '未指定班級',
+        outlineContent: outlineContent || '',
         noteContent: noteContent || '',
       });
 
@@ -12321,22 +16902,19 @@ const WritingArea = () => {
   };
 
   const handleTempSave = () => {
+    localStorage.setItem('outlineData', outlineContent);
+    localStorage.setItem('noteData', noteContent);
+    handleUpdateNote();
     setOpenTempSaveDialog(true);
   };
 
   const handleUpdateNote = async () => {
-    if (editorContent.length > 2000) {
-      console.log('議論文內容超過 2000 字元，將自動分段儲存');
-    }
-    if (noteContent.length > 2000) {
-      console.log('筆記內容超過 2000 字元，將自動分段儲存');
-    }
-
     try {
       const response = await apiAxios.patch('/api/update-note', {
         studentName: username || '未命名使用者',
         className: activityTitle || '未指定班級',
         theme: groupName || '未指定主題',
+        outlineContent: outlineContent || '',
         noteContent: noteContent || '',
         essayContent: editorContent || '',
       });
@@ -12369,14 +16947,21 @@ const WritingArea = () => {
     setOpenTempSaveDialog(false);
   };
 
-  const handleToggleNoteDrawer = () => {
-    setOpenNoteDrawer((prev) => {
-      if (prev) {
-        localStorage.setItem('noteData', noteContent);
-        handleUpdateNote();
-      }
-      return !prev;
-    });
+  const handleNoteMouseEnter = () => {
+    setOpenNoteDrawer(true);
+  };
+
+  const handleNoteMouseLeave = () => {
+    if (openNoteDrawer) {
+      localStorage.setItem('outlineData', outlineContent);
+      localStorage.setItem('noteData', noteContent);
+      handleUpdateNote();
+      setOpenNoteDrawer(false);
+    }
+  };
+
+  const handleOutlineChange = (e) => {
+    setOutlineContent(e.target.value);
   };
 
   const handleNoteChange = (e) => {
@@ -12424,17 +17009,25 @@ const WritingArea = () => {
               paddingTop: '10px',
             }}
           >
-            <IconButton
-              onClick={handleToggleChatSidebar}
-              sx={{
-                color: '#1976d2',
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                },
-              }}
-            >
-              <img src={MenuIcon} alt="Menu" style={{ width: '24px', height: '24px' }} />
-            </IconButton>
+            <Tooltip title="Open Menu" placement="right">
+              <IconButton
+                onMouseEnter={handleToggleChatSidebar}
+                sx={{
+                  color: '#1976d2',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  },
+                  padding: '8px',
+                  borderRadius: '8px',
+                  '&:focus': {
+                    outline: '2px solid #1976d2',
+                    outlineOffset: '2px',
+                  },
+                }}
+              >
+                <img src={MenuIcon} alt="Menu" style={{ width: '32px', height: '32px' }} />
+              </IconButton>
+            </Tooltip>
           </Box>
 
           {/* 聊天室區域 */}
@@ -12457,6 +17050,14 @@ const WritingArea = () => {
                 title="I'm here to help you brainstorm, explore, and organize your ideas for a great essay！"
                 placement="top"
                 arrow
+                componentsProps={{
+                  tooltip: {
+                    sx: {
+                      fontSize: '16px',
+                      padding: '8px 12px',
+                    },
+                  },
+                }}
               >
                 <IconButton sx={{ padding: '0', color: '#000000' }}>
                   <HelpOutline sx={{ fontSize: '28px' }} />
@@ -12605,29 +17206,6 @@ const WritingArea = () => {
                   {groupName && ` Topic: ${groupName}`}
                 </span>
               </Box>
-              {/* 筆記側欄 */}
-              <Box
-                sx={{
-                  width: '50px',
-                  backgroundColor: 'transparent',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  paddingTop: '10px',
-                }}
-              >
-                <IconButton
-                  onClick={handleToggleNoteDrawer}
-                  sx={{
-                    color: '#1976d2',
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                    },
-                  }}
-                >
-                  <img src={notesIcon} alt="Notes" style={{ width: '24px', height: '24px' }} />
-                </IconButton>
-              </Box>
             </Box>
             <Box sx={{ flex: 1, overflowY: 'auto' }}>
               <FroalaEditor
@@ -12644,7 +17222,7 @@ const WritingArea = () => {
                 color="secondary"
                 onClick={handleTempSave}
               >
-                Temporary
+                Temporary Save
               </Button>
               <Button
                 variant="contained"
@@ -12662,6 +17240,41 @@ const WritingArea = () => {
                 Submit
               </Button>
             </Box>
+          </Box>
+
+          {/* 筆記側欄按鈕區域 */}
+          <Box
+            sx={{
+              width: '50px',
+              backgroundColor: 'transparent',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              paddingTop: '10px',
+              '@media (max-width: 600px)': {
+                display: 'none',
+              },
+            }}
+          >
+            <Tooltip title="Open Notes" placement="left">
+              <IconButton
+                onMouseEnter={handleNoteMouseEnter}
+                sx={{
+                  color: '#1976d2',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  },
+                  padding: '8px',
+                  borderRadius: '8px',
+                  '&:focus': {
+                    outline: '2px solid #1976d2',
+                    outlineOffset: '2px',
+                  },
+                }}
+              >
+                <img src={NotesIcon} alt="Notes" style={{ width: '32px', height: '32px' }} />
+              </IconButton>
+            </Tooltip>
           </Box>
         </Box>
       </Box>
@@ -12716,43 +17329,68 @@ const WritingArea = () => {
       <Drawer
         anchor="right"
         open={openNoteDrawer}
-        onClose={handleToggleNoteDrawer}
+        onClose={handleNoteMouseLeave}
         sx={{
           '& .MuiDrawer-paper': {
             width: '500px',
             maxWidth: '90vw',
-            height: '100%',
+            height: '700px',
+            overflowY: 'visible',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
             '@media (max-width: 600px)': {
               width: '90vw',
+              height: 'auto',
             },
           },
         }}
       >
-        <Box sx={{ p: 2 }}>
-          <DialogTitle>Note Area</DialogTitle>
-          <Tooltip
-            title="Capture your thoughts before they fly away！"
-            placement="top"
-            arrow
-          >
-            <IconButton sx={{ padding: 0, color: '#000000' }}>
-              <HelpOutline sx={{ fontSize: '28px' }} />
-            </IconButton>
-          </Tooltip>
-          <DialogContent>
-            <TextField
-              label="Jot down your ideas"
-              value={noteContent}
-              onChange={handleNoteChange}
-              multiline
-              rows={15}
-              fullWidth
-              variant="outlined"
-              sx={{ height: '90%' }}
-            />
-          </DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <DialogTitle sx={{ padding: 0, fontSize: '18px' }}>Note Area</DialogTitle>
+            <Tooltip
+              title="Capture your thoughts before they fly away！"
+              placement="top"
+              arrow
+              componentsProps={{
+                tooltip: {
+                  sx: {
+                    fontSize: '16px',
+                    padding: '8px 12px',
+                  },
+                },
+              }}
+            >
+              <IconButton sx={{ padding: 0, color: '#000000' }}>
+                <HelpOutline sx={{ fontSize: '28px' }} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <Box sx={{ fontSize: '16px', fontWeight: 'bold' }}>您的寫作大綱:</Box>
+          <TextField
+            label="Writing Outline"
+            value={outlineContent}
+            onChange={handleOutlineChange}
+            multiline
+            rows={8}
+            fullWidth
+            variant="outlined"
+            sx={{ flex: 1 }}
+          />
+          <Box sx={{ fontSize: '16px', fontWeight: 'bold' }}>筆記區:</Box>
+          <TextField
+            label="Jot down your ideas"
+            value={noteContent}
+            onChange={handleNoteChange}
+            multiline
+            rows={8}
+            fullWidth
+            variant="outlined"
+            sx={{ flex: 1 }}
+          />
           <DialogActions>
-            <Button onClick={handleToggleNoteDrawer} color="primary">
+            <Button onClick={handleNoteMouseLeave} color="primary">
               Save & Close
             </Button>
           </DialogActions>
@@ -12778,22 +17416,32 @@ const WritingArea = () => {
         }}
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px', p: 2 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleViewHistory}
-            sx={{ fontSize: '12px', padding: '6px 12px' }}
-          >
-            View History
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleCreateSession}
-            sx={{ fontSize: '12px', padding: '6px 12px' }}
-          >
-            Create New Chat
-          </Button>
+          <Tooltip title="View Chat History">
+            <Button
+              variant="text"
+              color="primary"
+              onClick={handleViewHistory}
+              sx={{ padding: '6px', justifyContent: 'flex-start' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src={historyIcon} alt="View History" style={{ width: '32px', height: '32px' }} />
+                <span style={{ fontSize: '14px', color: '#000000' }}>歷史紀錄</span>
+              </Box>
+            </Button>
+          </Tooltip>
+          <Tooltip title="Create New Chat">
+            <Button
+              variant="text"
+              color="primary"
+              onClick={handleCreateSession}
+              sx={{ padding: '6px', justifyContent: 'flex-start' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src={NewchatIcon} alt="Create New Chat" style={{ width: '32px', height: '32px' }} />
+                <span style={{ fontSize: '14px', color: '#000000' }}>新聊天</span>
+              </Box>
+            </Button>
+          </Tooltip>
         </Box>
       </Drawer>
 

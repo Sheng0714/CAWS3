@@ -181,6 +181,7 @@ export default function Navbar() {
     width: isMobile ? '100px' : isTablet ? '120px' : '150px',
     height: isMobile ? '80px' : isTablet ? '96px' : '120px',
     objectFit: 'contain',
+    cursor: 'pointer' // 添加這一行
   };
 
   const navTitleStyle = {
