@@ -855,8 +855,20 @@
 
 import React, { useState, useEffect } from "react";
 import {
+  Button,
   Box,
+  TextField,
   Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
   Snackbar,
   Alert,
   CircularProgress,
@@ -891,7 +903,7 @@ apiAxios.interceptors.request.use(
 const MainContainer = styled(Box)(({ theme }) => ({
   display: "flex",
   height: "calc(100vh - 64px)",
-  [theme?.breakpoints?.down("md") || "@media (max-width: 960px)"]: {
+  [theme.breakpoints.down("md")]: {
     flexDirection: "column",
     height: "auto",
   },
@@ -905,7 +917,7 @@ const RightBox = styled(Box)(({ theme }) => ({
   marginTop: "-75px",
   display: "flex",
   flexDirection: "column",
-  [theme?.breakpoints?.down("md") || "@media (max-width: 960px)"]: {
+  [theme.breakpoints.down("md")]: {
     marginTop: 0,
     borderLeft: "none",
     height: "auto",
@@ -923,39 +935,114 @@ const TitleBox = styled(Box)(({ theme }) => ({
   fontWeight: "bold",
 }));
 
+const CommentPaper = styled(Paper)(({ theme }) => ({
+  marginTop: "20px",
+  padding: "16px",
+  backgroundColor: "#FFFFFF",
+  boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
+  [theme.breakpoints.down("sm")]: {
+    marginTop: "10px",
+    padding: "12px",
+  },
+}));
+
+const CommentTextField = styled(TextField)(({ theme }) => ({
+  width: "100%",
+  [theme.breakpoints.down("sm")]: {
+    marginBottom: "10px",
+  },
+}));
+
+const RatingContainer = styled(Box)(({ theme }) => ({
+  marginTop: "20px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "15px",
+  alignItems: "flex-start",
+  [theme.breakpoints.down("sm")]: {
+    gap: "10px",
+  },
+}));
+
+const ButtonContainer = styled(Box)(({ theme }) => ({
+  marginTop: "20px",
+  display: "flex",
+  gap: "10px",
+  justifyContent: "flex-end",
+  [theme.breakpoints.down("sm")]: {
+    justifyContent: "center",
+  },
+}));
+
+const ScoreDisplay = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  [theme.breakpoints.down("sm")]: {
+    gap: "5px",
+  },
+}));
+
+const ScoreLabel = styled(Typography)(({ theme }) => ({
+  fontSize: "16px",
+  fontWeight: "bold",
+  color: "#1976d2",
+  [theme.breakpoints.down("sm")]: {
+    fontSize: "14px",
+  },
+}));
+
+const ScoreInput = styled(TextField)(({ theme }) => ({
+  width: "60px",
+  "& input": {
+    textAlign: "center",
+  },
+  [theme.breakpoints.down("sm")]: {
+    width: "50px",
+  },
+}));
+
 const CorrectEssays = () => {
   const [editorContent, setEditorContent] = useState("");
+  const [comment, setComment] = useState("");
+  const [ratings, setRatings] = useState({
+    claims: 0,
+    grounds: 0,
+    rebuttals: 0,
+  });
+  const [totalScore, setTotalScore] = useState(0);
+  const [openTempSaveDialog, setOpenTempSaveDialog] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
   const { studentName, className, theme } = location.state || {};
 
-  // Froala 編輯器配置
-  const config = {
-    placeholderText: "開始編輯...",
-    charCounterCount: false,
-    toolbarButtons: [
-      "bold",
-      "italic",
-      "underline",
-      "strikeThrough",
-      "fontSize",
-      "color",
-      "fontFamily",
-      "backColor",
-      "align",
-      "orderedList",
-      "unorderedList",
-      "insertImage",
-      "insertTable",
-      "link",
-      "undo",
-      "redo",
-      "clearFormatting",
-      "fullscreen",
-      "html",
-      "insertHR",
-      "specialCharacters",
+  // 調試：記錄 location.state
+  useEffect(() => {
+    console.log('Location state:', location.state);
+  }, [location.state]);
+
+  const ratingOptions = {
+    claims: [
+      { value: 0, label: "0", description: "" },
+      { value: 1, label: "1: 弱的主張，文章無法提出有效的論點", description: "弱的主張，文章無法提出有效的論點" },
+      { value: 2, label: "2: 強的主張，文章能提出有效的論點", description: "強的主張，文章能提出有效的論點" },
+    ],
+    grounds: [
+      { value: 0, label: "0", description: "" },
+      { value: 1, label: "1: 證據不足，無法提出有效的佐證資料", description: "證據不足，無法提出有效的佐證資料" },
+      { value: 2, label: "2: 主觀個人意見，佐證資料屬於主觀的個人意見", description: "主觀個人意見，佐證資料屬於主觀的個人意見" },
+      { value: 3, label: "3: 客觀外部資料，佐證資料來自於客觀的外部資料", description: "客觀外部資料，佐證資料來自於客觀的外部資料" },
+      {
+        value: 4,
+        label: "4: 包含客觀的外部資料及主觀的個人意見，佐證資料包含了客觀的外部資料及主觀的個人意見，充分支持論點",
+        description: "包含客觀的外部資料及主觀的個人意見，佐證資料包含了客觀的外部資料及主觀的個人意見，充分支持論點",
+      },
+    ],
+    rebuttals: [
+      { value: 0, label: "0", description: "" },
+      { value: 1, label: "1: 弱的反駁論點，僅包含了自己的論點", description: "弱的反駁論點，僅包含了自己的論點" },
+      { value: 2, label: "2: 強有力的反駁論點，包含了反方的論點及反駁論點", description: "強有力的反駁論點，包含了反方的論點及反駁論點" },
     ],
   };
 
@@ -988,12 +1075,85 @@ const CorrectEssays = () => {
     }
   }, [studentName, className, theme]);
 
+  // 當評分改變時，自動計算總分
+  useEffect(() => {
+    const total = Number(ratings.claims) + Number(ratings.grounds) + Number(ratings.rebuttals);
+    setTotalScore(total);
+  }, [ratings]);
+
+  const config = {
+    placeholderText: "開始編輯...",
+    charCounterCount: false,
+    toolbarButtons: [
+      "bold",
+      "italic",
+      "underline",
+      "strikeThrough",
+      "fontSize",
+      "color",
+      "fontFamily",
+      "backColor",
+      "align",
+      "orderedList",
+      "unorderedList",
+      "insertImage",
+      "insertTable",
+      "link",
+      "undo",
+      "redo",
+      "clearFormatting",
+      "fullscreen",
+      "html",
+      "insertHR",
+      "specialCharacters",
+    ],
+  };
+
+  const handleCommentChange = (e) => {
+    setComment(e.target.value);
+  };
+
+  const handleRatingChange = (category) => (e) => {
+    setRatings((prev) => ({
+      ...prev,
+      [category]: Number(e.target.value),
+    }));
+  };
+
+  const handleTotalScoreChange = (e) => {
+    const value = parseInt(e.target.value, 10);
+    if (!isNaN(value) && value >= 0 && value <= 8) {
+      setTotalScore(value);
+    }
+  };
+
   const showSnackbar = (message, severity = 'info') => {
     setSnackbar({ open: true, message, severity });
   };
 
   const handleCloseSnackbar = () => {
     setSnackbar({ open: false, message: '', severity: 'info' });
+  };
+
+  const handleTempSave = () => {
+    localStorage.setItem("editorData", editorContent);
+    localStorage.setItem("comment", comment);
+    localStorage.setItem("ratings", JSON.stringify(ratings));
+    localStorage.setItem("totalScore", totalScore.toString());
+    showSnackbar('暫存成功！', 'success');
+    setOpenTempSaveDialog(true);
+  };
+
+  const handleSubmit = () => {
+    localStorage.setItem("editorData", editorContent);
+    localStorage.setItem("comment", comment);
+    localStorage.setItem("ratings", JSON.stringify(ratings));
+    localStorage.setItem("totalScore", totalScore.toString());
+    showSnackbar('送出成功！', 'success');
+  };
+
+  const handleCloseTempSaveDialog = () => {
+    setOpenTempSaveDialog(false);
   };
 
   return (
@@ -1020,8 +1180,101 @@ const CorrectEssays = () => {
               onModelChange={(newContent) => setEditorContent(newContent)}
             />
           )}
+          <CommentPaper>
+            <CommentTextField
+              label="評語"
+              value={comment}
+              onChange={handleCommentChange}
+              multiline
+              rows={4}
+              variant="outlined"
+            />
+            <RatingContainer>
+              <FormControl sx={{ minWidth: 200 }}>
+                <InputLabel>Claims</InputLabel>
+                <Select
+                  value={ratings.claims}
+                  onChange={handleRatingChange("claims")}
+                  label="Claims"
+                >
+                  {ratingOptions.claims.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: 200 }}>
+                <InputLabel>Grounds</InputLabel>
+                <Select
+                  value={ratings.grounds}
+                  onChange={handleRatingChange("grounds")}
+                  label="Grounds"
+                >
+                  {ratingOptions.grounds.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: 200 }}>
+                <InputLabel>Rebuttals</InputLabel>
+                <Select
+                  value={ratings.rebuttals}
+                  onChange={handleRatingChange("rebuttals")}
+                  label="Rebuttals"
+                >
+                  {ratingOptions.rebuttals.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <ScoreDisplay>
+                <ScoreLabel>分數</ScoreLabel>
+                <ScoreInput
+                  type="number"
+                  value={totalScore}
+                  onChange={handleTotalScoreChange}
+                  inputProps={{ min: 0, max: 8 }}
+                  variant="outlined"
+                />
+              </ScoreDisplay>
+            </RatingContainer>
+          </CommentPaper>
+          <ButtonContainer>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleTempSave}
+              disabled={isLoading}
+            >
+              暫存
+            </Button>
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={handleSubmit}
+              disabled={isLoading}
+            >
+              送出
+            </Button>
+          </ButtonContainer>
         </RightBox>
       </MainContainer>
+      <Dialog open={openTempSaveDialog} onClose={handleCloseTempSaveDialog}>
+        <DialogTitle>提示</DialogTitle>
+        <DialogContent>
+          <DialogContentText>暫存成功！</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseTempSaveDialog} color="primary">
+            確定
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
