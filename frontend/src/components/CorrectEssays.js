@@ -871,7 +871,6 @@ import {
   DialogActions,
   Snackbar,
   Alert,
-  CircularProgress,
 } from "@mui/material";
 import FroalaEditor from "react-froala-wysiwyg";
 import "froala-editor/js/plugins.pkgd.min.js";
@@ -879,25 +878,7 @@ import "froala-editor/css/froala_editor.pkgd.min.css";
 import "froala-editor/css/froala_style.min.css";
 import Navbar from "../components/Navbar_Teacher";
 import { styled } from "@mui/system";
-import axios from "axios";
-import { useLocation } from "react-router-dom";
-
-// Axios 配置
-const apiAxios = axios.create({
-  baseURL: 'http://140.115.126.27:4000',
-  timeout: 10000,
-});
-
-apiAxios.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('jwtToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+import { useSearchParams } from "react-router-dom";
 
 // 自定義樣式
 const MainContainer = styled(Box)(({ theme }) => ({
@@ -1013,14 +994,20 @@ const CorrectEssays = () => {
   const [totalScore, setTotalScore] = useState(0);
   const [openTempSaveDialog, setOpenTempSaveDialog] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
-  const [isLoading, setIsLoading] = useState(false);
-  const location = useLocation();
-  const { studentName, className, theme } = location.state || {};
+  const [searchParams] = useSearchParams();
+  const studentName = searchParams.get('studentName');
+  const className = searchParams.get('className');
 
-  // 調試：記錄 location.state
+  // 調試：記錄查詢參數
   useEffect(() => {
-    console.log('Location state:', location.state);
-  }, [location.state]);
+    console.log('Query params:', {
+      studentName: searchParams.get('studentName'),
+      className: searchParams.get('className'),
+    });
+    if (!studentName || !className) {
+      showSnackbar('缺少學生或班級資訊，請從學生列表進入', 'error');
+    }
+  }, [searchParams]);
 
   const ratingOptions = {
     claims: [
@@ -1045,35 +1032,6 @@ const CorrectEssays = () => {
       { value: 2, label: "2: 強有力的反駁論點，包含了反方的論點及反駁論點", description: "強有力的反駁論點，包含了反方的論點及反駁論點" },
     ],
   };
-
-  // 初始化時載入 Notion 資料
-  useEffect(() => {
-    if (studentName && className && theme) {
-      const fetchEssayContent = async () => {
-        setIsLoading(true);
-        try {
-          const response = await apiAxios.get(`/api/get-essay/${encodeURIComponent(studentName)}`, {
-            params: { className, theme },
-          });
-          console.log('Fetched essay data:', response.data);
-          if (response.data.success) {
-            setEditorContent(response.data.data.essayContent || '');
-          } else {
-            showSnackbar('未找到議論文內容', 'warning');
-            setEditorContent('');
-          }
-        } catch (error) {
-          console.error('從 Notion 獲取議論文失敗:', error);
-          showSnackbar(`載入議論文失敗：${error.message}`, 'error');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchEssayContent();
-    } else {
-      showSnackbar('缺少學生資訊，請從學生列表進入', 'error');
-    }
-  }, [studentName, className, theme]);
 
   // 當評分改變時，自動計算總分
   useEffect(() => {
@@ -1164,22 +1122,15 @@ const CorrectEssays = () => {
           <TitleBox>
             <Typography sx={{ fontSize: '16px' }}>
               {studentName ? `學生: ${studentName}` : '未知學生'} | 
-              {className ? ` 班級: ${className}` : '未知班級'} | 
-              {theme ? ` 主題: ${theme}` : '未知主題'}
+              {className ? ` 班級: ${className}` : '未知班級'}
             </Typography>
           </TitleBox>
-          {isLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <FroalaEditor
-              tag="textarea"
-              config={config}
-              model={editorContent}
-              onModelChange={(newContent) => setEditorContent(newContent)}
-            />
-          )}
+          <FroalaEditor
+            tag="textarea"
+            config={config}
+            model={editorContent}
+            onModelChange={(newContent) => setEditorContent(newContent)}
+          />
           <CommentPaper>
             <CommentTextField
               label="評語"
@@ -1249,7 +1200,6 @@ const CorrectEssays = () => {
               variant="contained"
               color="primary"
               onClick={handleTempSave}
-              disabled={isLoading}
             >
               暫存
             </Button>
@@ -1257,7 +1207,6 @@ const CorrectEssays = () => {
               variant="contained"
               color="secondary"
               onClick={handleSubmit}
-              disabled={isLoading}
             >
               送出
             </Button>
