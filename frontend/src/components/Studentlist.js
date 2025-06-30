@@ -851,7 +851,6 @@ const Studentlist = () => {
           const notionStudents = notionResponse.data.data.map((student) => ({
             group: student.theme || "未知主題",
             name: student.studentName || "未知學生",
-            onlineTime: "",
             submissionTime: student.submissionDate
               ? new Date(student.submissionDate).toLocaleDateString("zh-TW")
               : "尚未繳交",
@@ -872,10 +871,14 @@ const Studentlist = () => {
     fetchActivityData();
   }, []);
 
-  const handleEssayClick = (studentName, className) => {
-    navigate(
-      `/CorrectEssays?studentName=${encodeURIComponent(studentName)}&className=${encodeURIComponent(className)}`
-    );
+  const handleEssayClick = (studentName, className, theme) => {
+    navigate("/CorrectEssays", {
+      state: {
+        studentName,
+        className,
+        theme,
+      },
+    });
   };
 
   const handleMessageClick = () => {
@@ -920,7 +923,7 @@ const Studentlist = () => {
                   <StyledTableCell>{student.submissionTime}</StyledTableCell>
                   <StyledTableCell>
                     <EssayLink
-                      onClick={() => handleEssayClick(student.name, className)}
+                      onClick={() => handleEssayClick(student.name, className, student.group)}
                     >
                       {student.essay}
                     </EssayLink>

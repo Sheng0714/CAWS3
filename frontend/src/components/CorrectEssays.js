@@ -909,6 +909,21 @@ const MainContainer = styled(Box)(({ theme }) => ({
   },
 }));
 
+const LeftBox = styled(Box)(({ theme }) => ({
+  flex: 1,
+  padding: "5px",
+  borderRight: "1px solid #ccc",
+  display: "flex",
+  flexDirection: "column",
+  marginTop: "-75px",
+  [theme.breakpoints.down("md")]: {
+    marginTop: 0,
+    borderRight: "none",
+    borderBottom: "1px solid #ccc",
+    height: "50vh",
+  },
+}));
+
 const RightBox = styled(Box)(({ theme }) => ({
   flex: 2,
   padding: "20px",
@@ -1004,6 +1019,7 @@ const ScoreInput = styled(TextField)(({ theme }) => ({
 
 const CorrectEssays = () => {
   const [editorContent, setEditorContent] = useState("");
+  const [noteContent, setNoteContent] = useState("");
   const [comment, setComment] = useState("");
   const [ratings, setRatings] = useState({
     claims: 0,
@@ -1016,11 +1032,6 @@ const CorrectEssays = () => {
   const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
   const { studentName, className, theme } = location.state || {};
-
-  // 調試：記錄 location.state
-  useEffect(() => {
-    console.log('Location state:', location.state);
-  }, [location.state]);
 
   const ratingOptions = {
     claims: [
@@ -1058,9 +1069,11 @@ const CorrectEssays = () => {
           console.log('Fetched essay data:', response.data);
           if (response.data.success) {
             setEditorContent(response.data.data.essayContent || '');
+            setNoteContent(response.data.data.noteContent || '');
           } else {
             showSnackbar('未找到議論文內容', 'warning');
             setEditorContent('');
+            setNoteContent('');
           }
         } catch (error) {
           console.error('從 Notion 獲取議論文失敗:', error);
@@ -1135,21 +1148,47 @@ const CorrectEssays = () => {
     setSnackbar({ open: false, message: '', severity: 'info' });
   };
 
-  const handleTempSave = () => {
-    localStorage.setItem("editorData", editorContent);
-    localStorage.setItem("comment", comment);
-    localStorage.setItem("ratings", JSON.stringify(ratings));
-    localStorage.setItem("totalScore", totalScore.toString());
-    showSnackbar('暫存成功！', 'success');
-    setOpenTempSaveDialog(true);
+  const handleTempSave = async () => {
+    try {
+      await apiAxios.patch('/api/update-note', {
+        studentName,
+        className,
+        theme,
+        noteContent,
+        essayContent: editorContent,
+      });
+      localStorage.setItem("editorData", editorContent);
+      localStorage.setItem("noteContent", noteContent);
+      localStorage.setItem("comment", comment);
+      localStorage.setItem("ratings", JSON.stringify(ratings));
+      localStorage.setItem("totalScore", totalScore.toString());
+      showSnackbar('暫存成功！', 'success');
+      setOpenTempSaveDialog(true);
+    } catch (error) {
+      console.error('暫存失敗:', error);
+      showSnackbar(`暫存失敗：${error.message}`, 'error');
+    }
   };
 
-  const handleSubmit = () => {
-    localStorage.setItem("editorData", editorContent);
-    localStorage.setItem("comment", comment);
-    localStorage.setItem("ratings", JSON.stringify(ratings));
-    localStorage.setItem("totalScore", totalScore.toString());
-    showSnackbar('送出成功！', 'success');
+  const handleSubmit = async () => {
+    try {
+      await apiAxios.patch('/api/update-note', {
+        studentName,
+        className,
+        theme,
+        noteContent,
+        essayContent: editorContent,
+      });
+      localStorage.setItem("editorData", editorContent);
+      localStorage.setItem("noteContent", noteContent);
+      localStorage.setItem("comment", comment);
+      localStorage.setItem("ratings", JSON.stringify(ratings));
+      localStorage.setItem("totalScore", totalScore.toString());
+      showSnackbar('送出成功！', 'success');
+    } catch (error) {
+      console.error('送出失敗:', error);
+      showSnackbar(`送出失敗：${error.message}`, 'error');
+    }
   };
 
   const handleCloseTempSaveDialog = () => {
@@ -1160,6 +1199,18 @@ const CorrectEssays = () => {
     <div>
       <Navbar />
       <MainContainer>
+        <LeftBox>
+          <TitleBox>筆記區</TitleBox>
+          <TextField
+            value={noteContent}
+            onChange={(e) => setNoteContent(e.target.value)}
+            multiline
+            rows={20}
+            variant="outlined"
+            fullWidth
+            sx={{ flex: 1, margin: "10px", backgroundColor: "#FFFFFF" }}
+          />
+        </LeftBox>
         <RightBox>
           <TitleBox>
             <Typography sx={{ fontSize: '16px' }}>
