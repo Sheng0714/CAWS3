@@ -1199,7 +1199,7 @@ const CorrectEssays = () => {
     <div>
       <Navbar />
       <MainContainer>
-        <LeftBox>
+        {/* <LeftBox>
           <TitleBox>筆記區</TitleBox>
           <TextField
             value={noteContent}
@@ -1210,7 +1210,7 @@ const CorrectEssays = () => {
             fullWidth
             sx={{ flex: 1, margin: "10px", backgroundColor: "#FFFFFF" }}
           />
-        </LeftBox>
+        </LeftBox> */}
         <RightBox>
           <TitleBox>
             <Typography sx={{ fontSize: '16px' }}>
