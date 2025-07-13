@@ -146,6 +146,137 @@
 
 
 
+# version: "3"
+# services:
+#   nginx:
+#     image: nginx:latest
+#     container_name: nginx
+#     restart: always
+#     volumes:
+#       - ./nginx.http/nginx.conf:/etc/nginx/nginx.conf
+#       - ./nginx.http/logs:/var/log/nginx/
+#       - certs:/etc/letsencrypt
+#       - certs-data:/data/letsencrypt
+#     ports:
+#       - "80:80"
+#       - "443:443"
+#     depends_on:
+#       - frontend
+#       - backend
+#       - websocket-srv
+#       - notion-backend
+#     networks:
+#       - frontend
+#       - backend
+
+#   backend:
+#     build:
+#       context: backend
+#     environment:
+#       DB_TABLENAME: Idea-centered-inquiry
+#       DB_USERNAME: wulab
+#       DB_USERPSW: ytwu35415
+#       DB_HOST: db
+#       NODE_ENV: production
+#       JWT_SECRET: "secret"
+#     restart: always
+#     volumes:
+#       - "./uploads:/app/uploads/"
+#     ports:
+#       - "8000:8000"
+#     depends_on:
+#       - db
+#     networks:
+#       - backend
+
+#   notion-backend:
+#     build:
+#       context: ./notion-backend
+#       dockerfile: Dockerfile
+#     restart: always
+#     ports:
+#       - "4000:4000"
+#     depends_on:
+#       - db
+#     env_file:
+#       - ./frontend/.env
+#     networks:
+#       - backend
+
+#   db:
+#     image: postgres:13.2-alpine
+#     restart: always
+#     environment:
+#       POSTGRES_DB: Idea-centered-inquiry
+#       POSTGRES_USER: wulab
+#       POSTGRES_PASSWORD: ytwu35415
+#       PGDATA: /var/lib/postgresql/data
+#     volumes:
+#       - db_data:/var/lib/postgresql/data
+#     ports:
+#       - "5432:5432"
+#     networks:
+#       - backend
+
+#   pgadmin:
+#     image: dpage/pgadmin4:7.5
+#     user: root
+#     container_name: pgadmin4_container
+#     restart: always
+#     ports:
+#       - "5050:5050"
+#     environment:
+#       PGADMIN_DEFAULT_EMAIL: admin@admin.com
+#       PGADMIN_DEFAULT_PASSWORD: root
+#       PGADMIN_LISTEN_PORT: 5050
+#       PGADMIN_CONFIG_WTF_CSRF_CHECK_DEFAULT: "False"
+#     depends_on:
+#       - db
+#     networks:
+#       - backend
+
+#   frontend:
+#     build:
+#       context: frontend
+#     ports:
+#       - '3000:3000'
+#     stdin_open: true
+#     restart: always
+#     volumes:
+#       - "./frontend/src:/app/src"
+#     depends_on:
+#       - backend
+#       - websocket-srv
+#     environment:
+#       - WDS_SOCKET_PORT=0
+#       - NODE_ENV=production
+#     networks:
+#       - frontend
+
+#   websocket-srv:
+#     build:
+#       context: socketio-server
+#     environment:
+#       LOG_LEVEL: info
+#     restart: always
+#     ports:
+#       - "3030:3030"
+#     networks:
+#       - backend
+
+# volumes:
+#   db_data:
+#   pgadmin_data:
+#   certs:
+#   certs-data:
+
+# networks:
+#   frontend:
+#   backend:
+
+
+
+
 version: "3"
 services:
   nginx:
@@ -214,7 +345,7 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"  # 更改主機端口為 5433
     networks:
       - backend
 
@@ -239,7 +370,7 @@ services:
     build:
       context: frontend
     ports:
-      - '3000:3000'
+      - "3000:3000"
     stdin_open: true
     restart: always
     volumes:
@@ -260,7 +391,7 @@ services:
       LOG_LEVEL: info
     restart: always
     ports:
-      - "3030:3030"
+      - "3031:3030"  # 更改主機端口為 3031
     networks:
       - backend
 
