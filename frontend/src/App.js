@@ -30,6 +30,7 @@ import KFWebSTUDENT from './components/kfweb_student.js';  // 正確導入 KFWeb
 import AboutStudent from './pages/About_student.js';
 import AboutTeacher from './pages/About_teacher.js';
 import AboutHome from './pages/About_Home.js';
+import Editortest from './components/Editortest.js';
 
 export default function App() {
   return (
@@ -57,6 +58,7 @@ export default function App() {
               <Route path='/About_student' element={<AboutStudent/>}></Route>
               <Route path='/About_teacher' element={<AboutTeacher/>}></Route>
               <Route path='/About_Home' element={<AboutHome/>}></Route>
+              <Route path='/Editortest' element={<Editortest/>}></Route>
           </Routes>
       </Router>
     </ModeProvider>
