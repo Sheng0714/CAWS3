@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+
+
 
 // const express = require('express');
 // const { Client } = require('@notionhq/client');
@@ -613,7 +616,16 @@ app.patch('/api/update-note', async (req, res) => {
             details: error.message || '請檢查伺服器日誌',
         });
     }
+
 });
 
 
 
+
+
+
+
+
+
+=======
+>>>>>>> 7458dad (更新描述（例如：修正 Notion API 錯誤）)
