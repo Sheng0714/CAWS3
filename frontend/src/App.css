@@ -1,3 +1,29 @@
+@font-face {
+  font-family: 'ElephantCustom';
+  src: url('./assets/fonts/ELEPHNT.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GeorgiaCustom';
+  src: url('./assets/fonts/GEORGIA.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GeorgiaCustom';
+  src: url('./assets/fonts/georgiaz.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+
+
+
+
+
 * {
   margin: 0;
   padding: 0;

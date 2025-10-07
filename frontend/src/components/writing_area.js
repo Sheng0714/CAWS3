@@ -29294,6 +29294,1150 @@
 
 
 
+// import React, { useState, useEffect, useRef } from 'react';
+// import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField, List, ListItem, ListItemText, Avatar, IconButton, ListItemButton, Drawer, Tooltip, Snackbar, Alert } from '@mui/material';
+// import { Box } from '@mui/system';
+// import FroalaEditor from 'react-froala-wysiwyg';
+// import 'froala-editor/js/plugins.pkgd.min.js';
+// import 'froala-editor/css/froala_editor.pkgd.min.css';
+// import 'froala-editor/css/froala_style.min.css';
+// import axios from 'axios';
+// import { useNavigate } from 'react-router-dom';
+// import Navbar from "../components/Navbar_Student";
+// import userAvatar from "../assets/學生ICON.png";
+// import assistantAvatar from "../assets/AI_LOGOICON.png";
+// import sendArrow from '../assets/發送.png';
+// import HelpOutline from '@mui/icons-material/HelpOutline';
+// import MenuIcon from "../assets/側欄ICON.png";
+// import NotesIcon from "../assets/筆記工具.png";
+// import historyIcon from "../assets/歷史紀錄.png";
+// import NewchatIcon from "../assets/新聊天.png";
+
+// // 簡單的防抖函數
+// function debounce(func, wait) {
+//   let timeout;
+//   return (...args) => {
+//     clearTimeout(timeout);
+//     timeout = setTimeout(() => func.apply(null, args), wait);
+//   };
+// }
+
+// const apiAxios = axios.create({
+//   baseURL: 'http://140.115.126.27:4000',
+//   timeout: 10000,
+// });
+
+// apiAxios.interceptors.request.use(
+//   (config) => {
+//     const token = localStorage.getItem('token');
+//     if (token) {
+//       config.headers.Authorization = `Bearer ${token}`;
+//     }
+//     return config;
+//   },
+//   (error) => Promise.reject(error)
+// );
+
+// const AGENT_CONFIG = {
+//   '08e825e4874011f0af000242ac120005': {
+//     title: '寫作精靈模式',
+//     description: '此模式將協助您生成寫作大綱並提供相關建議。',
+//   },
+//   '08e825e4874011f0af000242ac120006': {
+//     title: '一般模式',
+//     description: '此模式提供通用的寫作建議與資料搜尋。',
+//   },
+//   '08e825e4874011f0af000242ac120007': {
+//     title: '寫作分析模式',
+//     description: '此模式將分析您的文章結構並提供改進建議。',
+//   },
+// };
+
+// const WritingArea = () => {
+//   const [editorContent, setEditorContent] = useState('');
+//   const [openReminderDialog, setOpenReminderDialog] = useState(false);
+//   const [openTempSaveDialog, setOpenTempSaveDialog] = useState(false);
+//   const [openNoteDrawer, setOpenNoteDrawer] = useState(false);
+//   const [openHistoryDialog, setOpenHistoryDialog] = useState(false);
+//   const [openChatSidebar, setOpenChatSidebar] = useState(false);
+//   const [outlineContent, setOutlineContent] = useState('');
+//   const [noteContent, setNoteContent] = useState('');
+//   const [kfAnalysisContent, setKfAnalysisContent] = useState('');
+//   const [currentMessages, setCurrentMessages] = useState([]);
+//   const [chatHistory, setChatHistory] = useState([]);
+//   const [userInput, setUserInput] = useState('');
+//   const [errorMessage, setErrorMessage] = useState('');
+//   const [sessionId, setSessionId] = useState('');
+//   const [activityTitle, setActivityTitle] = useState('');
+//   const [groupName, setGroupName] = useState('');
+//   const [username, setUsername] = useState('');
+//   const [isSubmitDisabled, setIsSubmitDisabled] = useState(false);
+//   const [openConfirmSubmitDialog, setOpenConfirmSubmitDialog] = useState(false);
+//   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+//   const [mode, setMode] = useState('KF分析模式');
+//   const [currentAgentId, setCurrentAgentId] = useState('08e825e4874011f0af000242ac120005');
+//   const chatEndRef = useRef(null);
+//   const navigate = useNavigate();
+
+//   const RAGFLOW_API_URL = 'https://ragflow.lazyinwork.com/api/v1';
+//   const RAGFLOW_API_KEY = 'ragflow-hmY2YzMjRjMWQ5YTExZjBhMGQ5MDI0Mm';
+//   const KF_CHAT_ID = 'da41eabc659411f08d650242ac120005';
+
+//   const currentAgentConfig = mode === 'KF分析模式' ? { title: 'KF分析模式', description: '此模式將協助您分析和摘要KF討論內容。' } : AGENT_CONFIG[currentAgentId];
+
+//   const showSnackbar = (message, severity) => {
+//     setSnackbar({ open: true, message, severity });
+//   };
+
+//   const handleCloseSnackbar = () => {
+//     setSnackbar({ ...snackbar, open: false });
+//   };
+
+//   const formatDateTime = (isoString) => {
+//     const date = new Date(isoString);
+//     return date.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+//   };
+
+//   const scrollToBottom = () => {
+//     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+//   };
+
+//   useEffect(() => {
+//     scrollToBottom();
+//   }, [currentMessages]);
+
+//   // 自動儲存函數（防抖處理）
+//   const autoSave = debounce(async () => {
+//     try {
+//       localStorage.setItem('outlineData', outlineContent);
+//       localStorage.setItem('noteData', noteContent);
+//       localStorage.setItem('kfAnalysisData', kfAnalysisContent);
+//       localStorage.setItem('essayData', editorContent);
+//       localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+//       const response = await apiAxios.patch('/api/update-note', {
+//         studentName: username || '未命名使用者',
+//         className: activityTitle || '未指定班級',
+//         theme: groupName || '未指定主題',
+//         outlineContent: outlineContent || '',
+//         noteContent: noteContent || '',
+//         kfAnalysisContent: kfAnalysisContent || '',
+//         essayContent: editorContent || '',
+//         chatHistory: chatHistory || [],
+//       });
+//       if (response.data.success) {
+//         showSnackbar('自動儲存成功！', 'success');
+//       } else {
+//         showSnackbar(`自動儲存失敗：${response.data.message || '未知錯誤'}`, 'error');
+//       }
+//     } catch (error) {
+//       console.error('自動儲存到 Notion 時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       showSnackbar(`自動儲存失敗：${errorMessage}`, 'error');
+//     }
+//   }, 2000);
+
+//   useEffect(() => {
+//     const savedActivityTitle = localStorage.getItem('activityTitle');
+//     if (savedActivityTitle) {
+//       setActivityTitle(savedActivityTitle);
+//     }
+
+//     const savedGroupName = localStorage.getItem('groupName');
+//     if (savedGroupName) {
+//       setGroupName(savedGroupName);
+//     }
+
+//     const savedUsername = localStorage.getItem('name');
+//     if (savedUsername && savedActivityTitle && savedGroupName) {
+//       setUsername(savedUsername);
+
+//       const fetchEssayContent = async () => {
+//         try {
+//           const response = await apiAxios.get(`/api/get-essay/${encodeURIComponent(savedUsername)}`, {
+//             params: { className: savedActivityTitle, theme: savedGroupName },
+//           });
+//           if (response.data.success) {
+//             setEditorContent(response.data.data.essayContent || '');
+//             setOutlineContent(response.data.data.outlineContent || '');
+//             setNoteContent(response.data.data.noteContent || '');
+//             setKfAnalysisContent(response.data.data.kfAnalysisContent || '');
+//             setChatHistory(response.data.data.chatHistory || []);
+//           } else {
+//             console.warn('未找到符合學生姓名、班級和主題的議論文內容，使用空白內容');
+//             setEditorContent('');
+//             setOutlineContent('');
+//             setNoteContent('');
+//             setKfAnalysisContent('');
+//             setChatHistory([]);
+//           }
+//         } catch (error) {
+//           console.error('從 Notion 獲取議論文內容失敗:', error);
+//           setEditorContent('');
+//           setOutlineContent('');
+//           setNoteContent('');
+//           setKfAnalysisContent('');
+//           setChatHistory([]);
+//         }
+//       };
+
+//       fetchEssayContent();
+//     }
+
+//     const savedOutline = localStorage.getItem('outlineData');
+//     if (savedOutline) {
+//       setOutlineContent(savedOutline);
+//     }
+
+//     const savedNote = localStorage.getItem('noteData');
+//     if (savedNote) {
+//       setNoteContent(savedNote);
+//     }
+
+//     const savedKfAnalysis = localStorage.getItem('kfAnalysisData');
+//     if (savedKfAnalysis) {
+//       setKfAnalysisContent(savedKfAnalysis);
+//     }
+
+//     const savedChatHistory = localStorage.getItem('chatHistory');
+//     if (savedChatHistory) {
+//       try {
+//         setChatHistory(JSON.parse(savedChatHistory));
+//       } catch (error) {
+//         console.error('解析聊天歷史紀錄失敗:', error);
+//       }
+//     }
+
+//     setOpenReminderDialog(true);
+
+//     if (mode === 'KF分析模式') {
+//       handleCreateSessionForChat(KF_CHAT_ID);
+//     } else {
+//       handleCreateSessionForAgent(currentAgentId);
+//     }
+//   }, []);
+
+//   useEffect(() => {
+//     if (username && activityTitle && groupName) {
+//       autoSave();
+//     }
+//   }, [outlineContent, kfAnalysisContent, chatHistory]);
+
+//   useEffect(() => {
+//     if (mode === 'KF分析模式') {
+//       handleCreateSessionForChat(KF_CHAT_ID);
+//     } else {
+//       handleCreateSessionForAgent(currentAgentId);
+//     }
+//   }, [mode, currentAgentId]);
+
+//   const handleCreateSessionForChat = async (chatId) => {
+//     setCurrentMessages([]);
+//     setErrorMessage('');
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/chats/${chatId}/sessions`, {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RAGFLOW_API_KEY}` },
+//         body: JSON.stringify({}),
+//       });
+//       const data = await response.json();
+//       if (data.code === 0) {
+//         setSessionId(data.data?.id);
+//         setCurrentMessages([{
+//           role: 'assistant',
+//           content: "Hello, I am the KF Summary Assistant. I’m responsible for summarizing and analyzing your group’s discussions in KF. Could you please tell me your group number in KF? 妳好，我是KF整理助手，負責幫妳摘要及分析KF小組內討論內容，請告訴我你在 KF 的組別編號是什麼？",
+//           created_at: new Date().toISOString()
+//         }]);
+//       }
+//     } catch (error) {
+//       console.error('KF Chat 會話建立失敗:', error);
+//       setErrorMessage(`❌ 創建會話失敗：${error.message}`);
+//     }
+//   };
+
+//   const handleCreateSessionForAgent = async (agentId) => {
+//     setCurrentMessages([]);
+//     setErrorMessage('');
+//     try {
+//       const response = await fetch(`${RAGFLOW_API_URL}/agents/${agentId}/sessions`, {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RAGFLOW_API_KEY}` },
+//         body: JSON.stringify({}),
+//       });
+//       if (!response.ok) {
+//         throw new Error(`HTTP 錯誤：${response.status}`);
+//       }
+//       const data = await response.json();
+//       if (data.code === 0) {
+//         const newSessionId = data.data?.id;
+//         setSessionId(newSessionId);
+//         setErrorMessage(`✅ 成功切換到${mode}：${newSessionId}`);
+//         if (mode === "寫作精靈模式") {
+//           setCurrentMessages([{
+//             role: 'assistant',
+//             content: `Hello, I’m your AI writing assistant. Before generating a writing outline, I will first ask about your understanding of English argumentative essays. Please paste the discussion summary you produced in the KF analysis mode.
+// 哈囉，我是你的 AI 寫作助理，在產出寫作大綱前我會先詢問你對英文議論文的理解，請將你在KF分析模式產出的討論摘要貼上來。`,
+//             created_at: new Date().toISOString()
+//           }]);
+//         } else if (mode === "一般模式") {
+//           setCurrentMessages([{
+//             role: 'assistant',
+//             content: `Hi! I'm your argumentative essay learning assistant. You can share your topic or idea with me, and I'll help you find useful information to make your essay more complete!
+// 哈囉！我是你的議論文學習小幫手。你可以把題目或想法告訴我，我會幫你找到有用的資料，讓你的文章更完整！`,
+//             created_at: new Date().toISOString()
+//           }]);
+//         } else if (mode === "寫作分析模式") {
+//           setCurrentMessages([{
+//             role: 'assistant',
+//             content: `Hi! I'm your writing assistant. In addition to checking the structure and coherence of your essay, I’ll also provide overall feedback and detailed suggestions to help make your work more complete!
+// 哈囉！我是你的文章小幫手。除了幫你檢查文章結構與連貫性外，我還會給你整體建議與細部修改方向，讓你的作品更完整！`,
+//             created_at: new Date().toISOString()
+//           }]);
+//         }
+//       } else {
+//         setErrorMessage(`❌ 創建會話失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 創建會話錯誤：${error.message}`);
+//       console.error('創建會話失敗:', error);
+//     }
+//   };
+
+//   const handleSendMessage = async (message) => {
+//     if (!message.trim()) {
+//       setErrorMessage('❌ 請輸入問題！');
+//       return;
+//     }
+//     if (!sessionId) {
+//       setErrorMessage('❌ 請先創建聊天會話！');
+//       return;
+//     }
+//     const newMessage = { role: 'user', content: message, created_at: new Date().toISOString() };
+//     setCurrentMessages((prev) => [...prev, newMessage]);
+//     setUserInput('');
+//     setErrorMessage('');
+//     try {
+//       const url = mode === 'KF分析模式'
+//         ? `${RAGFLOW_API_URL}/chats/${KF_CHAT_ID}/completions`
+//         : `${RAGFLOW_API_URL}/agents/${currentAgentId}/completions`;
+//       const response = await fetch(url, {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RAGFLOW_API_KEY}` },
+//         body: JSON.stringify({ question: message, stream: false, session_id: sessionId }),
+//       });
+//       const data = await response.json();
+//       if (data.code === 0) {
+//         const content = data.data?.answer || 'No content received from API';
+//         setCurrentMessages((prev) => [
+//           ...prev,
+//           { role: 'assistant', content, created_at: new Date().toISOString() },
+//         ]);
+//         if (mode === 'KF分析模式' && content.includes("已經足夠")) {
+//           setKfAnalysisContent((prev) => {
+//             const updatedContent = prev ? `${prev}\n${content}` : content;
+//             localStorage.setItem('kfAnalysisData', updatedContent);
+//             return updatedContent;
+//           });
+//         }
+//         // 更新聊天歷史並觸發自動儲存
+//         setChatHistory((prev) => {
+//           const existingSessionIndex = prev.findIndex((session) => session.sessionId === sessionId);
+//           if (existingSessionIndex !== -1) {
+//             const updatedHistory = [...prev];
+//             updatedHistory[existingSessionIndex] = {
+//               sessionId,
+//               messages: [...currentMessages, { role: 'assistant', content, created_at: new Date().toISOString() }],
+//               createdAt: prev[existingSessionIndex].createdAt,
+//               mode: mode,
+//               agentId: currentAgentId
+//             };
+//             return updatedHistory;
+//           } else {
+//             return [
+//               ...prev,
+//               { 
+//                 sessionId, 
+//                 messages: [...currentMessages, { role: 'assistant', content, created_at: new Date().toISOString() }], 
+//                 createdAt: new Date().toISOString(),
+//                 mode: mode,
+//                 agentId: currentAgentId
+//               },
+//             ];
+//           }
+//         });
+//       } else {
+//         setErrorMessage(`❌ 回應失敗：${data.message}`);
+//       }
+//     } catch (error) {
+//       setErrorMessage(`❌ 發送訊息失敗：${error.message}`);
+//       console.error('發送訊息失敗:', error);
+//     }
+//   };
+
+//   const handleModeChange = (e) => {
+//     const newMode = e.target.value;
+//     setMode(newMode);
+//     if (newMode !== 'KF分析模式') {
+//       setCurrentAgentId(AGENT_CONFIG[newMode] ? AGENT_CONFIG[newMode].id : '08e825e4874011f0af000242ac120005');
+//     }
+//   };
+
+//   const handleCreateSession = () => {
+//     if (mode === 'KF分析模式') {
+//       handleCreateSessionForChat(KF_CHAT_ID);
+//     } else {
+//       handleCreateSessionForAgent(currentAgentId);
+//     }
+//   };
+
+//   const handleViewHistory = () => {
+//     setOpenHistoryDialog(true);
+//   };
+
+//   const handleLoadHistory = (session) => {
+//     setCurrentMessages(session.messages);
+//     setSessionId(session.sessionId);
+//     setMode(session.mode);
+//     setCurrentAgentId(session.agentId || '08e825e4874011f0af000242ac120005');
+//     setOpenHistoryDialog(false);
+//   };
+
+//   const handleToggleChatSidebar = () => {
+//     setOpenChatSidebar(!openChatSidebar);
+//   };
+
+//   const handleNoteMouseEnter = () => {
+//     setOpenNoteDrawer(true);
+//   };
+
+//   const handleNoteMouseLeave = () => {
+//     if (openNoteDrawer) {
+//       localStorage.setItem('outlineData', outlineContent);
+//       localStorage.setItem('noteData', noteContent);
+//       localStorage.setItem('kfAnalysisData', kfAnalysisContent);
+//       localStorage.setItem('essayData', editorContent);
+//       localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+//       handleUpdateNote();
+//       setOpenNoteDrawer(false);
+//     }
+//   };
+
+//   const handleUpdateNote = async () => {
+//     try {
+//       const response = await apiAxios.patch('/api/update-note', {
+//         studentName: username || '未命名使用者',
+//         className: activityTitle || '未指定班級',
+//         theme: groupName || '未指定主題',
+//         outlineContent: outlineContent || '',
+//         noteContent: noteContent || '',
+//         kfAnalysisContent: kfAnalysisContent || '',
+//         essayContent: editorContent || '',
+//         chatHistory: chatHistory || [],
+//       });
+//       if (response.data.success) {
+//         console.log('筆記區和寫作區內容已更新到 Notion');
+//       } else {
+//         console.warn('更新筆記區和寫作區內容失敗:', response.data.error);
+//       }
+//     } catch (error) {
+//       console.error('更新筆記區和寫作區內容時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       console.warn(`更新失敗：${errorMessage}`);
+//     }
+//   };
+
+//   const handleOutlineChange = (e) => {
+//     setOutlineContent(e.target.value);
+//   };
+
+//   const handleNoteChange = (e) => {
+//     setNoteContent(e.target.value);
+//   };
+
+//   const handleKfAnalysisChange = (e) => {
+//     setKfAnalysisContent(e.target.value);
+//   };
+
+//   const handleEssaySuggestion = async () => {
+//     if (!editorContent) {
+//       showSnackbar('請先輸入文章內容！', 'warning');
+//       return;
+//     }
+//     try {
+//       const response = await apiAxios.post('/api/essay-suggestion', {
+//         essayContent: editorContent,
+//       });
+//       if (response.data.success) {
+//         setCurrentMessages((prev) => [
+//           ...prev,
+//           { role: 'assistant', content: response.data.suggestion, created_at: new Date().toISOString() },
+//         ]);
+//       } else {
+//         showSnackbar(`獲取文章建議失敗：${response.data.message || '未知錯誤'}`, 'error');
+//       }
+//     } catch (error) {
+//       console.error('獲取文章建議失敗:', error);
+//       const errorMessage = error.response?.data?.details || error.message || '未知錯誤';
+//       showSnackbar(`獲取文章建議失敗：${errorMessage}`, 'error');
+//     }
+//   };
+
+//   const handleSubmit = async () => {
+//     try {
+//       // 先執行暫存，確保本地和後端資料一致
+//       await handleTempSave();
+//       const response = await apiAxios.post('/api/submit-to-notion', {
+//         studentName: username || '未命名使用者',
+//         theme: groupName || '未指定主題',
+//         essayContent: editorContent || '無內容',
+//         className: activityTitle || '未指定班級',
+//         outlineContent: outlineContent || '',
+//         noteContent: noteContent || '',
+//         kfAnalysisContent: kfAnalysisContent || '',
+//         chatHistory: chatHistory || [],
+//       });
+//       if (response.data.success) {
+//         showSnackbar('繳交上傳成功！', 'success');
+//         setIsSubmitDisabled(true);
+//         // 清除 localStorage 以防止後續編輯
+//         localStorage.removeItem('outlineData');
+//         localStorage.removeItem('noteData');
+//         localStorage.removeItem('kfAnalysisData');
+//         localStorage.removeItem('essayData');
+//         localStorage.removeItem('chatHistory');
+//       } else {
+//         showSnackbar(`繳交上傳失敗：${response.data.message || '未知錯誤'}`, 'error');
+//       }
+//     } catch (error) {
+//       console.error('發送到 Notion 時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       showSnackbar(`繳交上傳失敗：${errorMessage}`, 'error');
+//     }
+//   };
+
+//   const handleConfirmSubmit = () => {
+//     handleSubmit();
+//     setOpenConfirmSubmitDialog(false);
+//   };
+
+//   const handleTempSave = async () => {
+//     try {
+//       localStorage.setItem('outlineData', outlineContent);
+//       localStorage.setItem('noteData', noteContent);
+//       localStorage.setItem('kfAnalysisData', kfAnalysisContent);
+//       localStorage.setItem('essayData', editorContent);
+//       localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+//       const response = await apiAxios.patch('/api/update-note', {
+//         studentName: username || '未命名使用者',
+//         className: activityTitle || '未指定班級',
+//         theme: groupName || '未指定主題',
+//         outlineContent: outlineContent || '',
+//         noteContent: noteContent || '',
+//         kfAnalysisContent: kfAnalysisContent || '',
+//         essayContent: editorContent || '',
+//         chatHistory: chatHistory || [],
+//       });
+//       if (response.data.success) {
+//         showSnackbar('暫存成功！', 'success');
+//         setOpenTempSaveDialog(true);
+//       } else {
+//         showSnackbar(`暫存失敗：${response.data.message || '未知錯誤'}`, 'error');
+//       }
+//     } catch (error) {
+//       console.error('暫存到 Notion 時出錯:', error);
+//       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
+//       showSnackbar(`暫存失敗：${errorMessage}`, 'error');
+//     }
+//   };
+
+//   const handleCloseReminderDialog = () => {
+//     setOpenReminderDialog(false);
+//   };
+
+//   const handleCloseTempSaveDialog = () => {
+//     setOpenTempSaveDialog(false);
+//   };
+
+//   const config = {
+//     placeholderText: '請輸入您的議論文內容...',
+//     charCounterCount: true,
+//     heightMin: 300,
+//     toolbarButtons: {
+//       moreText: {
+//         buttons: ['bold', 'italic', 'underline', 'strikeThrough', 'subscript', 'superscript', 'fontFamily', 'fontSize', 'textColor', 'backgroundColor'],
+//         buttonsVisible: 4,
+//       },
+//       moreParagraph: {
+//         buttons: ['alignLeft', 'alignCenter', 'alignRight', 'formatOL', 'formatUL', 'paragraphFormat', 'paragraphStyle', 'lineHeight', 'outdent', 'indent', 'quote'],
+//         buttonsVisible: 4,
+//       },
+//       moreRich: {
+//         buttons: ['insertLink', 'insertImage', 'insertTable', 'specialCharacters'],
+//         buttonsVisible: 2,
+//       },
+//       moreMisc: {
+//         buttons: ['undo', 'redo', 'fullscreen', 'spellChecker'],
+//         buttonsVisible: 2,
+//       },
+//     },
+//     language: 'zh_tw',
+//   };
+
+//   return (
+//     <div>
+//       <Navbar />
+//       <Box
+//         sx={{
+//           display: 'flex',
+//           flexDirection: { xs: 'column', md: 'row' },
+//           minHeight: 'calc(100vh - 120px)',
+//           padding: '10px',
+//           gap: '10px',
+//         }}
+//       >
+//         <Box
+//           sx={{
+//             width: { md: '50%', xs: '100%' },
+//             padding: '5px',
+//             borderRight: { md: '1px solid #ccc', xs: 'none' },
+//             display: 'flex',
+//             flexDirection: 'row',
+//             height: { md: '600px', sm: '800px', xs: 'auto' },
+//             '@media (max-width: 700px)': {
+//               height: '800px',
+//             },
+//           }}
+//         >
+//           <Box
+//             sx={{
+//               width: '50px',
+//               backgroundColor: 'transparent',
+//               display: 'flex',
+//               flexDirection: 'column',
+//               alignItems: 'center',
+//               paddingTop: '10px',
+//             }}
+//           >
+//             <Tooltip title="Open Menu" placement="right">
+//               <IconButton
+//                 onMouseEnter={handleToggleChatSidebar}
+//                 sx={{
+//                   color: '#1976d2',
+//                   '&:hover': {
+//                     backgroundColor: 'rgba(0, 0, 0, 0.04)',
+//                   },
+//                   padding: '8px',
+//                   borderRadius: '8px',
+//                   '&:focus': {
+//                     outline: '2px solid #1976d2',
+//                     outlineOffset: '2px',
+//                   },
+//                 }}
+//               >
+//                 <img src={MenuIcon} alt="Menu" style={{ width: '32px', height: '32px' }} />
+//               </IconButton>
+//             </Tooltip>
+//           </Box>
+
+//           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+//             <Box
+//               sx={{
+//                 width: '100%',
+//                 height: '100px',
+//                 display: 'flex',
+//                 flexDirection: 'column',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//                 backgroundColor: '#B7C5FF',
+//                 fontSize: '18px',
+//                 fontWeight: 'bold',
+//                 padding: '0 10px',
+//               }}
+//             >
+//               <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+//                 <span style={{ fontSize: '16px' }}>{currentAgentConfig.title}</span>
+//                 <Tooltip
+//                   title={currentAgentConfig.description}
+//                   placement="top"
+//                   arrow
+//                   componentsProps={{
+//                     tooltip: {
+//                       sx: {
+//                         fontSize: '16px',
+//                         padding: '8px 12px',
+//                       },
+//                     },
+//                   }}
+//                 >
+//                   <IconButton sx={{ padding: '0', color: '#000000' }}>
+//                     <HelpOutline sx={{ fontSize: '28px' }} />
+//                   </IconButton>
+//                 </Tooltip>
+//               </Box>
+//               <Box sx={{ width: '200px', margin: '10px 0' }}>
+//                 <select
+//                   value={mode}
+//                   onChange={handleModeChange}
+//                   style={{
+//                     width: '150%',
+//                     padding: '8px',
+//                     fontSize: '16px',
+//                     borderRadius: '4px',
+//                     border: '1px solid #ccc',
+//                     backgroundColor: '#fff',
+//                   }}
+//                 >
+//                   <option value="KF分析模式">KF Analysis Mode KF分析模式</option>
+//                   <option value="寫作精靈模式">Writing Assistant Mode 寫作精靈模式</option>
+//                   <option value="一般模式">General Mode 一般模式</option>
+//                   <option value="寫作分析模式">Writing Analysis Mode 寫作分析模式</option>
+//                 </select>
+//               </Box>
+//             </Box>
+//             <Box
+//               sx={{
+//                 border: '2px solid black',
+//                 borderRadius: '8px',
+//                 padding: '10px',
+//                 flex: 1,
+//                 overflowY: 'auto',
+//                 backgroundColor: '#FFFFFF',
+//                 marginBottom: '5px',
+//                 marginTop: '10px',
+//                 display: 'flex',
+//                 flexDirection: 'column',
+//               }}
+//             >
+//               {errorMessage && (
+//                 <Box
+//                   sx={{
+//                     mt: 1,
+//                     p: 1,
+//                     backgroundColor: '#f0f0f0',
+//                     borderRadius: '4px',
+//                     fontSize: '14px',
+//                   }}
+//                 >
+//                   {errorMessage}
+//                 </Box>
+//               )}
+//               <List
+//                 sx={{ flexGrow: 1, overflowY: 'auto', paddingBottom: '5px' }}
+//               >
+//                 {currentMessages.map((msg, index) => (
+//                   <ListItem
+//                     key={index}
+//                     sx={{
+//                       justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+//                       textAlign: msg.role === 'user' ? 'right' : 'left',
+//                       marginBottom: '5px',
+//                     }}
+//                   >
+//                     <Box
+//                       sx={{
+//                         display: 'flex',
+//                         flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+//                         alignItems: 'flex-start',
+//                       }}
+//                     >
+//                       <Avatar
+//                         alt={msg.role === 'user' ? 'User' : 'AI Assistant'}
+//                         src={msg.role === 'user' ? userAvatar : assistantAvatar}
+//                         sx={{ width: 40, height: 40, margin: '0 8px' }}
+//                       />
+//                       <Box
+//                         sx={{
+//                           maxWidth: '80%',
+//                           p: 2,
+//                           borderRadius: '8px',
+//                           backgroundColor: msg.role === 'user' ? '#DCF8C6' : '#F0F0F0',
+//                         }}
+//                       >
+//                         <ListItemText
+//                           primary={msg.content || 'No content'}
+//                           secondary={formatDateTime(msg.created_at)}
+//                           sx={{
+//                             wordBreak: 'break-word',
+//                             textAlign: 'left',
+//                           }}
+//                         />
+//                       </Box>
+//                     </Box>
+//                   </ListItem>
+//                 ))}
+//                 <div ref={chatEndRef} />
+//               </List>
+//               <Box sx={{ display: 'flex', mt: 2 }}>
+//                 <TextField
+//                   fullWidth
+//                   value={userInput}
+//                   onChange={(e) => setUserInput(e.target.value)}
+//                   placeholder="請輸入與寫作主題相關的內容..."
+//                   onKeyPress={(e) => {
+//                     if (e.key === 'Enter' && !e.shiftKey) {
+//                       e.preventDefault();
+//                       handleSendMessage(userInput);
+//                     }
+//                   }}
+//                   variant="standard"
+//                   sx={{ marginRight: '8px' }}
+//                 />
+//                 <IconButton
+//                   color="primary"
+//                   onClick={() => handleSendMessage(userInput)}
+//                   sx={{ padding: '8px' }}
+//                 >
+//                   <img src={sendArrow} alt="Send" style={{ width: '40px', height: '40px' }} />
+//                 </IconButton>
+//               </Box>
+//             </Box>
+//           </Box>
+//         </Box>
+
+//         <Box
+//           sx={{
+//             width: { md: '50%', xs: '100%' },
+//             borderLeft: { md: '1px solid #ccc', xs: 'none' },
+//             position: 'relative',
+//             height: { md: '600px', sm: '800px', xs: 'auto' },
+//             display: 'flex',
+//             flexDirection: 'row',
+//             '@media (max-width: 700px)': {
+//               width: '100%',
+//               padding: '10px',
+//               height: '800px',
+//               borderLeft: 'none',
+//             },
+//             '@media (max-width: 600px)': {
+//               width: '100%',
+//             },
+//           }}
+//         >
+//           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+//             <Box
+//               sx={{
+//                 width: '100%',
+//                 height: '100px',
+//                 display: 'flex',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//                 backgroundColor: '#B7C5FF',
+//                 fontSize: '18px',
+//                 fontWeight: 'bold',
+//                 padding: '0 10px',
+//               }}
+//             >
+//               <Box>
+//                 <span style={{ fontSize: '16px' }}>
+//                   {username && `User: ${username}`}
+//                   {activityTitle && ` Class: ${activityTitle}`}<br />
+//                   {groupName && ` Topic: ${groupName}`}
+//                 </span>
+//               </Box>
+//             </Box>
+//             <Box sx={{ flex: 1, overflowY: 'auto' }}>
+//               <FroalaEditor
+//                 tag="textarea"
+//                 config={config}
+//                 model={editorContent}
+//                 onModelChange={(value) => setEditorContent(value)}
+//                 style={{ height: '100%' }}
+//               />
+//             </Box>
+//             <Box sx={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '10px' }}>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={handleTempSave}
+//               >
+//                 暫存
+//               </Button>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={handleEssaySuggestion}
+//               >
+//                 文章建議
+//               </Button>
+//               <Button
+//                 variant="contained"
+//                 color="secondary"
+//                 onClick={() => setOpenConfirmSubmitDialog(true)}
+//                 disabled={isSubmitDisabled}
+//               >
+//                 繳交
+//               </Button>
+//             </Box>
+//           </Box>
+
+//           <Box
+//             sx={{
+//               width: '50px',
+//               backgroundColor: 'transparent',
+//               display: 'flex',
+//               flexDirection: 'column',
+//               alignItems: 'center',
+//               paddingTop: '10px',
+//               '@media (max-width: 600px)': {
+//                 display: 'none',
+//               },
+//             }}
+//           >
+//             <Tooltip title="Open Notes" placement="left">
+//               <IconButton
+//                 onMouseEnter={handleNoteMouseEnter}
+//                 sx={{
+//                   color: '#1976d2',
+//                   '&:hover': {
+//                     backgroundColor: 'rgba(0, 0, 0, 0.04)',
+//                   },
+//                   padding: '8px',
+//                   borderRadius: '8px',
+//                   '&:focus': {
+//                     outline: '2px solid #1976d2',
+//                     outlineOffset: '2px',
+//                   },
+//                 }}
+//               >
+//                 <img src={NotesIcon} alt="Notes" style={{ width: '32px', height: '32px' }} />
+//               </IconButton>
+//             </Tooltip>
+//           </Box>
+//         </Box>
+//       </Box>
+
+//       <Dialog open={openConfirmSubmitDialog} onClose={() => setOpenConfirmSubmitDialog(false)}>
+//         <DialogTitle>確認提交</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             您確定要提交嗎？提交後無法編輯內容。
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setOpenConfirmSubmitDialog(false)} color="primary">
+//             關閉
+//           </Button>
+//           <Button onClick={handleConfirmSubmit} color="primary" autoFocus>
+//             確定
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Dialog open={openReminderDialog} onClose={handleCloseReminderDialog}>
+//         <DialogTitle>提示</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             請先與 AI 寫作助手討論後再開始寫作！
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={handleCloseReminderDialog} color="primary">
+//             好的！
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Dialog open={openTempSaveDialog} onClose={handleCloseTempSaveDialog}>
+//         <DialogTitle>提示</DialogTitle>
+//         <DialogContent>
+//           <DialogContentText>
+//             暫存成功！
+//           </DialogContentText>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={handleCloseTempSaveDialog} color="primary">
+//             確定
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Drawer
+//         anchor="right"
+//         open={openNoteDrawer}
+//         onClose={handleNoteMouseLeave}
+//         sx={{
+//           '& .MuiDrawer-paper': {
+//             width: '500px',
+//             maxWidth: '90vw',
+//             height: '700px',
+//             overflowY: 'visible',
+//             padding: '16px',
+//             display: 'flex',
+//             flexDirection: 'column',
+//             '@media (max-width: 600px)': {
+//               width: '90vw',
+//               height: 'auto',
+//             },
+//           },
+//         }}
+//       >
+//         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+//           <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+//             <DialogTitle sx={{ padding: 0, fontSize: '18px' }}>筆記區</DialogTitle>
+//             <Tooltip
+//               title="在靈感飛走前記錄下來！"
+//               placement="top"
+//               arrow
+//               componentsProps={{
+//                 tooltip: {
+//                   sx: {
+//                     fontSize: '16px',
+//                     padding: '8px 12px',
+//                   },
+//                 },
+//               }}
+//             >
+//               <IconButton sx={{ padding: 0, color: '#000000' }}>
+//                 <HelpOutline sx={{ fontSize: '28px' }} />
+//               </IconButton>
+//             </Tooltip>
+//           </Box>
+//           <Box sx={{ fontSize: '16px', fontWeight: 'bold' }}>您的寫作大綱:</Box>
+//           <TextField
+//             label="寫作大綱"
+//             value={outlineContent}
+//             onChange={handleOutlineChange}
+//             multiline
+//             rows={4}
+//             fullWidth
+//             variant="outlined"
+//             sx={{ flex: 1, '& .MuiInputBase-root': { overflowY: 'auto', maxHeight: '200px' } }}
+//           />
+//           <Box sx={{ fontSize: '16px', fontWeight: 'bold' }}>筆記區:</Box>
+//           <TextField
+//             label="記下您的想法"
+//             value={noteContent}
+//             onChange={handleNoteChange}
+//             multiline
+//             rows={4}
+//             fullWidth
+//             variant="outlined"
+//             sx={{ flex: 1, '& .MuiInputBase-root': { overflowY: 'auto', maxHeight: '200px' } }}
+//           />
+//           <Box sx={{ fontSize: '16px', fontWeight: 'bold' }}>KF摘要與分析:</Box>
+//           <TextField
+//             label="KF摘要與分析"
+//             value={kfAnalysisContent}
+//             onChange={handleKfAnalysisChange}
+//             multiline
+//             rows={4}
+//             fullWidth
+//             variant="outlined"
+//             sx={{ flex: 1, '& .MuiInputBase-root': { overflowY: 'auto', maxHeight: '200px' } }}
+//           />
+//           <DialogActions>
+//             <Button onClick={handleNoteMouseLeave} color="primary">
+//               儲存並關閉
+//             </Button>
+//           </DialogActions>
+//         </Box>
+//       </Drawer>
+
+//       <Drawer
+//         anchor="left"
+//         open={openChatSidebar}
+//         onClose={handleToggleChatSidebar}
+//         sx={{
+//           '& .MuiDrawer-paper': {
+//             width: '200px',
+//             maxWidth: '90vw',
+//             height: '100%',
+//             backgroundColor: '#f5f5f5',
+//             padding: '10px',
+//             '@media (max-width: 600px)': {
+//               width: '80vw',
+//             },
+//           },
+//         }}
+//       >
+//         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px', p: 2 }}>
+//           <Tooltip title="查看聊天歷史">
+//             <Button
+//               variant="text"
+//               color="primary"
+//               onClick={handleViewHistory}
+//               sx={{ padding: '6px', justifyContent: 'flex-start' }}
+//             >
+//               <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+//                 <img src={historyIcon} alt="View History" style={{ width: '32px', height: '32px' }} />
+//                 <span style={{ fontSize: '14px', color: '#000000' }}>歷史紀錄</span>
+//               </Box>
+//             </Button>
+//           </Tooltip>
+//           <Tooltip title="創建新聊天">
+//             <Button
+//               variant="text"
+//               color="primary"
+//               onClick={handleCreateSession}
+//               sx={{ padding: '6px', justifyContent: 'flex-start' }}
+//             >
+//               <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+//                 <img src={NewchatIcon} alt="Create New Chat" style={{ width: '32px', height: '32px' }} />
+//                 <span style={{ fontSize: '14px', color: '#000000' }}>新聊天</span>
+//               </Box>
+//             </Button>
+//           </Tooltip>
+//         </Box>
+//       </Drawer>
+
+//       <Dialog
+//         open={openHistoryDialog}
+//         onClose={() => setOpenHistoryDialog(false)}
+//         sx={{
+//           '& .MuiDialog-container .MuiPaper-root': {
+//             width: '500px',
+//             maxWidth: '90vw',
+//           },
+//         }}
+//       >
+//         <DialogTitle>聊天歷史紀錄</DialogTitle>
+//         <DialogContent>
+//           {chatHistory.length === 0 ? (
+//             <DialogContentText>暫無歷史紀錄</DialogContentText>
+//           ) : (
+//             <List>
+//               {chatHistory.map((session, index) => {
+//                 const userMessages = session.messages.filter(msg => msg.role === 'user');
+//                 const lastUserMessage = userMessages.length > 0 ? userMessages[userMessages.length - 1].content : '無學生回覆';
+//                 const sessionMode = session.mode || '未知模式';
+//                 return (
+//                   <ListItem key={index} disablePadding>
+//                     <ListItemButton onClick={() => handleLoadHistory(session)}>
+//                       <ListItemText
+//                         primary={`會話 ${session.sessionId} (${sessionMode})`}
+//                         secondary={
+//                           <>
+//                             {`創建時間: ${formatDateTime(session.createdAt)}`}<br />
+//                             {`最後學生回覆: ${lastUserMessage.substring(0, 50)}${lastUserMessage.length > 50 ? '...' : ''}`}
+//                           </>
+//                         }
+//                       />
+//                     </ListItemButton>
+//                   </ListItem>
+//                 );
+//               })}
+//             </List>
+//           )}
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setOpenHistoryDialog(false)} color="primary">
+//             關閉
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+
+//       <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+//         <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+//           {snackbar.message}
+//         </Alert>
+//       </Snackbar>
+//     </div>
+//   );
+// };
+
+// export default WritingArea;
+
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField, List, ListItem, ListItemText, Avatar, IconButton, ListItemButton, Drawer, Tooltip, Snackbar, Alert } from '@mui/material';
 import { Box } from '@mui/system';
@@ -29338,16 +30482,20 @@ apiAxios.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// 更新 AGENT_CONFIG：以模式名稱為鍵，每個包含 id、title 和 description
 const AGENT_CONFIG = {
-  '08e825e4874011f0af000242ac120005': {
+  '寫作精靈模式': {
+    id: '8f34f200ef5911ef91480242ac120005',
     title: '寫作精靈模式',
     description: '此模式將協助您生成寫作大綱並提供相關建議。',
   },
-  '08e825e4874011f0af000242ac120006': {
+  '一般模式': {
+    id: '9b51411c96ff11f09b8b0242ac120005',
     title: '一般模式',
     description: '此模式提供通用的寫作建議與資料搜尋。',
   },
-  '08e825e4874011f0af000242ac120007': {
+  '寫作分析模式': {
+    id: 'aaea4db6970011f0a2360242ac120005',
     title: '寫作分析模式',
     description: '此模式將分析您的文章結構並提供改進建議。',
   },
@@ -29375,7 +30523,7 @@ const WritingArea = () => {
   const [openConfirmSubmitDialog, setOpenConfirmSubmitDialog] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [mode, setMode] = useState('KF分析模式');
-  const [currentAgentId, setCurrentAgentId] = useState('08e825e4874011f0af000242ac120005');
+  const [currentAgentId, setCurrentAgentId] = useState(AGENT_CONFIG['寫作精靈模式']?.id || ''); // 初始預設為寫作精靈模式
   const chatEndRef = useRef(null);
   const navigate = useNavigate();
 
@@ -29383,7 +30531,10 @@ const WritingArea = () => {
   const RAGFLOW_API_KEY = 'ragflow-hmY2YzMjRjMWQ5YTExZjBhMGQ5MDI0Mm';
   const KF_CHAT_ID = 'da41eabc659411f08d650242ac120005';
 
-  const currentAgentConfig = mode === 'KF分析模式' ? { title: 'KF分析模式', description: '此模式將協助您分析和摘要KF討論內容。' } : AGENT_CONFIG[currentAgentId];
+  // 更新 currentAgentConfig：根據 mode 從 AGENT_CONFIG 獲取，或 KF 模式的預設
+  const currentAgentConfig = mode === 'KF分析模式' 
+    ? { title: 'KF分析模式', description: '此模式將協助您分析和摘要KF討論內容。' } 
+    : AGENT_CONFIG[mode];
 
   const showSnackbar = (message, severity) => {
     setSnackbar({ open: true, message, severity });
@@ -29673,11 +30824,18 @@ const WritingArea = () => {
     }
   };
 
+  // 更新 handleModeChange：根據新模式從 AGENT_CONFIG 獲取對應的 agent ID
   const handleModeChange = (e) => {
     const newMode = e.target.value;
     setMode(newMode);
     if (newMode !== 'KF分析模式') {
-      setCurrentAgentId(AGENT_CONFIG[newMode] ? AGENT_CONFIG[newMode].id : '08e825e4874011f0af000242ac120005');
+      const config = AGENT_CONFIG[newMode];
+      if (config) {
+        setCurrentAgentId(config.id);
+      } else {
+        // 如果無對應 config，預設回寫作精靈模式
+        setCurrentAgentId(AGENT_CONFIG['寫作精靈模式']?.id || '');
+      }
     }
   };
 
@@ -29697,7 +30855,7 @@ const WritingArea = () => {
     setCurrentMessages(session.messages);
     setSessionId(session.sessionId);
     setMode(session.mode);
-    setCurrentAgentId(session.agentId || '08e825e4874011f0af000242ac120005');
+    setCurrentAgentId(session.agentId || AGENT_CONFIG['寫作精靈模式']?.id || '');
     setOpenHistoryDialog(false);
   };
 
