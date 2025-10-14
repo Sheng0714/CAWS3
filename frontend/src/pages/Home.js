@@ -899,6 +899,7 @@ import url from "../url.json";
 import config from "../config.json";
 import { Register } from "../components/Register";
 import { Login } from "../components/Login";
+import illustration from "../assets/illustration.png";
 
 export default function Home() {
   const [data, setData] = useState({ email: "", password: "" });
@@ -984,14 +985,15 @@ export default function Home() {
             flexDirection: "row",
             flexWrap: "wrap", // RWD：小螢幕時上下排列
             justifyContent: "center",
-            alignItems: "flex-start",
+            alignItems: "stretch",
             width: "100%",
             maxWidth: "1200px",
             gap: "3vw",
           }}
         >
           {/* 左邊插圖區塊 */}
-          <div
+          {/* <div
+          className="left-panel"
             style={{
               backgroundColor: "#CCC6B8",
               flex: "1 1 50%",
@@ -999,7 +1001,31 @@ export default function Home() {
               height: "80%",
               borderRadius: "8px",
             }}
-          />
+          /> */}
+          <div
+  className="left-panel"
+  style={{
+    backgroundColor: "#CCC6B8",
+    flex: "1 1 50%",
+    minWidth: "280px",
+    borderRadius: "8px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  }}
+>
+  <img
+    src={illustration}
+    alt="Illustration"
+    style={{
+      width: "80%",
+      height: "auto",
+      objectFit: "contain",
+    }}
+  />
+</div>
+
+
 
           {/* 右邊登入區塊（外層容器） */}
           <div

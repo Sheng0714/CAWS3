@@ -1015,5 +1015,10 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
   margin-right: 3rem;
 }
 
+@media (max-width: 800px) {
+  .left-panel {
+    display: none !important;
+  }
+}
 
 

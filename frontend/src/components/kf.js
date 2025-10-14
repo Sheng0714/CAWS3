@@ -492,115 +492,304 @@
 
 
 
+// import { useNavigate } from "react-router-dom";
+// import { Button, Container } from "@mui/material";
+// import React, { useState, useEffect } from 'react';
+// import Logo from "../assets/new_logo_1.png";
+// import { HiOutlineBars3 } from 'react-icons/hi2';
+// import { List, Divider, ListItem, ListItemButton, ListItemIcon, ListItemText, Drawer } from "@mui/material";
+// import { Box } from '@mui/system';
+// import HomeIcon from "@mui/icons-material/Home";
+// import InfoIcon from "@mui/icons-material/Info";
+// import { Register } from './Register';
+// import { Login } from './Login';
+// import Navbar from "../components/Navbar_Student";
+
+// export const KF = () => {
+//     const navigate = useNavigate();
+//     const role = localStorage.getItem("role") || "student";
+//     const [userName, setUserName] = useState('');
+//     const [openMenu, setOpenMenu] = useState(false);
+
+//     const menuOptions = [
+//         {
+//           text: "Home",
+//           icon: <HomeIcon />,
+//           onClick: () => navigate('/')
+//         },
+//         {
+//           text: "About",
+//           icon: <InfoIcon />,
+//           onClick: () => navigate('/about')
+//         },
+//         {
+//           text: "Login",
+//           icon: <Login />,
+//           onClick: () => navigate('/login')
+//         },
+//         {
+//           text: "Register",
+//           icon: <Register />,
+//           onClick: () => navigate('/register')
+//         }
+//     ];
+
+//     const handleWriteArea = () => {
+//         if (role === "teacher") {
+//             navigate("/writing_area");
+//         } else {
+//             navigate("/home");
+//         }
+//     };
+
+//     const handleKFClick = () => {
+//         navigate("/kfweb_student");
+//     };
+
+//     useEffect(() => {
+//         const name = localStorage.getItem('name');
+//         if (name) {
+//             setUserName(name);
+//         }
+//     }, []);
+
+//     return (
+//         <div className="home-container">
+//             <Navbar />
+//             <div className="home-banner-container">
+//                 <div className="content-wrapper responsive-flex">
+
+//                     <div className="home-text-section">
+//                         <h1 className="primary-heading">
+//                             Inspire Thinking
+//                             <br />
+//                             Write Infinite Possibilities
+//                             <br />
+//                             with AI
+//                         </h1>
+//                     </div>
+
+//                     <div className="form-section">
+//                         <form>
+//                             <Container style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+//                                 <div style={{ marginBottom: "20px", textAlign: "center" }}>
+//                                     <br /><br />
+//                                     <h1>Welcome to {userName ? userName : 'KF Interface'}</h1>
+//                                 </div>
+//                                 <br /><br /><br />
+//                                 <div style={{ display: "flex", flexDirection: "row", justifyContent: "center", flexWrap: "wrap", gap: "20px" }}>
+//                                     <Button
+//                                         variant="contained"
+//                                         color="primary"
+//                                         onClick={() => window.open('https://kf6.nccu.edu.tw/', '_blank')}
+//                                     >
+//                                         KF
+//                                     </Button>
+//                                     <Button
+//                                         variant="contained"
+//                                         color="secondary"
+//                                         onClick={handleWriteArea}
+//                                     >
+//                                         Writing Area
+//                                     </Button>
+//                                 </div>
+//                             </Container>
+//                         </form>
+//                     </div>
+//                 </div>
+//             </div>
+//         </div>
+//     );
+// };
+
+// export default KF;
+
+import React, { useState, useEffect } from "react";
+import { Button, TextField, Container } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { Button, Container } from "@mui/material";
-import React, { useState, useEffect } from 'react';
-import Logo from "../assets/new_logo_1.png";
-import { HiOutlineBars3 } from 'react-icons/hi2';
-import { List, Divider, ListItem, ListItemButton, ListItemIcon, ListItemText, Drawer } from "@mui/material";
-import { Box } from '@mui/system';
-import HomeIcon from "@mui/icons-material/Home";
-import InfoIcon from "@mui/icons-material/Info";
-import { Register } from './Register';
-import { Login } from './Login';
 import Navbar from "../components/Navbar_Student";
+import illustration from "../assets/illustration.png";
 
 export const KF = () => {
-    const navigate = useNavigate();
-    const role = localStorage.getItem("role") || "student";
-    const [userName, setUserName] = useState('');
-    const [openMenu, setOpenMenu] = useState(false);
+  const navigate = useNavigate();
+  const role = localStorage.getItem("role") || "student";
+  const [userName, setUserName] = useState("");
 
-    const menuOptions = [
-        {
-          text: "Home",
-          icon: <HomeIcon />,
-          onClick: () => navigate('/')
-        },
-        {
-          text: "About",
-          icon: <InfoIcon />,
-          onClick: () => navigate('/about')
-        },
-        {
-          text: "Login",
-          icon: <Login />,
-          onClick: () => navigate('/login')
-        },
-        {
-          text: "Register",
-          icon: <Register />,
-          onClick: () => navigate('/register')
-        }
-    ];
+  // 取得使用者名稱
+  useEffect(() => {
+    const name = localStorage.getItem("name");
+    if (name) setUserName(name);
+  }, []);
 
-    const handleWriteArea = () => {
-        if (role === "teacher") {
-            navigate("/writing_area");
-        } else {
-            navigate("/home");
-        }
-    };
+  const handleWriteArea = () => {
+    if (role === "teacher") navigate("/writing_area");
+    else navigate("/home");
+  };
 
-    const handleKFClick = () => {
-        navigate("/kfweb_student");
-    };
+  return (
+    <div
+      className="home-container"
+      style={{
+        backgroundColor: "#DEDED6",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {/* 共用導覽列 */}
+      <Navbar />
 
-    useEffect(() => {
-        const name = localStorage.getItem('name');
-        if (name) {
-            setUserName(name);
-        }
-    }, []);
+      {/* 主體內容 */}
+      <div
+        className="home-banner-container"
+        style={{
+          backgroundColor: "#DEDED6",
+          flex: 1,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: "2rem",
+        }}
+      >
+        <div
+          className="content-wrapper"
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            alignItems: "stretch",
+            width: "100%",
+            maxWidth: "1200px",
+            gap: "3vw",
+          }}
+        >
+          {/* 左邊插圖或展示區塊 */}
+          <div
+            className="left-panel"
+            style={{
+              backgroundColor: "#CCC6B8",
+              flex: "1 1 50%",
+              minWidth: "280px",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <img
+              src={illustration}
+              alt="Illustration"
+              style={{
+                width: "80%",
+                height: "auto",
+                objectFit: "contain",
+              }}
+            />
+          </div>
 
-    return (
-        <div className="home-container">
-            <Navbar />
-            <div className="home-banner-container">
-                <div className="content-wrapper responsive-flex">
-
-                    <div className="home-text-section">
-                        <h1 className="primary-heading">
-                            Inspire Thinking
-                            <br />
-                            Write Infinite Possibilities
-                            <br />
-                            with AI
-                        </h1>
-                    </div>
-
-                    <div className="form-section">
-                        <form>
-                            <Container style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-                                <div style={{ marginBottom: "20px", textAlign: "center" }}>
-                                    <br /><br />
-                                    <h1>Welcome to {userName ? userName : 'KF Interface'}</h1>
-                                </div>
-                                <br /><br /><br />
-                                <div style={{ display: "flex", flexDirection: "row", justifyContent: "center", flexWrap: "wrap", gap: "20px" }}>
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        onClick={() => window.open('https://kf6.nccu.edu.tw/', '_blank')}
-                                    >
-                                        KF
-                                    </Button>
-                                    <Button
-                                        variant="contained"
-                                        color="secondary"
-                                        onClick={handleWriteArea}
-                                    >
-                                        Writing Area
-                                    </Button>
-                                </div>
-                            </Container>
-                        </form>
-                    </div>
-                </div>
+          {/* 右邊主要區塊 */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flex: "1 1 40%",
+              minWidth: "280px",
+              height: "80%",
+              boxSizing: "border-box",
+            }}
+          >
+            {/* 標語文字（與主頁一致） */}
+            <div
+              style={{
+                width: "100%",
+                textAlign: "center",
+                color: "#573f3f",
+                fontSize: "clamp(1.2rem, 2.5vw, 2rem)",
+                fontWeight: "600",
+                lineHeight: "1.4",
+                textShadow: "1px 1px 3px rgba(0,0,0,0.2)",
+                letterSpacing: "1px",
+              }}
+            >
+              Inspire Thinking <br />
+              Write Infinite Possibilities <br />
+              with AI
             </div>
+
+            {/* 使用者歡迎 + KF/WritingArea 按鈕 */}
+            <div
+              className="form-section"
+              style={{
+                backgroundColor: "#573f3f",
+                padding: "2rem",
+                width: "100%",
+                borderRadius: "8px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                color: "#DEDED6",
+                boxSizing: "border-box",
+                marginTop: "1rem",
+              }}
+            >
+              {/* <h2 style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+                Welcome, {userName ? userName : "Student"}!
+              </h2> */}
+              <h2 style={{ textAlign: "center", marginBottom: "1.5rem", whiteSpace: "pre-line",padding: "20px" }}>
+                {`Welcome, ${userName ? userName : "Student"} !\nLet's make your writing even better today.`}
+                </h2>
+
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  flexWrap: "wrap",
+                  gap: "20px",
+                  marginTop: "1rem",
+                }}
+              >
+                <Button
+                  variant="contained"
+                  color="primary"
+                  style={{
+                    backgroundColor: "#DEDED6",
+                    color: "#573f3f",
+                    fontWeight: "bold",
+                    borderRadius: "10px",
+                    padding: "0.5rem 2rem",
+                  }}
+                  onClick={() => window.open("https://kf6.nccu.edu.tw/", "_blank")}
+                >
+                  KF
+                </Button>
+
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  style={{
+                    backgroundColor: "#DEDED6",
+                    color: "#573f3f",
+                    fontWeight: "bold",
+                    borderRadius: "10px",
+                    padding: "0.5rem 2rem",
+                  }}
+                  onClick={handleWriteArea}
+                >
+                  Writing Area
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
-    );
+      </div>
+    </div>
+  );
 };
 
 export default KF;
-
