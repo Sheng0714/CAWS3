@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import Logo from "../assets/LOGO-removebg-preview.png"
+import Logo from "../assets/LOGONEW.png"
 import Avatar from '@mui/material/Avatar';
 import { useSignOut } from "react-auth-kit";
 import { useNavigate } from "react-router-dom";

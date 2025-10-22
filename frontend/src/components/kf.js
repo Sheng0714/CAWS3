@@ -608,7 +608,7 @@ import React, { useState, useEffect } from "react";
 import { Button, TextField, Container } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar_Student";
-import illustration from "../assets/illustration.png";
+import illustration from "../assets/Qcover3.png";
 
 export const KF = () => {
   const navigate = useNavigate();
@@ -668,7 +668,7 @@ export const KF = () => {
           <div
             className="left-panel"
             style={{
-              backgroundColor: "#CCC6B8",
+              backgroundColor: "#E9DECC",
               flex: "1 1 50%",
               minWidth: "280px",
               borderRadius: "8px",
@@ -681,7 +681,7 @@ export const KF = () => {
               src={illustration}
               alt="Illustration"
               style={{
-                width: "80%",
+                width: "70%",
                 height: "auto",
                 objectFit: "contain",
               }}

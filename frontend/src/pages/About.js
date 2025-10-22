@@ -38,7 +38,7 @@ import AboutBackgroundImage from "../assets/undraw_moonlight_-5-ksn.svg";
 
 export default function About() {
   return (
-    <div className="about-section-container">
+    <div className="about-section-container" style={{ backgroundColor: '#deded6', minHeight: '100vh' }}>
         <div className="about-section-image-container">
           <img src={AboutBackgroundImage} alt="" className="about-img"/>
         </div>

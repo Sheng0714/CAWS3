@@ -1,5 +1,5 @@
 import React from 'react'
-import Logo from "../assets/LOGO-removebg-preview.png";
+import Logo from "../assets/LOGONEW.png";
 import { SiLinkedin } from "react-icons/si";
 import { BsYoutube } from "react-icons/bs";
 import { FaFacebookF } from "react-icons/fa";

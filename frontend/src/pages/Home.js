@@ -899,7 +899,7 @@ import url from "../url.json";
 import config from "../config.json";
 import { Register } from "../components/Register";
 import { Login } from "../components/Login";
-import illustration from "../assets/illustration.png";
+import illustration from "../assets/Qcover3.png";
 
 export default function Home() {
   const [data, setData] = useState({ email: "", password: "" });
@@ -1005,7 +1005,7 @@ export default function Home() {
           <div
   className="left-panel"
   style={{
-    backgroundColor: "#CCC6B8",
+    backgroundColor: "#E9DECC",
     flex: "1 1 50%",
     minWidth: "280px",
     borderRadius: "8px",
@@ -1018,7 +1018,7 @@ export default function Home() {
     src={illustration}
     alt="Illustration"
     style={{
-      width: "80%",
+      width: "70%",
       height: "auto",
       objectFit: "contain",
     }}
@@ -1140,7 +1140,7 @@ export default function Home() {
                 type="button"
                 variant="contained"
                 style={{
-                  backgroundColor: "#CCC6B8",
+                  backgroundColor: "#E9DECC",
                   color: "#573f3f",
                   alignSelf: "flex-end",
                   borderRadius: 10,

@@ -228,15 +228,27 @@ import { findroomByInfo } from '../utils/findRoomMode';
 import MyCreatedActivityCard from './MyCreatedActivityCard';
 
 const Item = styled(Card)(({ theme }) => ({
-    backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#E3DFFD',
+    backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#573f3f',
     ...theme.typography.body2,
     padding: theme.spacing(2),
-    color: theme.palette.text.secondary,
+     color: '#deded6',   // ✅ 改這裡
+    // color: theme.palette.text.secondary,
     // width: '100%',
     // flex: '1 1 200px',     // ✅ 最小寬度 200px，能縮放填滿空間
     maxWidth: '360px',  
     minWidth: '200px',    // ✅ 限制卡片不會太寬
     boxSizing: 'border-box',
+
+    // ✅ 以下是針對 MUI 各文字元件強制覆寫
+  '& .MuiCardHeader-title': {
+    color: '#deded6',
+  },
+  '& .MuiCardHeader-subheader': {
+    color: '#deded6',
+  },
+  '& .MuiTypography-root': {
+    color: '#deded6',
+  },
 }));
 
 const EnterActivity = styled((props) => {
@@ -313,7 +325,7 @@ export default function ActivityCard({ activity }) {
                         <Favorite />
                     </IconButton> */}
                     <EnterActivity>
-                        <Button className='enter-activity-button' onClick={handleEnter}>
+                        <Button  className='enter-activity-button' onClick={handleEnter} style={{ backgroundColor: '#deded6' }}>
                             Writing Area
                         </Button>
                     </EnterActivity>

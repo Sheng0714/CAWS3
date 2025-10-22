@@ -65,7 +65,7 @@ export default function Index() {
   };
 
   return (
-    <div className="home-container">
+    <div className="home-container" style={{ backgroundColor: '#deded6', minHeight: '100vh' }}>
       <IndexPage_Navbar callback_setActivities={setActivities}/>
       <h2>Topic List</h2>
       {/* <Box sx={{ maxWidth: 120 }} className="activity-status">
