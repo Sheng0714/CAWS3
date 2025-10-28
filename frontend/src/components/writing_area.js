@@ -32991,7 +32991,7 @@ const WritingArea = () => {
       const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || '未知錯誤';
       showSnackbar(`自動儲存失敗：${errorMessage}`, 'error');
     }
-  }, 2000);
+  }, 5000);
 
   useEffect(() => {
     const savedActivityTitle = localStorage.getItem('activityTitle');
