@@ -32857,9 +32857,9 @@ import MenuIcon from "../assets/側欄ICON.png";
 import NotesIcon from "../assets/筆記工具.png";
 import historyIcon from "../assets/歷史紀錄.png";
 import NewchatIcon from "../assets/新聊天.png";
-
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+
+
 
 
 
@@ -32969,7 +32969,7 @@ const WritingArea = () => {
       localStorage.setItem('outlineData', outlineContent);
       localStorage.setItem('noteData', noteContent);
       localStorage.setItem('kfAnalysisData', kfAnalysisContent);
-      localStorage.setItem('essayData', editorContent);
+    //   localStorage.setItem('essayData', editorContent);
       localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
       const response = await apiAxios.patch('/api/update-note', {
         studentName: username || '未命名使用者',
@@ -32978,11 +32978,11 @@ const WritingArea = () => {
         outlineContent: outlineContent || '',
         noteContent: noteContent || '',
         kfAnalysisContent: kfAnalysisContent || '',
-        essayContent: editorContent || '',
+        // essayContent: editorContent || '',
         chatHistory: chatHistory || [],
       });
       if (response.data.success) {
-        showSnackbar('自動儲存成功！', 'success');
+        showSnackbar('已自動儲存（寫作區內容不會自動儲存，請手動暫存喔！）', 'success');
       } else {
         showSnackbar(`自動儲存失敗：${response.data.message || '未知錯誤'}`, 'error');
       }
@@ -33101,7 +33101,7 @@ const WritingArea = () => {
         setSessionId(data.data?.id);
         setCurrentMessages([{
           role: 'assistant',
-          content: "Hello, I am the KF Summary Assistant. I'm responsible for summarizing and analyzing your group's discussions in KF. Could you please tell me your group number in KF? 妳好，我是KF整理助手，負責幫妳摘要及分析KF小組內討論內容，請告訴我你在 KF 的組別編號是什麼？",
+          content: "Hello, I am the KF Summary Assistant. I'm responsible for summarizing and analyzing your group's discussions in KF. Could you please tell me your group number in KF? 妳好，我是KF整理助手，負責幫妳摘要及分析KF小組內討論內容，請告訴我你在 KF 的班級組別編號是什麼？(例如:E GROUP 1)",
           created_at: new Date().toISOString()
         }]);
       }
@@ -33592,7 +33592,7 @@ if (mode === "寫作精靈模式" && content.includes("完成寫作大綱")) {
               }}
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                <span style={{ fontSize: '16px' }}>{currentAgentConfig.title}</span>
+                <span style={{ fontSize: '20px' }}>{currentAgentConfig.title}</span>
                 <Tooltip
                   title={currentAgentConfig.description}
                   placement="top"
@@ -33600,7 +33600,7 @@ if (mode === "寫作精靈模式" && content.includes("完成寫作大綱")) {
                   componentsProps={{
                     tooltip: {
                       sx: {
-                        fontSize: '16px',
+                        fontSize: '20px',
                         padding: '8px 12px',
                       },
                     },
@@ -33690,23 +33690,57 @@ if (mode === "寫作精靈模式" && content.includes("完成寫作大綱")) {
                           backgroundColor: msg.role === 'user' ? '#DCF8C6' : '#F0F0F0',
                         }}
                       >
-                        <ListItemText
+                        {/* <ListItemText
                           primary={msg.content || 'No content'}
                           secondary={formatDateTime(msg.created_at)}
                           sx={{
                             wordBreak: 'break-word',
                             textAlign: 'left',
                           }}
-                        />
+                        /> */}
+                        {/* 修改這裡：用 Box + dangerouslySetInnerHTML 渲染內容 */}
 
-                            {/* <Box>
-                            <ReactMarkdown remarkPlugins={[remarkGfm]} linkTarget="_blank">
-                                {msg.content || 'No content'}
-                            </ReactMarkdown>
-                            <Typography variant="caption" sx={{ display: 'block', marginTop: '4px', color: '#666' }}>
-                                {formatDateTime(msg.created_at)}
-                            </Typography>
-                            </Box> */}
+
+                        {/* 內容容器：強制 LTR 方向，解決換行從右開始 */}
+        <Box
+          dir="ltr"  // HTML 屬性：強制左到右方向（瀏覽器級別）
+          sx={{
+            wordBreak: 'break-word',
+            textAlign: 'left',        // 左對齊
+            direction: 'ltr',         // CSS：等同 dir="ltr"，確保內部元素繼承
+            lineHeight: 1.2,          // 多行間距
+            whiteSpace: 'pre-wrap',   // 自然換行，從左開始
+            // Markdown 樣式優化（可選）
+            '& p': { margin: '0 0 0.5em 0', textAlign: 'left' },  // 段落左對齊
+            '& ul, & ol': { paddingLeft: '15px', textAlign: 'left' },  // 列表左縮排
+          }}
+        >
+          <ReactMarkdown
+            components={{
+              strong: ({ children }) => <strong>{children}</strong>,  // 粗體保持
+              em: ({ children }) => <em>{children}</em>,              // 斜體（可選）
+            }}
+          >
+            {msg.content || 'No content'}
+          </ReactMarkdown>
+        </Box>
+
+        {/* 時間戳：跟隨對齊 */}
+        <ListItemText
+          secondary={formatDateTime(msg.created_at)}
+          sx={{ 
+            mt: 1, 
+            fontSize: '0.75rem', 
+            color: 'text.secondary',
+            textAlign: msg.role === 'user' ? 'right' : 'left',
+          }}
+        />
+
+
+                         
+
+                        
+
                       </Box>
                     </Box>
                   </ListItem>
@@ -33775,7 +33809,7 @@ if (mode === "寫作精靈模式" && content.includes("完成寫作大綱")) {
               }}
             >
               <Box>
-                <span style={{ fontSize: '16px' }}>
+                <span style={{ fontSize: '20px' }}>
                   {username && `User: ${username}`}
                   {activityTitle && ` Class: ${activityTitle}`}<br />
                   {groupName && ` Topic: ${groupName}`}
@@ -33946,7 +33980,7 @@ if (mode === "寫作精靈模式" && content.includes("完成寫作大綱")) {
               componentsProps={{
                 tooltip: {
                   sx: {
-                    fontSize: '16px',
+                    fontSize: '20px',
                     padding: '8px 12px',
                   },
                 },

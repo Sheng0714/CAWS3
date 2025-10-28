@@ -8,6 +8,8 @@ COPY . .
 EXPOSE 4000
 CMD ["node", "server.js"]
 
+
+
 # FROM node:18-alpine
 # WORKDIR /app
 
@@ -24,3 +26,7 @@ CMD ["node", "server.js"]
 
 # EXPOSE 4000
 # CMD ["serve", "-s", "build", "-l", "4000"]
+
+
+
+

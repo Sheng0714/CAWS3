@@ -394,7 +394,7 @@ export default function Navbar() {
     fontWeight: 'normal',
     color: '#333',
     margin: 0,
-    maxWidth: isMobile ? '150px' : isTablet ? '200px' : '400px',
+    maxWidth: isMobile ? '150px' : isTablet ? '200px' : '800px',
     whiteSpace: 'normal',
     lineHeight: 1.2,
     textAlign: 'left',

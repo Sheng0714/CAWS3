@@ -401,7 +401,7 @@ export default function Navbar() {
     fontWeight: 'normal', 
     color: '#333',
     margin: 0,
-    maxWidth: isMobile ? '150px' : isTablet ? '200px' : '400px',
+    maxWidth: isMobile ? '150px' : isTablet ? '200px' : '800px',
     whiteSpace: 'normal', // 允許標題換行成兩行
     lineHeight: 1.2,
     textAlign: 'left',

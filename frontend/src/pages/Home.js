@@ -881,6 +881,7 @@
 
 
 
+
 import React, { useState } from "react";
 import Navbar from "../components/HomePage_Navbar";
 import axios from "axios";
@@ -1056,6 +1057,7 @@ export default function Home() {
               Inspire Thinking <br />
               Write Infinite Possibilities <br />
               with AI
+              
             </div>
 
             {/* 登入表單區塊 */}
