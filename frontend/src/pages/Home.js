@@ -882,6 +882,300 @@
 
 
 
+// import React, { useState } from "react";
+// import Navbar from "../components/HomePage_Navbar";
+// import axios from "axios";
+// import { useSignIn } from "react-auth-kit";
+// import { useNavigate } from "react-router-dom";
+// import {
+//   TextField,
+//   Button,
+//   RadioGroup,
+//   FormControlLabel,
+//   Radio,
+//   FormControl,
+//   FormLabel,
+// } from "@mui/material";
+// import url from "../url.json";
+// import config from "../config.json";
+// import { Register } from "../components/Register";
+// import { Login } from "../components/Login";
+// import illustration from "../assets/Qcover3.png";
+
+// export default function Home() {
+//   const [data, setData] = useState({ email: "", password: "" });
+//   const [role, setRole] = useState("student");
+//   const [isLoggedIn, setIsLoggedIn] = useState(false);
+//   const [openLogin, setOpenLogin] = useState(false);
+//   const [openRegister, setOpenRegister] = useState(false);
+
+//   const signIn = useSignIn();
+//   const navigate = useNavigate();
+
+//   const handleChange = (e) => {
+//     const { name, value } = e.target;
+//     setData((prev) => ({ ...prev, [name]: value }));
+//   };
+
+//   const handleRoleChange = (e) => setRole(e.target.value);
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+//     const userData = { email: data.email, password: data.password, role };
+//     try {
+//       const response = await axios.post(
+//         url.backendHost + config[1].loginUrl,
+//         userData
+//       );
+//       setIsLoggedIn(true);
+//       setData({ email: "", password: "" });
+//       signIn({
+//         token: response.data.jwtToken,
+//         expiresIn: 3600,
+//         tokenType: "Bearer",
+//         authState: { ...response.data },
+//       });
+//       localStorage.setItem("jwtToken", response.data.jwtToken);
+//       localStorage.setItem("userId", response.data.id);
+//       localStorage.setItem("name", response.data.name);
+//       localStorage.setItem("email", response.data.email);
+//       localStorage.setItem("role", role);
+//       alert("Login Successful!");
+//       if (role === "student") navigate("/kf");
+//       else if (role === "teacher") navigate("/teacher/teacher_home");
+//     } catch (error) {
+//       if (!error.response) alert("後端伺服器連結失敗");
+//       else {
+//         switch (error.response.status) {
+//           case 401:
+//             alert("登入授權失敗，請確認帳號密碼");
+//             break;
+//           default:
+//             alert("未知錯誤，請聯絡管理員: " + error.response.status);
+//         }
+//       }
+//     }
+//   };
+
+//   return (
+//     <div
+//       className="home-container"
+//       style={{
+//         backgroundColor: "#DEDED6",
+//         minHeight: "100vh",
+//         display: "flex",
+//         flexDirection: "column",
+//       }}
+//     >
+//       <Navbar />
+//       <div
+//         className="home-banner-container"
+//         style={{
+//           backgroundColor: "#DEDED6",
+//           flex: 1,
+//           display: "flex",
+//           justifyContent: "center",
+//           alignItems: "center",
+//           padding: "2rem",
+//         }}
+//       >
+//         <div
+//           className="content-wrapper"
+//           style={{
+//             display: "flex",
+//             flexDirection: "row",
+//             flexWrap: "wrap", // RWD：小螢幕時上下排列
+//             justifyContent: "center",
+//             alignItems: "stretch",
+//             width: "100%",
+//             maxWidth: "1200px",
+//             gap: "3vw",
+//           }}
+//         >
+//           {/* 左邊插圖區塊 */}
+//           {/* <div
+//           className="left-panel"
+//             style={{
+//               backgroundColor: "#CCC6B8",
+//               flex: "1 1 50%",
+//               minWidth: "280px",
+//               height: "80%",
+//               borderRadius: "8px",
+//             }}
+//           /> */}
+//           <div
+//   className="left-panel"
+//   style={{
+//     backgroundColor: "#E9DECC",
+//     flex: "1 1 50%",
+//     minWidth: "280px",
+//     borderRadius: "8px",
+//     display: "flex",
+//     alignItems: "center",
+//     justifyContent: "center",
+//   }}
+// >
+//   <img
+//     src={illustration}
+//     alt="Illustration"
+//     style={{
+//       width: "70%",
+//       height: "auto",
+//       objectFit: "contain",
+//     }}
+//   />
+// </div>
+
+
+
+//           {/* 右邊登入區塊（外層容器） */}
+//           <div
+//             style={{
+//               display: "flex",
+//               flexDirection: "column",
+//               justifyContent: "space-between",
+//               alignItems: "center",
+//               flex: "1 1 40%",
+//               minWidth: "280px",
+//               height: "80%",
+//               boxSizing: "border-box",
+//             }}
+//           >
+//             {/* 標語文字 */}
+//             <div
+//               style={{
+//                 width: "100%",
+//                 textAlign: "center",
+//                 color: "#573f3f",
+//                 fontSize: "clamp(1.2rem, 2.5vw, 2rem)", // RWD 字體
+//                 fontWeight: "600",
+//                 lineHeight: "1.4",
+//                 textShadow: "1px 1px 3px rgba(0,0,0,0.2)",
+//                 letterSpacing: "1px",
+//               }}
+//             >
+//               Inspire Thinking <br />
+//               Write Infinite Possibilities <br />
+//               with AI
+              
+//             </div>
+
+//             {/* 登入表單區塊 */}
+//             <div
+//               className="form-section"
+//               style={{
+//                 backgroundColor: "#573f3f",
+//                 padding: "2rem",
+//                 width: "100%",
+//                 borderRadius: "8px",
+//                 display: "flex",
+//                 flexDirection: "column",
+//                 justifyContent: "flex-start",
+//                 alignItems: "stretch",
+//                 color: "#DEDED6",
+//                 boxSizing: "border-box",
+//                 marginTop: "1rem",
+//               }}
+//             >
+//               <TextField
+//                 label="Please enter your email"
+//                 type="email"
+//                 name="email"
+//                 value={data.email}
+//                 fullWidth
+//                 onChange={handleChange}
+//                 style={{ marginBottom: "1rem" }}
+//                 sx={{
+//                   "& .MuiInputBase-root": { backgroundColor: "#DEDED6" },
+//                   "& .MuiInputLabel-root": { color: "#333" },
+//                   "& .MuiOutlinedInput-root fieldset": {
+//                     borderColor: "#DEDED6",
+//                   },
+//                 }}
+//               />
+//               <TextField
+//                 label="Please enter your password"
+//                 type="password"
+//                 name="password"
+//                 value={data.password}
+//                 fullWidth
+//                 onChange={handleChange}
+//                 style={{ marginBottom: "1rem" }}
+//                 sx={{
+//                   "& .MuiInputBase-root": { backgroundColor: "#DEDED6" },
+//                   "& .MuiInputLabel-root": { color: "#333" },
+//                   "& .MuiOutlinedInput-root fieldset": {
+//                     borderColor: "#DEDED6",
+//                   },
+//                 }}
+//               />
+//               <FormControl
+//                 component="fieldset"
+//                 style={{ marginBottom: "1rem" }}
+//               >
+//                 <FormLabel component="legend" sx={{ color: "#DEDED6" }}>
+//                   Role :
+//                 </FormLabel>
+//                 <RadioGroup
+//                   row
+//                   value={role}
+//                   onChange={handleRoleChange}
+//                   sx={{
+//                     "& .MuiFormControlLabel-label": { color: "#DEDED6" },
+//                     "& .MuiSvgIcon-root": { color: "#DEDED6" },
+//                   }}
+//                 >
+//                   <FormControlLabel
+//                     value="student"
+//                     control={<Radio />}
+//                     label="Student"
+//                   />
+//                   <FormControlLabel
+//                     value="teacher"
+//                     control={<Radio />}
+//                     label="Teacher"
+//                   />
+//                 </RadioGroup>
+//               </FormControl>
+
+//               <Button
+//                 type="button"
+//                 variant="contained"
+//                 style={{
+//                   backgroundColor: "#E9DECC",
+//                   color: "#573f3f",
+//                   alignSelf: "flex-end",
+//                   borderRadius: 10,
+//                   padding: "0.5rem 2rem",
+//                   fontWeight: "bold",
+//                   textTransform: "uppercase",
+//                 }}
+//                 onClick={handleSubmit}
+//               >
+//                 LOGIN
+//               </Button>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+
+//       <Login
+//         open={openLogin}
+//         setOpen={setOpenLogin}
+//         setOpenRegister={setOpenRegister}
+//       />
+//       <Register
+//         open={openRegister}
+//         setOpen={setOpenRegister}
+//         setOpenLogin={setOpenLogin}
+//       />
+//     </div>
+//   );
+// }
+
+
+
+
 import React, { useState } from "react";
 import Navbar from "../components/HomePage_Navbar";
 import axios from "axios";
@@ -1003,7 +1297,8 @@ export default function Home() {
               borderRadius: "8px",
             }}
           /> */}
-          <div
+        {/* 左邊插圖區塊 */}
+<div
   className="left-panel"
   style={{
     backgroundColor: "#E9DECC",
@@ -1011,8 +1306,10 @@ export default function Home() {
     minWidth: "280px",
     borderRadius: "8px",
     display: "flex",
+    flexDirection: "column", // 修改為垂直排列，讓文字在圖片下方
     alignItems: "center",
     justifyContent: "center",
+    padding: "1rem", // 可選：增加內距以避免邊緣過近
   }}
 >
   <img
@@ -1022,8 +1319,43 @@ export default function Home() {
       width: "70%",
       height: "auto",
       objectFit: "contain",
+      marginBottom: "1rem", // 在圖片和文字之間增加間距
     }}
   />
+  {/* 新增文字區塊 */}
+  <div
+    style={{
+      width: "100%",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center", // 讓整個文字區塊居中
+      justifyContent: "flex-end", // 將文字推到底部（如果需要調整位置）
+      marginTop: "auto", // 將文字推到容器底部，確保在圖片下方
+    }}
+  >
+    <div
+      style={{
+        width: "100%",
+        textAlign: "center", // 第一行置中（或根據需求調整為 left）
+        color: "#573f3f", // 與其他文字顏色一致，可調整
+        fontSize: "0.8rem", // 調整字體大小，根據需求
+        lineHeight: "1.2",
+        marginBottom: "0.5rem",
+      }}
+    >
+      © 2025 THKLM team of Language Center, NCU, All rights reserved.
+    </div>
+    <div
+      style={{
+        textAlign: "center", // 第二行明確置中對齊
+        color: "#573f3f", // 與其他文字顏色一致，可調整
+        fontSize: "0.8rem", // 調整字體大小，根據需求
+        lineHeight: "1.2",
+      }}
+    >
+      Tommy, Harry, Kezia, Luby, Melisa
+    </div>
+  </div>
 </div>
 
 

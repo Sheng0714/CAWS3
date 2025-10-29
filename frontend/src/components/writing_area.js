@@ -32969,7 +32969,7 @@ const WritingArea = () => {
       localStorage.setItem('outlineData', outlineContent);
       localStorage.setItem('noteData', noteContent);
       localStorage.setItem('kfAnalysisData', kfAnalysisContent);
-    //   localStorage.setItem('essayData', editorContent);
+      localStorage.setItem('essayData', editorContent);
       localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
       const response = await apiAxios.patch('/api/update-note', {
         studentName: username || '未命名使用者',
@@ -32978,7 +32978,7 @@ const WritingArea = () => {
         outlineContent: outlineContent || '',
         noteContent: noteContent || '',
         kfAnalysisContent: kfAnalysisContent || '',
-        // essayContent: editorContent || '',
+        essayContent: editorContent || '',
         chatHistory: chatHistory || [],
       });
       if (response.data.success) {

@@ -325,9 +325,9 @@ export default function ActivityCard({ activity }) {
                         <Favorite />
                     </IconButton> */}
                     <EnterActivity>
-                        <Button  className='enter-activity-button' onClick={handleEnter} style={{ backgroundColor: '#deded6' }}>
+                        {/* <Button  className='enter-activity-button' onClick={handleEnter} style={{ backgroundColor: '#deded6' }}>
                             Writing Area
-                        </Button>
+                        </Button> */}
                     </EnterActivity>
                 </CardActions>
             </Item>
