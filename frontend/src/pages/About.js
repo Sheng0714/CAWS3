@@ -43,7 +43,7 @@ export default function About() {
           <img src={AboutBackgroundImage} alt="" className="about-img"/>
         </div>
         <div className="about-section-text-container">
-            <p className="primary-subheading">about us</p>
+            {/* <p className="primary-subheading">about us</p> */}
             <h1 className="primary-heading">
                 CAWS—Collaborative Argument Writing System
             </h1>

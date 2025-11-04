@@ -33811,7 +33811,7 @@ if (mode === "寫作精靈模式" && content.includes("完成寫作大綱")) {
               <Box>
                 <span style={{ fontSize: '20px' }}>
                   {username && `User: ${username}`}
-                  {activityTitle && ` Class: ${activityTitle}`}<br />
+                  {activityTitle && <span style={{ marginLeft: '20px' ,fontSize: '20px' }}>Class: {activityTitle}</span>}<br />
                   {groupName && ` Topic: ${groupName}`}
                 </span>
               </Box>

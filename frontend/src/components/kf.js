@@ -769,7 +769,7 @@ export const KF = () => {
                   KF
                 </Button>
 
-                {/* <Button
+                <Button
                   variant="contained"
                   color="secondary"
                   style={{
@@ -782,7 +782,7 @@ export const KF = () => {
                   onClick={handleWriteArea}
                 >
                   Writing Area
-                </Button> */}
+                </Button>
               </div>
             </div>
           </div>

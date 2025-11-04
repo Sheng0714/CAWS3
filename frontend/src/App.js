@@ -31,6 +31,7 @@ import AboutStudent from './pages/About_student.js';
 import AboutTeacher from './pages/About_teacher.js';
 import AboutHome from './pages/About_Home.js';
 import Editortest from './components/Editortest.js';
+import Manual from './components/manual.js';
 
 export default function App() {
   return (
@@ -59,6 +60,7 @@ export default function App() {
               <Route path='/About_teacher' element={<AboutTeacher/>}></Route>
               <Route path='/About_Home' element={<AboutHome/>}></Route>
               <Route path='/Editortest' element={<Editortest/>}></Route>
+              <Route path='/manual' element={<Manual/>}></Route>
           </Routes>
       </Router>
     </ModeProvider>
