@@ -34250,20 +34250,49 @@ const WritingArea = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  // 新增：複製功能
-  const handleCopy = async (content, label) => {
-    if (!content.trim()) {
-      showSnackbar(`${label} 內容為空，無法複製！`, 'warning');
-      return;
-    }
+ // 新增：複製功能（加入 fallback 邏輯）
+const handleCopy = async (content, label) => {
+  if (!content.trim()) {
+    showSnackbar(`${label} 內容為空，無法複製！`, 'warning');
+    return;
+  }
+
+  // 先試現代 Clipboard API
+  if (navigator.clipboard && window.isSecureContext) {
     try {
       await navigator.clipboard.writeText(content);
       showSnackbar(`${label} 已複製到剪貼簿！`, 'success');
+      return;
     } catch (err) {
-      console.error('複製失敗:', err);
-      showSnackbar('複製失敗，請手動複製！', 'error');
+      console.warn('Clipboard API 失敗，切換到 fallback 方法:', err);
+      // 繼續 fallback
     }
-  };
+  }
+
+  // Fallback: 使用 document.execCommand('copy')
+  const textArea = document.createElement('textarea');
+  textArea.value = content;
+  textArea.style.position = 'fixed';  // 避免頁面跳動
+  textArea.style.left = '-999999px';
+  textArea.style.top = '-999999px';
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+
+  try {
+    const successful = document.execCommand('copy');
+    if (successful) {
+      showSnackbar(`${label} 已複製到剪貼簿！`, 'success');
+    } else {
+      throw new Error('Copy command failed');
+    }
+  } catch (err) {
+    console.error('Fallback copy failed:', err);
+    showSnackbar(`複製失敗，請手動選取並 Ctrl+C！`, 'error');
+  } finally {
+    document.body.removeChild(textArea);
+  }
+};
 
   const formatDateTime = (isoString) => {
     const date = new Date(isoString);
