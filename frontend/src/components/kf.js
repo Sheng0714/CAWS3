@@ -667,25 +667,62 @@ export const KF = () => {
           {/* 左邊插圖或展示區塊 */}
           <div
             className="left-panel"
-            style={{
-              backgroundColor: "#E9DECC",
-              flex: "1 1 50%",
-              minWidth: "280px",
-              borderRadius: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <img
-              src={illustration}
-              alt="Illustration"
               style={{
-                width: "70%",
-                height: "auto",
-                objectFit: "contain",
+                backgroundColor: "#E9DECC",
+                flex: "1 1 50%",
+                minWidth: "280px",
+                borderRadius: "8px",
+                display: "flex",
+                flexDirection: "column", // 修改為垂直排列，讓文字在圖片下方
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "1rem", // 可選：增加內距以避免邊緣過近
               }}
-            />
+            >
+              <img
+                src={illustration}
+                alt="Illustration"
+                style={{
+                  width: "70%",
+                  height: "auto",
+                  objectFit: "contain",
+                  marginBottom: "1rem", // 在圖片和文字之間增加間距
+                }}
+              />
+              {/* 新增文字區塊 */}
+              <div
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center", // 讓整個文字區塊居中
+                  justifyContent: "flex-end", // 將文字推到底部（如果需要調整位置）
+                  marginTop: "auto", // 將文字推到容器底部，確保在圖片下方
+                }}
+              >
+                <div
+                  style={{
+                    width: "100%",
+                    textAlign: "center", // 第一行置中（或根據需求調整為 left）
+                    color: "#573f3f", // 與其他文字顏色一致，可調整
+                    fontSize: "0.8rem", // 調整字體大小，根據需求
+                    lineHeight: "1.2",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  © 2025 THKLM team of Language Center, NCU, All rights reserved.
+                </div>
+                <div
+                  style={{
+                    textAlign: "center", // 第二行明確置中對齊
+                    color: "#573f3f", // 與其他文字顏色一致，可調整
+                    fontSize: "0.8rem", // 調整字體大小，根據需求
+                    lineHeight: "1.2",
+                  }}
+                >
+                  Tommy, Harry, Kezia, Luby, Melisa
+                </div>
+              </div>
           </div>
 
           {/* 右邊主要區塊 */}
@@ -769,7 +806,7 @@ export const KF = () => {
                   KF
                 </Button>
 
-                {/* <Button
+                <Button
                   variant="contained"
                   color="secondary"
                   style={{
@@ -782,7 +819,7 @@ export const KF = () => {
                   onClick={handleWriteArea}
                 >
                   Writing Area
-                </Button> */}
+                </Button>
               </div>
             </div>
           </div>
