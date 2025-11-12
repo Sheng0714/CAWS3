@@ -34251,47 +34251,88 @@ const WritingArea = () => {
   };
 
  // 新增：複製功能（加入 fallback 邏輯）
+// 優化版：複製功能（加強 fallback + debug）
 const handleCopy = async (content, label) => {
   if (!content.trim()) {
     showSnackbar(`${label} 內容為空，無法複製！`, 'warning');
     return;
   }
 
-  // 先試現代 Clipboard API
+  console.log(`[DEBUG] 開始複製 ${label}，內容長度: ${content.length}`);  // Debug: 追蹤觸發
+
+  let copied = false;
+
+  // 步驟 1: 試現代 Clipboard API (HTTPS 優先)
   if (navigator.clipboard && window.isSecureContext) {
     try {
-      await navigator.clipboard.writeText(content);
-      showSnackbar(`${label} 已複製到剪貼簿！`, 'success');
-      return;
+      // 檢查權限 (可選，加速錯誤)
+      const permission = await navigator.permissions.query({ name: 'clipboard-write' });
+      if (permission.state === 'denied') {
+        console.warn('[DEBUG] Clipboard 權限被拒絕');
+      } else {
+        await navigator.clipboard.writeText(content);
+        copied = true;
+        console.log('[DEBUG] Clipboard API 成功');
+      }
     } catch (err) {
-      console.warn('Clipboard API 失敗，切換到 fallback 方法:', err);
-      // 繼續 fallback
+      console.warn(`[DEBUG] Clipboard API 失敗 (${err.name}):`, err.message);
+      // CSP 或其他錯誤，常見生產問題
+    }
+  } else {
+    console.log('[DEBUG] Clipboard API 不可用 (非 HTTPS 或舊瀏覽器)');
+  }
+
+  // 步驟 2: Fallback 到 execCommand (改進選取邏輯)
+  if (!copied) {
+    const textArea = document.createElement('textarea');
+    textArea.value = content;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    textArea.style.opacity = '0';  // 隱藏但可選取
+    textArea.setAttribute('readonly', '');  // 防用戶輸入干擾
+    document.body.appendChild(textArea);
+
+    textArea.focus();
+    textArea.select();
+    // 加強選取：全選範圍
+    if (textArea.setSelectionRange) {
+      const len = textArea.value.length;
+      textArea.setSelectionRange(0, len);
+    }
+
+    try {
+      copied = document.execCommand('copy');
+      console.log(`[DEBUG] execCommand 結果: ${copied ? '成功' : '失敗'}`);
+      if (copied) {
+        // 成功：移除選取
+        window.getSelection().removeAllRanges();
+      }
+    } catch (err) {
+      console.error('[DEBUG] execCommand 錯誤:', err);
+    } finally {
+      document.body.removeChild(textArea);
     }
   }
 
-  // Fallback: 使用 document.execCommand('copy')
-  const textArea = document.createElement('textarea');
-  textArea.value = content;
-  textArea.style.position = 'fixed';  // 避免頁面跳動
-  textArea.style.left = '-999999px';
-  textArea.style.top = '-999999px';
-  document.body.appendChild(textArea);
-  textArea.focus();
-  textArea.select();
-
-  try {
-    const successful = document.execCommand('copy');
-    if (successful) {
-      showSnackbar(`${label} 已複製到剪貼簿！`, 'success');
+  // 步驟 3: 最終 fallback - 自動選取原 TextField 文字，讓用戶手動 Ctrl+C
+  if (!copied) {
+    console.warn('[DEBUG] 所有方法失敗，啟用手動模式');
+    // 找到對應 TextField (基於 label 判斷，或傳入 ref)
+    const textField = document.querySelector(`input[aria-label="${label}"]`) || 
+                      document.querySelector('textarea[aria-label*="大綱"]') ||  // 粗略匹配
+                      document.querySelector('textarea[aria-label*="摘要"]');
+    if (textField) {
+      textField.focus();
+      textField.select();
+      showSnackbar(`${label} 已自動選取，請按 Ctrl+C 複製！`, 'info');
     } else {
-      throw new Error('Copy command failed');
+      showSnackbar(`複製失敗，請手動選取 ${label} 並 Ctrl+C！`, 'error');
     }
-  } catch (err) {
-    console.error('Fallback copy failed:', err);
-    showSnackbar(`複製失敗，請手動選取並 Ctrl+C！`, 'error');
-  } finally {
-    document.body.removeChild(textArea);
+    return;
   }
+
+  showSnackbar(`${label} 已複製到剪貼簿！`, 'success');
 };
 
   const formatDateTime = (isoString) => {
