@@ -37060,6 +37060,80 @@ const WritingArea = () => {
   const RAGFLOW_API_KEY = 'ragflow-hmY2YzMjRjMWQ5YTExZjBhMGQ5MDI0Mm';
   const KF_CHAT_ID = 'da41eabc659411f08d650242ac120005';
 
+  // 核心同步回退函式：專門處理 execCommand('copy') 的邏輯
+// 參數：
+// content - 必需：要複製的文本內容
+// label - 必需：內容的標籤，用於 Snackbar 提示和定位原始輸入框
+const executeExecCommandFallback = (content, label, showSnackbar) => {
+    // 再次檢查內容是否為空
+    if (!content || !content.trim()) {
+        showSnackbar(`${label} 內容為空，無法複製！`, 'warning');
+        return;
+    }
+
+    let copied = false;
+    const textArea = document.createElement('textarea');
+    textArea.value = content;
+
+    // 設置樣式：完全隱藏，不影響佈局，防止滾動
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    textArea.style.opacity = '0';
+    textArea.setAttribute('readonly', ''); // 設置為只讀
+    
+    // 1. 將臨時元素添加到 DOM
+    document.body.appendChild(textArea);
+
+    try {
+        // 2. 執行選取操作（必須在 execCommand 之前）
+        textArea.focus();
+        textArea.select();
+        // 確保選中整個內容，特別是在移動端或不同瀏覽器
+        if (textArea.setSelectionRange) {
+            textArea.setSelectionRange(0, content.length);
+        }
+
+        // 3. 核心步驟：執行複製命令 (必須同步且在使用者操作上下文內)
+        copied = document.execCommand('copy');
+        
+        if (copied) {
+            // 成功複製後，清除選區並顯示成功訊息
+            window.getSelection()?.removeAllRanges();
+            showSnackbar(`${label} 已複製到剪貼簿！`, 'success');
+        } else {
+            console.warn('[DEBUG] execCommand 返回 false，可能瀏覽器限制。');
+        }
+    } catch (err) {
+        // 捕捉執行時的錯誤（如權限被拒絕）
+        console.error('[DEBUG] execCommand 執行錯誤:', err);
+    } finally {
+        // 4. 清理 DOM
+        document.body.removeChild(textArea);
+    }
+
+    // 5. 最終失敗回退：如果 execCommand 失敗 (copied = false)
+    if (!copied) {
+        const selector = label.includes('大綱') 
+            ? 'textarea[aria-label="寫作大綱"]' 
+            : 'textarea[aria-label="KF摘要與分析"]';
+        
+        // 嘗試定位原始的輸入框
+        const textField = document.querySelector(selector);
+        
+        if (textField) {
+            // 自動選取原輸入框內容
+            textField.focus();
+            textField.select();
+            // 提示用戶手動複製
+            showSnackbar(`${label} 複製失敗，已自動選取，請按 Ctrl+C/Cmd+C 複製！`, 'info');
+        } else {
+            // 提示用戶失敗
+            showSnackbar(`複製失敗，請手動選取 ${label} 並複製！`, 'error');
+        }
+    }
+};
+
   // 更新 currentAgentConfig：根據 mode 從 AGENT_CONFIG 獲取，或 KF 模式的預設
   const currentAgentConfig = mode === 'KF分析模式' 
     ? { title: 'KF分析模式', description: '此模式將協助您分析和摘要KF討論內容。' } 
@@ -37077,93 +37151,21 @@ const WritingArea = () => {
 // 優化版：複製功能（加強 fallback + debug）
 // 純 JS 版：複製功能（無套件，優化 fallback）
 // 核心修改建議：移除 setTimeout，直接執行 execCommand
+// ... (在 WritingArea 元件內部) ...
+
+// [新的或修改後的] handleCopy 函式
 const handleCopy = (content, label) => {
-  if (!content || !content.trim()) { // 簡化空內容檢查
-    showSnackbar(`${label} 內容為空，無法複製！`, 'warning');
-    return;
-  }
-
-  console.log(`[DEBUG] 開始複製 ${label}`);
-  let copied = false;
-  const isSecure = location.protocol === 'https:' || location.hostname === 'localhost';
-
-  // 步驟 1: 優先嘗試 Clipboard API (僅適用於 HTTPS/localhost)
-  if (navigator.clipboard && isSecure) {
-    // 因為 writeText 是 Promise/非同步，它會脫離當前的點擊事件上下文。
-    // 在安全環境下這是允許的，但為了簡化，我們先處理同步的 fallback。
-    // 在這裡使用 async/await 會將整個函式變為非同步，可能導致後面的同步 fallback 不被執行。
-    // 最佳做法是：在 HTTPS 下，直接使用 writeText，並返回。
-    // 在 HTTP 下，直接跳過並執行同步 fallback。
-
-    navigator.clipboard.writeText(content).then(() => {
-        showSnackbar(`${label} 已複製到剪貼簿！(Clipboard API)`, 'success');
-        copied = true;
-    }).catch((err) => {
-        console.warn(`[DEBUG] Clipboard API 失敗: ${err.message}. 嘗試 fallback...`);
-        // Clipboard API 失敗，讓程式碼繼續執行到步驟 2 的 execCommand
-        // 雖然在安全環境下 execCommand 已經不推薦，但作為最終備案。
-        fallbackToExecCommand(content, label);
-    });
-    return; // 結束，讓非同步 Promise 執行
-  }
-
-  // 步驟 2: (HTTP 環境) Fallback 到 execCommand
-  // 如果不是安全上下文，或者 Clipboard API 不存在，則執行同步回退
-  if (!isSecure || !navigator.clipboard) {
-    fallbackToExecCommand(content, label);
-  }
-};
-
-// 將 execCommand 邏輯抽出成一個同步函式
-const fallbackToExecCommand = (content, label) => {
-  let copied = false;
-  const textArea = document.createElement('textarea');
-  textArea.value = content;
-  
-  // 保持樣式設置，使其不可見且不影響佈局
-  textArea.style.position = 'fixed';
-  textArea.style.left = '-999999px';
-  textArea.style.top = '-999999px';
-  textArea.style.opacity = '0';
-  textArea.setAttribute('readonly', '');
-  
-  document.body.appendChild(textArea);
-
-  // 執行選取
-  textArea.focus({ preventScroll: true });
-  textArea.select();
-  if (textArea.setSelectionRange) {
-    textArea.setSelectionRange(0, content.length);
-  }
-
-  try {
-    copied = document.execCommand('copy'); // **這是關鍵：必須同步呼叫**
     
-    if (copied) {
-      window.getSelection()?.removeAllRanges();
-      showSnackbar(`${label} 已複製到剪貼簿！(ExecCommand)`, 'success');
-    } else {
-      console.warn('[DEBUG] execCommand 返回 false，嘗試自動選取。');
-    }
-  } catch (err) {
-    console.error('[DEBUG] execCommand 錯誤:', err);
-  } finally {
-    document.body.removeChild(textArea);
-  }
-
-  // 步驟 3: 如果仍失敗，自動選取原 TextField (與您原邏輯相同)
-  if (!copied) {
-    const selector = label.includes('大綱') ? 'textarea[aria-label="寫作大綱"]' : 'textarea[aria-label="KF摘要與分析"]';
-    const textField = document.querySelector(selector);
-    if (textField) {
-      textField.focus({ preventScroll: true });
-      textField.select();
-      showSnackbar(`${label} 已自動選取，請按 Ctrl+C/Cmd+C 複製！`, 'info');
-    } else {
-      showSnackbar(`複製失敗，請手動選取 ${label} 並複製！`, 'error');
-    }
-  }
+    // 將 showSnackbar 傳入執行函式中
+    executeExecCommandFallback(content, label, showSnackbar);
+    
+    // 由於您是在 HTTP 環境，我們直接假設 Clipboard API 會失敗或被跳過，
+    // 因此直接呼叫這個同步的 execCommand 函式即可。
 };
+
+// ... (確保您的 IconButton 點擊事件保持不變) ...
+// <IconButton onClick={() => handleCopy(outlineContent, '寫作大綱')}>
+// ...
 
 
 
@@ -37322,7 +37324,7 @@ const fallbackToExecCommand = (content, label) => {
         setSessionId(data.data?.id);
         setCurrentMessages([{
           role: 'assistant',
-          content: "Hello, I am the KF Summary Assistant. I'm responsible for summarizing and analyzing your group's discussions in KF. Could you please tell me your group number in KF? 妳好，我是KF整理助手，負責幫妳摘要及分析KF小組內討論內容，請告訴我你在 KF 的班級組別編號是什麼？(例如:B GROUP 1、G1)",
+          content: "Hello, I am the KF Summary Assistant. I'm responsible for summarizing and analyzing your group's discussions in KF. Could you please tell me your group number in KF? 妳好，我是KF整理助手。負責幫妳摘要及分析KF小組內討論內容，請告訴我你在 KF 的班級組別編號是什麼？(例如:B GROUP 1、G1)回應需稍待約30秒",
           created_at: new Date().toISOString()
         }]);
       }
@@ -37884,7 +37886,7 @@ if (mode === "寫作精靈模式" && content.includes("完成寫作大綱")) {
               {mode === '寫作精靈模式' ? (
                 <iframe
                   src="https://ragflow.lazyinwork.com/chat/share?shared_id=dea74498ade311f091b70242ac120005&from=agent&auth=hmY2Y0MjNjMWQ5YTExZjBhMGQ5MDI0Mm"
-                  style={{ width: '100%', height: '100%', minHeight: '600px' }}
+                  style={{ width: '100%', height: '100%', minHeight: '450px' }}
                   frameBorder="0"
                   title="寫作精靈模式聊天室"
                 />
@@ -38207,6 +38209,29 @@ if (mode === "寫作精靈模式" && content.includes("完成寫作大綱")) {
               </IconButton>
             </Tooltip>
           </Box>
+
+            <Box sx={{ fontSize: '16px', fontWeight: 'bold' }}>KF摘要與分析:</Box>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+            <TextField
+              label="KF摘要與分析"
+              value={kfAnalysisContent}
+              onChange={handleKfAnalysisChange}
+              multiline
+              rows={4}
+              fullWidth
+              variant="outlined"
+              sx={{ flex: 1, '& .MuiInputBase-root': { overflowY: 'auto', maxHeight: '200px' } }}
+            />
+            <IconButton
+              onClick={() => handleCopy(kfAnalysisContent, 'KF摘要與分析')}
+              size="small"
+              sx={{ alignSelf: 'flex-start', mt: 1 }}
+              title="複製KF摘要與分析"
+            >
+              <ContentCopyIcon />
+            </IconButton>
+          </Box>
+
           <Box sx={{ fontSize: '16px', fontWeight: 'bold' }}>您的寫作大綱:</Box>
           {/* 修改：包裝 TextField 加複製按鈕 */}
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
@@ -38240,28 +38265,9 @@ if (mode === "寫作精靈模式" && content.includes("完成寫作大綱")) {
             variant="outlined"
             sx={{ flex: 1, '& .MuiInputBase-root': { overflowY: 'auto', maxHeight: '200px' } }}
           />
-          <Box sx={{ fontSize: '16px', fontWeight: 'bold' }}>KF摘要與分析:</Box>
+         
           {/* 修改：包裝 TextField 加複製按鈕 */}
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-            <TextField
-              label="KF摘要與分析"
-              value={kfAnalysisContent}
-              onChange={handleKfAnalysisChange}
-              multiline
-              rows={4}
-              fullWidth
-              variant="outlined"
-              sx={{ flex: 1, '& .MuiInputBase-root': { overflowY: 'auto', maxHeight: '200px' } }}
-            />
-            <IconButton
-              onClick={() => handleCopy(kfAnalysisContent, 'KF摘要與分析')}
-              size="small"
-              sx={{ alignSelf: 'flex-start', mt: 1 }}
-              title="複製KF摘要與分析"
-            >
-              <ContentCopyIcon />
-            </IconButton>
-          </Box>
+          
           <DialogActions>
             <Button onClick={handleNoteMouseLeave} color="primary">
               儲存並關閉
