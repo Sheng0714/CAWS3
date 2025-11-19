@@ -35549,7 +35549,7 @@
 
 
 
-
+//內嵌寫作精靈
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField, List, ListItem, ListItemText, Avatar, IconButton, ListItemButton, Drawer, Tooltip, Snackbar, Alert } from '@mui/material';  // Removed Box here
 import { Box } from '@mui/system';  // Keep this for Box
@@ -35666,76 +35666,81 @@ const WritingArea = () => {
  // 新增：複製功能（加入 fallback 邏輯）
 // 優化版：複製功能（加強 fallback + debug）
 // 純 JS 版：複製功能（無套件，優化 fallback）
-const handleCopy = (content, label) => {  // 改為 sync 避免 async 延遲
+const handleCopy = (content, label) => {
   if (!content.trim()) {
     showSnackbar(`${label} 內容為空，無法複製！`, 'warning');
     return;
   }
 
-  console.log(`[DEBUG] 開始複製 ${label} (HTTP 環境偵測: ${location.protocol === 'https:' ? 'HTTPS' : 'HTTP'})`);
+  console.log(`[DEBUG] 開始複製 ${label} (協定: ${location.protocol})`);
 
-  let copied = false;
-
-  // 步驟 1: 試 Clipboard API (僅 HTTPS 或 localhost)
-  if (navigator.clipboard && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-    navigator.clipboard.writeText(content).then(() => {
-      copied = true;
-      showSnackbar(`${label} 已複製到剪貼簿！`, 'success');
-    }).catch((err) => {
-      console.warn(`[DEBUG] Clipboard API 失敗: ${err.message}`);
-    });
-  } else {
-    console.log('[DEBUG] 跳過 Clipboard API (非安全環境)');
+  // --- STEP 1: Clipboard API (僅限 HTTPS) ---
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(content)
+      .then(() => {
+        showSnackbar(`${label} 已複製到剪貼簿！`, 'success');
+      })
+      .catch((err) => {
+        console.warn(`[DEBUG] Clipboard API 失敗: ${err.message}`);
+        fallbackCopy(content, label);
+      });
+    return; // 結束流程
   }
 
-  // 步驟 2: Fallback 到 execCommand (包裝在 setTimeout 確保 user gesture)
-  if (!copied) {
-    setTimeout(() => {  // 微延遲確保 DOM ready
-      const textArea = document.createElement('textarea');
-      textArea.value = content;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      textArea.style.opacity = '0';
-      textArea.setAttribute('readonly', '');
-      document.body.appendChild(textArea);
+  // --- STEP 2: fallback for HTTP ---
+  console.log('[DEBUG] 使用 execCommand fallback (HTTP 或不支援 Clipboard API)');
+  fallbackCopy(content, label);
+};
 
-      // 加強 focus + select
-      textArea.focus({ preventScroll: true });
-      textArea.select();
-      if (textArea.setSelectionRange) {
-        textArea.setSelectionRange(0, content.length);
-      }
 
-      try {
-        copied = document.execCommand('copy');
-        if (copied) {
-          window.getSelection()?.removeAllRanges();  // 清除選取
-          showSnackbar(`${label} 已複製到剪貼簿！`, 'success');
-        } else {
-          console.warn('[DEBUG] execCommand 返回 false');
-        }
-      } catch (err) {
-        console.error('[DEBUG] execCommand 錯誤:', err);
-      } finally {
-        document.body.removeChild(textArea);
-      }
+// ------- Fallback Function (HTTP 100% 可用) -------
+const fallbackCopy = (content, label) => {
+  const textarea = document.createElement("textarea");
+  textarea.value = content;
 
-      // 步驟 3: 如果仍失敗，自動選取原 TextField
-      if (!copied) {
-        const selector = label.includes('大綱') ? 'textarea[aria-label="寫作大綱"]' : 'textarea[aria-label="KF摘要與分析"]';
-        const textField = document.querySelector(selector);
-        if (textField) {
-          textField.focus({ preventScroll: true });
-          textField.select();
-          showSnackbar(`${label} 已自動選取，請按 Ctrl+C 複製！`, 'info');
-        } else {
-          showSnackbar(`複製失敗，請手動選取 ${label} 並 Ctrl+C！`, 'error');
-        }
-      }
-    }, 0);  // setTimeout(..., 0) 確保在事件 queue 後執行
+  Object.assign(textarea.style, {
+    position: "fixed",
+    top: "-9999px",
+    left: "-9999px",
+    opacity: 0
+  });
+
+  document.body.appendChild(textarea);
+
+  textarea.select();
+  textarea.setSelectionRange(0, content.length);
+
+  try {
+    const ok = document.execCommand("copy");
+    if (ok) {
+      showSnackbar(`${label} 已複製到剪貼簿！`, "success");
+    } else {
+      console.warn("[DEBUG] execCommand 回傳 false");
+      autoSelectOriginal(label);
+    }
+  } catch (err) {
+    console.error("[DEBUG] execCommand 錯誤:", err);
+    autoSelectOriginal(label);
+  } finally {
+    document.body.removeChild(textarea);
   }
 };
+
+
+// ------- STEP 3: 自動選取原本文本欄位 -------
+const autoSelectOriginal = (label) => {
+  const selector = `[data-copy-target="${label === '寫作大綱' ? 'outline' : 'kf'}"]`;
+  const textField = document.querySelector(selector);
+
+  if (textField) {
+    textField.focus();
+    textField.select();
+    showSnackbar(`${label} 已自動選取，請按 Ctrl+C 複製！`, "info");
+  } else {
+    showSnackbar(`複製失敗，請手動選取 ${label} 並 Ctrl+C！`, "error");
+  }
+};
+
 
 
 
@@ -35894,7 +35899,7 @@ const handleCopy = (content, label) => {  // 改為 sync 避免 async 延遲
         setSessionId(data.data?.id);
         setCurrentMessages([{
           role: 'assistant',
-          content: "Hello, I am the KF Summary Assistant. I'm responsible for summarizing and analyzing your group's discussions in KF. Could you please tell me your group number in KF? 妳好，我是KF整理助手，負責幫妳摘要及分析KF小組內討論內容，請告訴我你在 KF 的班級組別編號是什麼？(例如:E GROUP 1)",
+          content: "Hello, I am the KF Summary Assistant. I'm responsible for summarizing and analyzing your group's discussions in KF. Could you please tell me your group number in KF? 妳好，我是KF整理助手，負責幫妳摘要及分析KF小組內討論內容，請告訴我你在 KF 的班級組別編號是什麼？(例如:B GROUP 1、G1)",
           created_at: new Date().toISOString()
         }]);
       }
@@ -35932,8 +35937,8 @@ const handleCopy = (content, label) => {  // 改為 sync 避免 async 延遲
         } else if (mode === "寫作分析模式") {
           setCurrentMessages([{
             role: 'assistant',
-            content: `Hi! I'm your writing assistant. In addition to checking the structure and coherence of your essay, I'll also provide overall feedback and detailed suggestions to help make your work more complete!
-哈囉！我是你的文章小幫手。除了幫你檢查文章結構與連貫性外，我還會給你整體建議與細部修改方向，讓你的作品更完整！`,
+            content: `Hello! I’m your writing assistant. In addition to helping you check the structure and flow of your essay, I will also provide overall suggestions and detailed revision directions to make your work clearer and more solid. Please first complete your English argumentative essay in the writing area, and then click “Article Suggestions” below. I will see your essay and begin analyzing it.
+哈囉！我是你的文章小幫手。除了協助你檢查文章的架構和流暢度，我也會提供整體建議和細部修改方向，讓你的作品更清楚、內容更扎實。請先在寫作區完成英文議論文，之後點選下方的「文章建議」，我就會看到你的文章並開始分析。`,
             created_at: new Date().toISOString()
           }]);
         }
