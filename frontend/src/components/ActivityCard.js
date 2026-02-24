@@ -93,7 +93,7 @@
 //                     </IconButton>
 //                     <EnterActivity>
 //                         <Button className='enter-activity-button' onClick={handleEnter}>
-//                             進入課程
+//                             �i�J�ҵ{
 //                         </Button>
 //                     </EnterActivity>
 //                 </CardActions>
@@ -204,7 +204,7 @@
 //                     </IconButton>
 //                     <EnterActivity>
 //                         <Button className='enter-activity-button' onClick={handleEnter}>
-//                             進入寫作區
+//                             �i�J�g�@��
 //                         </Button>
 //                     </EnterActivity>
 //                 </CardActions>
@@ -216,7 +216,7 @@
 
 
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import config from '../config.json';
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
@@ -227,28 +227,31 @@ import url from '../url.json';
 import { findroomByInfo } from '../utils/findRoomMode';
 import MyCreatedActivityCard from './MyCreatedActivityCard';
 
-const Item = styled(Card)(({ theme }) => ({
-    backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#573f3f',
+const Item = styled(Card, {
+    shouldForwardProp: (prop) => prop !== 'status',
+})(({ theme, status }) => ({
+    backgroundColor: status === 'completed' ? '#E2E0E0' : '#f1f1f1',
+    border: 'none',
+    borderRadius: '12px',
     ...theme.typography.body2,
     padding: theme.spacing(2),
-     color: '#deded6',   // ✅ 改這裡
+    color: '#000000',
     // color: theme.palette.text.secondary,
     // width: '100%',
-    // flex: '1 1 200px',     // ✅ 最小寬度 200px，能縮放填滿空間
-    maxWidth: '360px',  
-    minWidth: '200px',    // ✅ 限制卡片不會太寬
+    // flex: '1 1 200px',
+    maxWidth: '360px',
+    minWidth: '200px',
     boxSizing: 'border-box',
 
-    // ✅ 以下是針對 MUI 各文字元件強制覆寫
-  '& .MuiCardHeader-title': {
-    color: '#deded6',
-  },
-  '& .MuiCardHeader-subheader': {
-    color: '#deded6',
-  },
-  '& .MuiTypography-root': {
-    color: '#deded6',
-  },
+    '& .MuiCardHeader-title': {
+        color: '#000000',
+    },
+    '& .MuiCardHeader-subheader': {
+        color: '#000000',
+    },
+    '& .MuiTypography-root': {
+        color: '#000000',
+    },
 }));
 
 const EnterActivity = styled((props) => {
@@ -261,13 +264,13 @@ const EnterActivity = styled((props) => {
     }),
 }));
 
-const _getActivityInfo_ = async () => await axios.get(url.backendHost +'api/activityInfo/' + localStorage.getItem('activityId')).then((response) => {
+const _getActivityInfo_ = async () => await axios.get(url.backendHost + 'api/activityInfo/' + localStorage.getItem('activityId')).then((response) => {
     localStorage.setItem('activityInfo', JSON.stringify(response.data));
     console.log("getActivityInfo", response);
-    return response
+    return response;
 });
 
-export default function ActivityCard({ activity }) {
+export default function ActivityCard({ activity, status = 'in-progress' }) {
     const navigate = useNavigate();
     const formatTimestamp = (timestamp) => {
         return new Intl.DateTimeFormat('en-US', {
@@ -289,28 +292,28 @@ export default function ActivityCard({ activity }) {
         localStorage.setItem('activityId', Activity.id);
         localStorage.setItem('groupId', Group.groupId);
         localStorage.setItem('joinCode', Group.joinCode);
-        localStorage.setItem('activityTitle', Activity.title); // Store activity title
-        localStorage.setItem('groupName', Group.groupName || ''); // Store group name
+        localStorage.setItem('activityTitle', Activity.title);
+        localStorage.setItem('groupName', Group.groupName || '');
 
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             const value = localStorage.getItem(key);
             sessionStorage.setItem(key, value);
         }
-        
+
         _getActivityInfo_()
-        .then((activityInfo) => {
-            navigate(findroomByInfo(activityInfo));
-        })
-        .catch((error) => {
-            console.error(error);
-            navigate("/writing_area");
-        });
+            .then((activityInfo) => {
+                navigate(findroomByInfo(activityInfo));
+            })
+            .catch((error) => {
+                console.error(error);
+                navigate('/studentfuntion');
+            });
     };
 
     return (
         <div>
-            <Item>
+            <Item status={status}>
                 <CardHeader
                     title={activity.ActivityGroup.Activity.title}
                     subheader={activity.ActivityGroup.Group.groupName ?? ''}
@@ -325,7 +328,7 @@ export default function ActivityCard({ activity }) {
                         <Favorite />
                     </IconButton> */}
                     <EnterActivity>
-                        <Button  className='enter-activity-button' onClick={handleEnter} style={{ backgroundColor: '#deded6' }}>
+                        <Button className='enter-activity-button' onClick={handleEnter} style={{ backgroundColor: '#deded6' }}>
                             Writing Area
                         </Button>
                     </EnterActivity>
@@ -334,3 +337,4 @@ export default function ActivityCard({ activity }) {
         </div>
     );
 }
+

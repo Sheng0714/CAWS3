@@ -356,7 +356,7 @@ export default function Navbar() {
     flexDirection: 'column',
     alignItems: 'stretch',
     padding: isMobile ? '0.5rem 1rem' : isTablet ? '0.75rem 1.5rem' : '1rem 2rem',
-    backgroundColor: '#DEDED6',
+    backgroundColor: '#FFFFFF',
     minHeight: isTablet ? '80px' : '120px',
     margin: '0 1.5rem',
     width: '100%',

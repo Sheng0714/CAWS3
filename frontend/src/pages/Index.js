@@ -1,3 +1,110 @@
+// import config from '../config.json';
+// import axios from 'axios';
+// import React, { useState, useEffect } from 'react';
+// import IndexPage_Navbar from '../components/IndexPage_Navbar';
+// import {
+//   Grid,
+//   Select,
+//   InputLabel,
+//   MenuItem,
+//   FormControl,
+//   Box,
+//   useMediaQuery,
+//   useTheme,
+// } from '@mui/material';
+// import io from 'socket.io-client';
+// import ActivityCard from '../components/ActivityCard';
+// import url from '../url.json';
+
+
+
+
+// export default function Index() {
+//   const [all, setAll] = useState('');
+//   const [activities, setActivities] = useState([]);
+//   const [ws, setWs] = useState(null);
+//   const theme = useTheme();
+//   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+//   const handleChange = (event) => {
+//     setAll(event.target.value);
+//   };
+
+//   const connectWebSocket = () => {
+//     setWs(io(url.backendHost));
+//   };
+
+//   useEffect(() => {
+//     const getActivities = async () => {
+//       try {
+//         const fetchData = await axios.get(`${url.backendHost + config[4].myJoinedActivityList}/${localStorage.getItem('userId')}`);
+//         setActivities(fetchData.data);
+//         console.log("fetchData: ", fetchData.data)
+//       } catch (err) {
+//         // console.log(err);
+//       }
+//     };
+//     getActivities();
+
+//     if (ws) {
+//       initWebSocket();
+//     }
+//   }, [ws]);
+
+//   const initWebSocket = () => {
+//     ws.on('connect', () => {
+//       // console.log(ws.id);
+//     });
+
+//     ws.on('event02', (arg, callback) => {
+//       // console.log(arg);
+//       callback({
+//         status: 'event02 ok',
+//       });
+//     });
+//   };
+
+//   return (
+//     <div className="home-container" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
+//       <IndexPage_Navbar callback_setActivities={setActivities}/>
+//       <h2>Topic List</h2>
+//       {/* <Box sx={{ maxWidth: 120 }} className="activity-status">
+//         <FormControl fullWidth>
+//           <InputLabel id="demo-simple-select-label">狀態</InputLabel>
+//           <Select
+//             labelId="demo-simple-select-label"
+//             id="demo-simple-select"
+//             value={all}
+//             label="狀態"
+//             onChange={handleChange}
+//           >
+//             <MenuItem value={10}>全部</MenuItem>
+//             <MenuItem value={20}>已完成</MenuItem>
+//             <MenuItem value={30}>進行中</MenuItem>
+//             <MenuItem value={30}>未開始</MenuItem>
+//           </Select>
+//         </FormControl>
+//       </Box> */}
+//       <Grid
+//         container
+//         direction="row"
+//         justifyContent="center"
+//         alignItems="stretch"
+//         spacing={3}
+//         style={{ paddingRight: '120px', paddingLeft: '120px' }}
+//       >
+//         {activities.map((activity) => (
+//           <Grid item xs={8} sm={isMobile ? 8 : 4} key={activity.id}>
+//             <ActivityCard activity={activity} />
+//           </Grid>
+//         ))}
+//       </Grid>
+//     </div>
+//   );
+// }
+
+
+
 import config from '../config.json';
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
@@ -23,6 +130,7 @@ export default function Index() {
   const [all, setAll] = useState('');
   const [activities, setActivities] = useState([]);
   const [ws, setWs] = useState(null);
+  const userName = localStorage.getItem('name') || 'User';
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -64,10 +172,23 @@ export default function Index() {
     });
   };
 
+  const isCompletedActivity = (activity) => {
+    const endDate = activity?.ActivityGroup?.Activity?.endDate;
+    if (!endDate) return false;
+
+    const parsedEndDate = new Date(endDate);
+    if (Number.isNaN(parsedEndDate.getTime())) return false;
+
+    return parsedEndDate < new Date();
+  };
+
+  const inProgressActivities = activities.filter((activity) => !isCompletedActivity(activity));
+  const completedActivities = activities.filter((activity) => isCompletedActivity(activity));
+
   return (
-    <div className="home-container" style={{ backgroundColor: '#deded6', minHeight: '100vh' }}>
+    <div className="home-container" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
       <IndexPage_Navbar callback_setActivities={setActivities}/>
-      <h2>Topic List</h2>
+      <h1 style={{ textAlign: 'left', paddingLeft: '120px' }}>{`Welcome back ${userName}!`}</h1>
       {/* <Box sx={{ maxWidth: 120 }} className="activity-status">
         <FormControl fullWidth>
           <InputLabel id="demo-simple-select-label">狀態</InputLabel>
@@ -85,6 +206,7 @@ export default function Index() {
           </Select>
         </FormControl>
       </Box> */}
+      <h2 style={{ textAlign: 'left', paddingLeft: '120px' }}>In Progress</h2>
       <Grid
         container
         direction="row"
@@ -93,9 +215,24 @@ export default function Index() {
         spacing={3}
         style={{ paddingRight: '120px', paddingLeft: '120px' }}
       >
-        {activities.map((activity) => (
+        {inProgressActivities.map((activity) => (
           <Grid item xs={8} sm={isMobile ? 8 : 4} key={activity.id}>
-            <ActivityCard activity={activity} />
+            <ActivityCard activity={activity} status="in-progress" />
+          </Grid>
+        ))}
+      </Grid>
+      <h2 style={{ textAlign: 'left', paddingLeft: '120px', marginTop: '24px' }}>Completed</h2>
+      <Grid
+        container
+        direction="row"
+        justifyContent="center"
+        alignItems="stretch"
+        spacing={3}
+        style={{ paddingRight: '120px', paddingLeft: '120px' }}
+      >
+        {completedActivities.map((activity) => (
+          <Grid item xs={8} sm={isMobile ? 8 : 4} key={activity.id}>
+            <ActivityCard activity={activity} status="completed" />
           </Grid>
         ))}
       </Grid>

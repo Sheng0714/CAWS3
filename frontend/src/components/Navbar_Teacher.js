@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Container } from "@mui/material";
 import { useNavigate } from 'react-router-dom'; // 引入 useNavigate
-import Logo from "../assets/LOGONEW.png";
+import Logo from "../assets/揮手.gif";
 import { HiOutlineBars3 } from 'react-icons/hi2';
 import HomeIcon from "@mui/icons-material/Home";
 import InfoIcon from "@mui/icons-material/Info";

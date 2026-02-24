@@ -52,7 +52,7 @@ img {
 body {
   max-width: 100%;
   overflow-x: hidden;
-  background-color: #deded6;
+  background-color: #FFFFFF;
 }
 
 nav {
@@ -170,11 +170,11 @@ nav {
 }
 .join-activity-button {
   padding: 0.9rem 1.75rem;
-  background-color: #ECF2FF;
+  background-color: rgba(204, 149, 101, 0.3);
   outline: none;
   border: none;
   border-style: solid;
-  border-color: #E3DFFD;
+  border-color: rgba(204, 149, 101, 0.3);
   border-radius: 5rem;
   font-size: 1.1rem;
   cursor: pointer;
@@ -234,7 +234,7 @@ nav {
   margin: 5px;
   font-size: 14px;
   border: none;
-  /* 無外框 */
+  /* ?��?�?*/
 }
 
 .hidden-button:hover {
@@ -378,7 +378,7 @@ span {
 .home-banner-container {
   position: relative;
   display: flex;
-  margin: 0rem 10rem;
+  /* margin: 0rem 10rem; */
   justify-content: center;
 
 }
@@ -386,9 +386,9 @@ span {
 
 .content-wrapper {
   display: flex;
-  flex-direction: row; /* 預設左右排列 */
+  flex-direction: row; /* ?�設左右?��? */
   justify-content: space-between;
-  max-width: 1000px; /* 限制最大寬度 */
+  max-width: 1000px; /* ?�制?�大寬�?*/
   width: 100%;
   padding: 0 16px;
   box-sizing: border-box;
@@ -434,8 +434,8 @@ span {
 
   .home-text-section {
     padding-right: 0;
-    margin-bottom: 20px; /* 上下間距 */
-    text-align: center; /* 中心對齊，看起來更美 */
+    margin-bottom: 20px; /* 上�??��? */
+    text-align: center; /* 中�?對�?，�?起�??��? */
     order: 2;
   }
 
@@ -1020,5 +1020,22 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
     display: none !important;
   }
 }
+
+/* 強制覆�? Quill ?�建顯示 */
+.ql-snow .ql-picker.ql-size .ql-picker-label::before {
+  content: "Font Size" !important;
+}
+
+/* ?�選大�??�顯示�??��?�?*/
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="small"]::before {
+  content: "Small" !important;
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="large"]::before {
+  content: "Large" !important;
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="huge"]::before {
+  content: "Huge" !important;
+}
+
 
 

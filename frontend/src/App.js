@@ -32,6 +32,13 @@ import AboutTeacher from './pages/About_teacher.js';
 import AboutHome from './pages/About_Home.js';
 import Editortest from './components/Editortest.js';
 import Manual from './components/manual.js';
+import Studentfuntion from './components/studentfuntion.js';
+import Chatbot from './components/Chatbot.js';
+import Chatbotlogin from './components/Chatbotlogin.js';
+import Newchat from './components/Newchat.js';
+import Chathistory from './components/Chathistory.js';
+import Freebackstudent from './components/freebackstudent.js';
+
 
 export default function App() {
   return (
@@ -61,6 +68,13 @@ export default function App() {
               <Route path='/About_Home' element={<AboutHome/>}></Route>
               <Route path='/Editortest' element={<Editortest/>}></Route>
               <Route path='/manual' element={<Manual/>}></Route>
+              <Route path='/studentfuntion' element={<RequireAuth loginPath='/'><Studentfuntion/></RequireAuth>}></Route>
+              <Route path='/Chatbot' element={<RequireAuth loginPath='/'><Chatbot/></RequireAuth>}></Route>
+              <Route path='/Chatbotlogin' element={<RequireAuth loginPath='/'><Chatbotlogin/></RequireAuth>}></Route>
+              
+              <Route path='/Newchat' element={<RequireAuth loginPath='/'><Newchat/></RequireAuth>}></Route>
+              <Route path='/Chathistory' element={<RequireAuth loginPath='/'><Chathistory/></RequireAuth>}></Route>
+              <Route path='/freebackstudent' element={<RequireAuth loginPath='/'><Freebackstudent/></RequireAuth>}></Route>
           </Routes>
       </Router>
     </ModeProvider>
