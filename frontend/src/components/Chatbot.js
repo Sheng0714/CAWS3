@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar_Student";
+import backIcon from "../assets/back.png";
 
 import number1 from "../assets/數字1.png";
 import number2 from "../assets/數字2.png";
@@ -20,7 +21,7 @@ const cardData = [
     featureImage: ICON1,
     title: "KF Analysis",
     description: [
-      "can summarize the data your group discussed in KF.",
+      "Summarize the data your group discussed in KF.",
     ],
   },
   {
@@ -39,7 +40,7 @@ const cardData = [
     featureImage: ICON3,
     title: "Argumentative Writing",
     description: [
-      "can receive feedback and suggestions before submitting your argumentative essay.",
+      "Receive feedback and suggestions before submitting your argumentative essay.",
     ],
   },
   
@@ -82,12 +83,20 @@ export default function Studentfuntion() {
             marginBottom: "32px",
           }}
         >
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            <img src={backIcon} alt="Back" width={25} height={25} />
+          </button>
+
           <img
             src={cawsOwl}
             alt="CAWS owl"
             style={{
-              width: "130px",
-              height: "130px",
+              width: "170px",
+              height: "170px",
               objectFit: "contain",
             }}
           />
@@ -98,7 +107,11 @@ export default function Studentfuntion() {
               border: "1px solid #e2e8f0",
               borderRadius: "16px",
               padding: "16px 20px",
-              maxWidth: "520px",
+              height: "155px",
+              width: "900px",
+              maxWidth: "100%",
+              display: "flex",
+              alignItems: "center",
               boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
               color: "#1e293b",
               fontSize: "25px",
@@ -106,7 +119,7 @@ export default function Studentfuntion() {
               textAlign: "left",
             }}
           >
-            <p style={{ margin: 0 }}>Please enter one of the following Chatbots before starting your writing.</p>
+            <p style={{ margin: 0, fontWeight: 700 }}>Please enter one of the following Chatbots before starting your writing.</p>
             
           </div>
         </div>
@@ -207,37 +220,12 @@ export default function Studentfuntion() {
                   cursor: "pointer",
                 }}
               >
-                Enter
+                ENTER
               </button>
             </div>
           ))}
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginTop: "28px",
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            style={{
-              width: "140px",
-              height: "44px",
-              background: "rgba(204, 149, 101, 0.3)",
-              border: "1.5px solid #000000",
-              borderRadius: "10px",
-              fontSize: "18px",
-              fontWeight: 700,
-              color: "#111111",
-              cursor: "pointer",
-            }}
-          >
-            Back
-          </button>
-        </div>
       </div>
     </div>
   );

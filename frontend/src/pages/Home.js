@@ -11,12 +11,12 @@
 //             <div className="home-banner-container">
 //                 <div className="home-text-section">
 //                     <h1 className="primary-heading">
-//                         隞交瘜銝剖?嚗?
+//                         以想法為中�?��?
 //                         <br/>
-//                         ?⊥??Ｙ弦
+//                         ?��??�究
 //                     </h1>
 //                     <button className="secondary-button">
-//                         ??嚗?敺
+//                         ?�入?�們吧！�?往
 //                         <Register />
 //                         <FiArrowRight />{" "}
 //                     </button>
@@ -49,22 +49,22 @@
 // import url from "../url.json";
 // import config from "../config.json";
 // import { Register } from "../components/Register";
-// import { Login } from "../components/Login"; // ?身?典歇撠?Login 蝯辣?曉?楝敺?
+// import { Login } from "../components/Login"; // ?�設?�已��?Login 組件?�在?�個路��?
 
 // export default function Home() {
 //   const [data, setData] = useState({
 //     email: "",
 //     password: "",
 //   });
-//   const [role, setRole] = useState("student"); // ?身??student
+//   const [role, setRole] = useState("student"); // ?�設??student
 //   const [isLoggedIn, setIsLoggedIn] = useState(false);
-//   const [openLogin, setOpenLogin] = useState(false); // ?批 Login 撠店獢?
-//   const [openRegister, setOpenRegister] = useState(false); // ?批 Register 撠店獢?
+//   const [openLogin, setOpenLogin] = useState(false); // ?�制 Login 對話��?
+//   const [openRegister, setOpenRegister] = useState(false); // ?�制 Register 對話��?
 
 //   const signIn = useSignIn();
 //   const navigate = useNavigate();
 
-//   // ??銵典頛詨霈?
+//   // ?��?表單輸入變�?
 //   const handleChange = (e) => {
 //     const { name, value } = e.target;
 //     setData((prevData) => ({
@@ -73,18 +73,18 @@
 //     }));
 //   };
 
-//   // ??閫?豢?霈?
+//   // ?��?角色?��?變�?
 //   const handleRoleChange = (e) => {
 //     setRole(e.target.value);
 //   };
 
-//   // ??銵典?漱
+//   // ?��?表單?�交
 //   const handleSubmit = async (e) => {
 //     e.preventDefault();
 //     const userData = {
 //       email: data.email,
 //       password: data.password,
-//       role, // 撠?role ?喟策敺垢嚗???蝡舫?閬?
+//       role, // ��?role ?�給後端（�??��?端�?要�?
 //     };
 //     try {
 //       const response = await axios.post(
@@ -94,7 +94,7 @@
 //       setIsLoggedIn(true);
 //       setData({ email: "", password: "" });
 
-//       // 雿輻 react-auth-kit ??signIn
+//       // 使用 react-auth-kit ??signIn
 //       signIn({
 //         token: response.data.jwtToken,
 //         expiresIn: 3600,
@@ -102,16 +102,16 @@
 //         authState: { ...response.data },
 //       });
 
-//       // ?脣???localStorage
+//       // ?��???localStorage
 //       localStorage.setItem("jwtToken", response.data.jwtToken);
 //       localStorage.setItem("userId", response.data.id);
 //       localStorage.setItem("name", response.data.name);
 //       localStorage.setItem("email", response.data.email);
 //       localStorage.setItem("role", role);
 
-//       alert("?餃??!");
+//       alert("?�入?��?!");
 
-//       // ?寞?閫頝唾??
+//       // ?��?角色跳�??�面
 //       if (role === "student") {
 //         navigate("/kf");
 //       } else if (role === "teacher") {
@@ -119,14 +119,14 @@
 //       }
 //     } catch (error) {
 //       if (!error.response) {
-//         alert("敺垢隡箸??券??憭望?");
+//         alert("後端伺�??���??失�?");
 //       } else {
 //         switch (error.response.status) {
 //           case 401:
-//             alert("?餃??憭望?嚗?蝣箄?撣唾?撖Ⅳ");
+//             alert("?�入?��?失�?，�?確�?帳�?密碼");
 //             break;
 //           default:
-//             alert("?芰?航炊嚗??舐窗蝞∠??? " + error.response.status);
+//             alert("?�知?�誤，�??�絡管�??? " + error.response.status);
 //         }
 //       }
 //     }
@@ -220,7 +220,7 @@
 //         </div>
 //       </div>
 
-//       {/* ?游? Login 蝯辣雿撠店獢?*/}
+//       {/* ?��? Login 組件作為對話��?*/}
 //       <Login
 //         open={openLogin}
 //         setOpen={setOpenLogin}
@@ -251,7 +251,7 @@
 // } from "@mui/material";
 // import url from "../url.json";
 // import config from "../config.json";
-// import { Register } from "../components/Register"; // 蝣箔?頝臬?甇?Ⅱ
+// import { Register } from "../components/Register"; // 確�?路�?��?��
 // import { Login } from "../components/Login";
 
 // export default function Home() {
@@ -309,14 +309,14 @@
 //       else if (role === "teacher") navigate("/teacher/teacher_home");
 //     } catch (error) {
 //       if (!error.response) {
-//         alert("敺垢隡箸??券??憭望?");
+//         alert("後端伺�??���??失�?");
 //       } else {
 //         switch (error.response.status) {
 //           case 401:
-//             alert("?餃??憭望?嚗?蝣箄?撣唾?撖Ⅳ");
+//             alert("?�入?��?失�?，�?確�?帳�?密碼");
 //             break;
 //           default:
-//             alert("?芰?航炊嚗??舐窗蝞∠??? " + error.response.status);
+//             alert("?�知?�誤，�??�絡管�??? " + error.response.status);
 //         }
 //       }
 //     }
@@ -443,7 +443,7 @@
 // } from "@mui/material";
 // import url from "../url.json";
 // import config from "../config.json";
-// import { Register } from "../components/Register"; // 蝣箔?頝臬?甇?Ⅱ
+// import { Register } from "../components/Register"; // 確�?路�?��?��
 // import { Login } from "../components/Login";
 
 // export default function Home() {
@@ -488,14 +488,14 @@
 //       if (role === "student") navigate("/kf");
 //       else if (role === "teacher") navigate("/teacher/teacher_home");
 //     } catch (error) {
-//       if (!error.response) alert("敺垢隡箸??券??憭望?");
+//       if (!error.response) alert("後端伺�??���??失�?");
 //       else {
 //         switch (error.response.status) {
 //           case 401:
-//             alert("?餃??憭望?嚗?蝣箄?撣唾?撖Ⅳ");
+//             alert("?�入?��?失�?，�?確�?帳�?密碼");
 //             break;
 //           default:
-//             alert("?芰?航炊嚗??舐窗蝞∠??? " + error.response.status);
+//             alert("?�知?�誤，�??�絡管�??? " + error.response.status);
 //         }
 //       }
 //     }
@@ -518,27 +518,27 @@
 //   className="content-wrapper"
 //   style={{
 //     display: "flex",
-//     justifyContent: "flex-start", // ???寥ㄐ嚗??批捆?椰撠?
-//     alignItems: "flex-end", // 霈??交???撠?
+//     justifyContent: "flex-start", // ???�這裡，�??�容?�左對�?
+//     alignItems: "flex-end", // 讓右?�登?��??��?對�?
 //     width: "100vw",
 //     height: "calc(100vh - 120px)",
 //     backgroundColor: "#DEDED6",
-//     padding: "0 5vw 5vh 5vw", // 銝?椰?喲??
+//     padding: "0 5vw 5vh 5vw", // 下方?�左?��??�白
 //     boxSizing: "border-box",
-//     gap: "3vw", // ???啣?銝暺?頝?霈椰?喳?憛?蝺票
+//     gap: "3vw", // ???��?一點�?距�?讓左?��?塊�?緊貼
 //   }}
 // >
-//   {/* 撌阡????憛?*/}
+//   {/* 左�??��??���?*/}
 //   <div
 //     style={{
 //       backgroundColor: "#CCC6B8",
 //       width: "100%",
-//       height: "80%", // 擃漲?仿??澆??交?
-//       borderRadius: "0 0 0 0px", // 璅∩遛閮剛???閫?
+//       height: "80%", // 高度?��??�右?�登?��?
+//       borderRadius: "0 0 0 0px", // 模仿設�??��?��?
 //     }}
 //   />
 
-//   {/* ?喲??餃?憛?*/}
+//   {/* ?��??�入?���?*/}
 //   <div
 //     className="form-section"
 //     style={{
@@ -691,14 +691,14 @@
 //       if (role === "student") navigate("/kf");
 //       else if (role === "teacher") navigate("/teacher/teacher_home");
 //     } catch (error) {
-//       if (!error.response) alert("敺垢隡箸??券??憭望?");
+//       if (!error.response) alert("後端伺�??���??失�?");
 //       else {
 //         switch (error.response.status) {
 //           case 401:
-//             alert("?餃??憭望?嚗?蝣箄?撣唾?撖Ⅳ");
+//             alert("?�入?��?失�?，�?確�?帳�?密碼");
 //             break;
 //           default:
-//             alert("?芰?航炊嚗??舐窗蝞∠??? " + error.response.status);
+//             alert("?�知?�誤，�??�絡管�??? " + error.response.status);
 //         }
 //       }
 //     }
@@ -731,7 +731,7 @@
 //             gap: "3vw",
 //           }}
 //         >
-//           {/* 撌阡????憛?*/}
+//           {/* 左�??��??���?*/}
 //           <div
 //             style={{
 //               backgroundColor: "#CCC6B8",
@@ -741,7 +741,7 @@
 //             }}
 //           />
 
-//           {/* ?喲??餃?憛?憭惜摰孵嚗?*/}
+//           {/* ?��??�入?�塊�?外層容器��?*/}
 //           <div
 //             style={{
 //               display: "flex",
@@ -751,7 +751,7 @@
 //               gap: "1rem",
 //             }}
 //           >
-//             {/* 璅??? */}
+//             {/* 標�??��? */}
 //             <h2
 //               style={{
 //                 color: "#573f3f",
@@ -768,7 +768,7 @@
 //               with AI
 //             </h2>
 
-//             {/* ?餃銵典?憛?*/}
+//             {/* ?�入表單?���?*/}
 //             <div
 //               className="form-section"
 //               style={{
@@ -943,14 +943,14 @@
 //       if (role === "student") navigate("/kf");
 //       else if (role === "teacher") navigate("/teacher/teacher_home");
 //     } catch (error) {
-//       if (!error.response) alert("敺垢隡箸??券??憭望?");
+//       if (!error.response) alert("後端伺�??���??失�?");
 //       else {
 //         switch (error.response.status) {
 //           case 401:
-//             alert("?餃??憭望?嚗?蝣箄?撣唾?撖Ⅳ");
+//             alert("?�入?��?失�?，�?確�?帳�?密碼");
 //             break;
 //           default:
-//             alert("?芰?航炊嚗??舐窗蝞∠??? " + error.response.status);
+//             alert("?�知?�誤，�??�絡管�??? " + error.response.status);
 //         }
 //       }
 //     }
@@ -983,7 +983,7 @@
 //           style={{
 //             display: "flex",
 //             flexDirection: "row",
-//             flexWrap: "wrap", // RWD嚗??Ｗ???銝???
+//             flexWrap: "wrap", // RWD：�??��??��?下�???
 //             justifyContent: "center",
 //             alignItems: "stretch",
 //             width: "100%",
@@ -991,7 +991,7 @@
 //             gap: "3vw",
 //           }}
 //         >
-//           {/* 撌阡????憛?*/}
+//           {/* 左�??��??���?*/}
 //           {/* <div
 //           className="left-panel"
 //             style={{
@@ -1027,7 +1027,7 @@
 
 
 
-//           {/* ?喲??餃?憛?憭惜摰孵嚗?*/}
+//           {/* ?��??�入?�塊�?外層容器��?*/}
 //           <div
 //             style={{
 //               display: "flex",
@@ -1040,13 +1040,13 @@
 //               boxSizing: "border-box",
 //             }}
 //           >
-//             {/* 璅??? */}
+//             {/* 標�??��? */}
 //             <div
 //               style={{
 //                 width: "100%",
 //                 textAlign: "center",
 //                 color: "#573f3f",
-//                 fontSize: "clamp(1.2rem, 2.5vw, 2rem)", // RWD 摮?
+//                 fontSize: "clamp(1.2rem, 2.5vw, 2rem)", // RWD 字�?
 //                 fontWeight: "600",
 //                 lineHeight: "1.4",
 //                 textShadow: "1px 1px 3px rgba(0,0,0,0.2)",
@@ -1059,7 +1059,7 @@
               
 //             </div>
 
-//             {/* ?餃銵典?憛?*/}
+//             {/* ?�入表單?���?*/}
 //             <div
 //               className="form-section"
 //               style={{
@@ -1196,9 +1196,9 @@ import { Login } from "../components/Login";
 import HomeImage1 from "../assets/首頁1.png";
 import HomeImage2 from "../assets/首頁2.png";
 import HomeImage3 from "../assets/首頁3.png";
-import KF from "../assets/首頁1.png";
-import WritingAssistant from "../assets/首頁2.png";
-import WritingAnalysis from "../assets/首頁3.png";
+// import KF from "../assets/����1.png";
+// import WritingAssistant from "../assets/����2.png";
+// import WritingAnalysis from "../assets/����3.png";
 
 export default function Home() {
   const [data, setData] = useState({ email: "", password: "" });
@@ -1239,17 +1239,17 @@ export default function Home() {
       localStorage.setItem("email", response.data.email);
       localStorage.setItem("role", role);
       alert("Login Successful!");
-      if (role === "student") navigate("/kf");
+      if (role === "student") navigate("/home");
       else if (role === "teacher") navigate("/teacher/teacher_home");
     } catch (error) {
-      if (!error.response) alert("敺垢隡箸??券??憭望?");
+      if (!error.response) alert("登入失敗,請再試一次");
       else {
         switch (error.response.status) {
           case 401:
-            alert("?餃??憭望?嚗?蝣箄?撣唾?撖Ⅳ");
+            alert("帳號或密碼錯誤");
             break;
           default:
-            alert("?芰?航炊嚗??舐窗蝞∠??? " + error.response.status);
+            alert("登入失敗,請再試一次 " + error.response.status);
         }
       }
     }
@@ -1260,9 +1260,10 @@ export default function Home() {
       className="home-container"
       style={{
         backgroundColor: "#FFFFFF",
-        minHeight: "100vh",
+        minHeight: "100dvh",
         display: "flex",
         flexDirection: "column",
+        overflow: "auto",
       }}
     >
       <Navbar />
@@ -1270,11 +1271,11 @@ export default function Home() {
         className="home-banner-container"
         style={{
           backgroundColor: "#DEDED6",
-          flex: 1,
+          flex: "0 0 auto",
           display: "flex",
           justifyContent: "center",
-          alignItems: "center",
-          padding: "2rem",
+          alignItems: "flex-start",
+          padding: "2rem 2rem 2rem",
         }}
       >
         <div
@@ -1282,16 +1283,16 @@ export default function Home() {
           style={{
             display: "flex",
             flexDirection: "row",
-            flexWrap: "wrap", // RWD嚗??Ｗ???銝???
+            flexWrap: "wrap", // RWD：�??��??��?下�???
             justifyContent: "center",
             alignItems: "stretch",
             width: "100%",
             maxWidth: "1200px",
-            gap: "3vw",
-            transform: "translateX(-32px)",
+            gap: "1.25rem",
+            transform: "none",
           }}
         >
-          {/* 撌阡????憛?*/}
+          {/* 左�??��??���?*/}
           {/* <div
           className="left-panel"
             style={{
@@ -1302,24 +1303,24 @@ export default function Home() {
               borderRadius: "8px",
             }}
           /> */}
-        {/* 撌阡????憛?*/}
+        {/* 左�??��??���?*/}
 <div
   className="left-panel"
   style={{
     flex: "1 1 50%",
     minWidth: "280px",
-    minHeight: "520px",
+    minHeight: "320px",
     borderRadius: "8px",
     display: "flex",
-    flexDirection: "column", // 靽格?箏??湔???霈?摮??銝
+    flexDirection: "column", // 修改?��??��??��?讓�?字在?��?下方
     alignItems: "flex-start",
     justifyContent: "flex-start",
-    padding: "1.2rem 2rem 2rem 1rem", // ?舫嚗??頝誑?踹??楠??
+    padding: "0.5rem 1rem 1rem 0.5rem", // ?�選：�??�內距以?��??�緣?��?
   }}
 >
     <h1
     style={{
-      fontSize: "clamp(2rem, 5vw, 4rem)",
+      fontSize: "clamp(1.8rem, 4vw, 3rem)",
       fontWeight: 700,
       margin: 0,
       letterSpacing: "0.04em",
@@ -1329,12 +1330,12 @@ export default function Home() {
   </h1>
   <p
     style={{
-      fontSize: "clamp(2.25rem, 2.5vw, 1.8rem)",
-      lineHeight: 1.5,
-      marginTop: "1rem",
-      marginBottom: "1.5rem",
+      fontSize: "clamp(2.25rem, 1.7vw, 1.35rem)",
+      lineHeight: 1.35,
+      marginTop: "0.6rem",
+      marginBottom: "0.9rem",
       fontWeight: "bold",
-      maxWidth: "32ch",
+      maxWidth: "20ch",
     }}
   >
     A powerful AI-assisted argumentative writing platform that helps you
@@ -1347,20 +1348,22 @@ export default function Home() {
       backgroundColor: "#6953538f",
       color: "#FFFFFF",
       borderRadius: 10,
-      padding: "0.6rem 1.4rem",
+      padding: "0.45rem 1rem",
       fontWeight: "bold",
-      fontSize: "1.4rem",
+      fontSize: "1rem",
       textTransform: "none",
     }}
-    onClick={() => setOpenRegister(true)}
+    // onClick={() => setOpenRegister(true)}
+    onClick={() => navigate("/about")}
+
   >
-    Get started
+    LEARN MORE
   </Button>
 </div>
 
 
 
-          {/* ?喲??餃?憛?憭惜摰孵嚗?*/}
+          {/* ?��??�入?�塊�?外層容器��?*/}
           <div
             style={{
               display: "flex",
@@ -1369,19 +1372,19 @@ export default function Home() {
               alignItems: "center",
               flex: "1 1 40%",
               minWidth: "280px",
-              height: "80%",
+              height: "auto",
               boxSizing: "border-box",
               paddingTop: "0",
-              marginTop: "-0.5rem",
+              marginTop: "0",
             }}
           >
-            {/* 璅??? */}
+            {/* 標�??��? */}
             {/* <div
               style={{
                 width: "100%",
                 textAlign: "center",
                 color: "#573f3f",
-                fontSize: "clamp(1.2rem, 2.5vw, 2rem)", // RWD 摮?
+                fontSize: "clamp(1.2rem, 2.5vw, 2rem)", // RWD 字�?
                 fontWeight: "600",
                 lineHeight: "1.4",
                 textShadow: "1px 1px 3px rgba(0,0,0,0.2)",
@@ -1394,14 +1397,14 @@ export default function Home() {
               
             </div> */}
 
-            {/* ?餃銵典?憛?*/}
+            {/* ?�入表單?���?*/}
             <div
               className="form-section"
               style={{
                 backgroundColor: "#ffffffd5",
-                padding: "2rem",
+                padding: "1.5rem",
                 width: "100%",
-                minHeight: "450px",
+                minHeight: "320px",
                 borderRadius: "8px",
                 display: "flex",
                 flexDirection: "column",
@@ -1409,16 +1412,16 @@ export default function Home() {
                 alignItems: "stretch",
                 color: "#DEDED6",
                 boxSizing: "border-box",
-                marginTop: "1rem",
+                marginTop: "0.5rem",
               }}
             >
               <div
                 style={{
                   textAlign: "center",
                   color: "#000000",
-                  fontSize: "1.5rem",
+                  fontSize: "1.25rem",
                   fontWeight: 700,
-                  marginBottom: "1rem",
+                  marginBottom: "0.7rem",
                   letterSpacing: "0.04em",
                 }}
               >
@@ -1431,7 +1434,7 @@ export default function Home() {
                 value={data.email}
                 fullWidth
                 onChange={handleChange}
-                style={{ marginBottom: "1rem" }}
+                style={{ marginBottom: "0.65rem" }}
                 sx={{
                   "& .MuiInputBase-root": { backgroundColor: "#FFFFFF" },
                   "& .MuiInputLabel-root": { color: "#000000" },
@@ -1454,7 +1457,7 @@ export default function Home() {
                 value={data.password}
                 fullWidth
                 onChange={handleChange}
-                style={{ marginBottom: "1rem" }}
+                style={{ marginBottom: "0.65rem" }}
                 sx={{
                   "& .MuiInputBase-root": { backgroundColor: "#FFFFFF" },
                   "& .MuiInputLabel-root": { color: "#000000" },
@@ -1472,7 +1475,7 @@ export default function Home() {
               />
               <FormControl
                 component="fieldset"
-                style={{ marginBottom: "1rem" }}
+                style={{ marginBottom: "0.65rem" }}
               >
                 <FormLabel component="legend" sx={{ color: "#000000" }}>
                   Role :
@@ -1507,7 +1510,7 @@ export default function Home() {
                   color: "#573f3f",
                   alignSelf: "flex-end",
                   borderRadius: 10,
-                  padding: "0.5rem 2rem",
+                  padding: "0.45rem 1.3rem",
                   fontWeight: "bold",
                   textTransform: "uppercase",
                 }}
@@ -1524,34 +1527,34 @@ export default function Home() {
         style={{
           width: "100%",
           maxWidth: "1200px",
-          margin: "3rem auto 2rem auto",
-          padding: "0 2rem",
-          transform: "translateX(-32px)",
+          margin: "20px auto 0.75rem auto",
+          padding: "0 1.5rem",
+          transform: "none",
           display: "flex",
           flexWrap: "wrap",
-          gap: "2rem",
+          gap: "1rem",
         }}
       >
         <div
           style={{
-            flex: "1 1 280px",
+            flex: "1 1 220px",
             backgroundColor: "#FFFFFF",
             border: "1px solid #000000",
             borderRadius: "8px",
-            padding: "1.25rem",
+            padding: "0.85rem",
           }}
         >
           <img
             src={HomeImage1}
             alt="首頁1"
             style={{
-              width: "85px",
-              height: "85px",
+              width: "60px",
+              height: "60px",
               objectFit: "contain",
               display: "block",
               margin: "0 auto",
               borderRadius: "6px",
-              marginBottom: "0.9rem",
+              marginBottom: "0.5rem",
             }}
           />
           <h3
@@ -1559,38 +1562,49 @@ export default function Home() {
               color: "#000000",
               textAlign: "center",
               padding: 0,
-              marginBottom: "0.6rem",
+              marginBottom: "0.35rem",
               fontWeight: 700,
-              fontSize: "1.4rem",
+              fontSize: "1.5rem",
             }}
           >
             KF Analysis
           </h3>
-          <p style={{ color: "#333333", lineHeight: 1.5, fontSize: "1.08rem", textAlign: "center" }}>
-            Organize the discussion data from KF for you.
-          </p>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+            <p
+              style={{
+                color: "#333333",
+                lineHeight: 1.35,
+                fontSize: "1.1rem",
+                textAlign: "center",
+                width: "20ch",
+                margin: 0,
+              }}
+            >
+              Organize the discussion data from KF for you.
+            </p>
+          </div>
         </div>
 
         <div
           style={{
-            flex: "1 1 280px",
+            flex: "1 1 220px",
             backgroundColor: "#FFFFFF",
             border: "1px solid #000000",
             borderRadius: "8px",
-            padding: "1.25rem",
+            padding: "0.85rem",
           }}
         >
           <img
             src={HomeImage2}
             alt="首頁2"
             style={{
-              width: "85px",
-              height: "85px",
+              width: "60px",
+              height: "60px",
               objectFit: "contain",
               display: "block",
               margin: "0 auto",
               borderRadius: "6px",
-              marginBottom: "0.9rem",
+              marginBottom: "0.5rem",
             }}
           />
           <h3
@@ -1598,40 +1612,51 @@ export default function Home() {
               color: "#000000",
               textAlign: "center",
               padding: 0,
-              marginBottom: "0.6rem",
+              marginBottom: "0.35rem",
               fontWeight: 700,
-              fontSize: "1.4rem",
+              fontSize: "1.5rem",
             }}
           >
             Writing Assistant
           </h3>
-          <p style={{ color: "#333333", lineHeight: 1.5, fontSize: "1.08rem", textAlign: "center" }}>
-            Check your knowledge of argumentative essay structure.
-            <br />
-            Build your writing outline.
-          </p>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+            <p
+              style={{
+                color: "#333333",
+                lineHeight: 1.35,
+                fontSize: "1.1rem",
+                textAlign: "center",
+                width: "20ch",
+                margin: 0,
+              }}
+            >
+              Check your knowledge of argumentative essay structure.
+              <br />
+              Build your writing outline.
+            </p>
+          </div>
         </div>
 
         <div
           style={{
-            flex: "1 1 280px",
+            flex: "1 1 220px",
             backgroundColor: "#FFFFFF",
             border: "1px solid #000000",
             borderRadius: "8px",
-            padding: "1.25rem",
+            padding: "0.85rem",
           }}
         >
           <img
             src={HomeImage3}
             alt="首頁3"
             style={{
-              width: "85px",
-              height: "85px",
+              width: "60px",
+              height: "60px",
               objectFit: "contain",
               display: "block",
               margin: "0 auto",
               borderRadius: "6px",
-              marginBottom: "0.9rem",
+              marginBottom: "0.5rem",
             }}
           />
           <h3
@@ -1639,16 +1664,27 @@ export default function Home() {
               color: "#000000",
               textAlign: "center",
               padding: 0,
-              marginBottom: "0.6rem",
+              marginBottom: "0.35rem",
               fontWeight: 700,
-              fontSize: "1.4rem",
+              fontSize: "1.5rem",
             }}
           >
             Writing Analysis
           </h3>
-          <p style={{ color: "#333333", lineHeight: 1.5, fontSize: "1.08rem", textAlign: "center" }}>
-            Get feedback and suggestions on your writing.
-          </p>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+            <p
+              style={{
+                color: "#333333",
+                lineHeight: 1.35,
+                fontSize: "1.1rem",
+                textAlign: "center",
+                width: "20ch",
+                margin: 0,
+              }}
+            >
+              Get feedback and suggestions on your writing.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -1665,5 +1701,6 @@ export default function Home() {
     </div>
   );
 }
+
 
 

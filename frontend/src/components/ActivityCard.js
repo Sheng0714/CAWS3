@@ -217,20 +217,18 @@
 
 
 import React from 'react';
-import config from '../config.json';
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
-import { styled, Card, CardHeader, CardContent, Typography, CardActions, IconButton } from '@mui/material';
-import { Favorite } from '@mui/icons-material';
-import { Button } from '@mui/base';
+import { styled, Card, CardHeader, CardContent, Typography } from '@mui/material';
 import url from '../url.json';
 import { findroomByInfo } from '../utils/findRoomMode';
-import MyCreatedActivityCard from './MyCreatedActivityCard';
+import hasNotificationIcon from '../assets/有通知.png';
+import noNotificationIcon from '../assets/沒通知.png';
 
 const Item = styled(Card, {
     shouldForwardProp: (prop) => prop !== 'status',
 })(({ theme, status }) => ({
-    backgroundColor: status === 'completed' ? '#E2E0E0' : '#f1f1f1',
+    backgroundColor: status === 'completed' ? '#DFEDD7' : '#D1E7FB',
     border: 'none',
     borderRadius: '12px',
     ...theme.typography.body2,
@@ -241,7 +239,9 @@ const Item = styled(Card, {
     // flex: '1 1 200px',
     maxWidth: '360px',
     minWidth: '200px',
+    height: '210px',
     boxSizing: 'border-box',
+    position: 'relative',
 
     '& .MuiCardHeader-title': {
         color: '#000000',
@@ -252,16 +252,6 @@ const Item = styled(Card, {
     '& .MuiTypography-root': {
         color: '#000000',
     },
-}));
-
-const EnterActivity = styled((props) => {
-    const { expand, ...other } = props;
-    return <IconButton {...other} />;
-})(({ theme }) => ({
-    marginLeft: 'auto',
-    transition: theme.transitions.create('transform', {
-        duration: theme.transitions.duration.shortest,
-    }),
 }));
 
 const _getActivityInfo_ = async () => await axios.get(url.backendHost + 'api/activityInfo/' + localStorage.getItem('activityId')).then((response) => {
@@ -283,8 +273,7 @@ export default function ActivityCard({ activity, status = 'in-progress' }) {
         }).format(new Date(timestamp));
     };
 
-    const handleEnter = async (e) => {
-        e.preventDefault();
+    const handleEnter = async () => {
         console.log(activity.ActivityGroup.Activity.id, activity.ActivityGroup.GroupId, activity.ActivityGroup.Group.joinCode);
 
         const { Activity, Group } = activity.ActivityGroup;
@@ -313,7 +302,30 @@ export default function ActivityCard({ activity, status = 'in-progress' }) {
 
     return (
         <div>
-            <Item status={status}>
+            <Item
+                status={status}
+                onClick={handleEnter}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleEnter();
+                    }
+                }}
+                role="button"
+                tabIndex={0}
+                sx={{ cursor: 'pointer' }}
+            >
+                <img
+                    src={status === 'in-progress' ? hasNotificationIcon : noNotificationIcon}
+                    alt={status === 'in-progress' ? '有通知' : '沒通知'}
+                    style={{
+                        width: '30px',
+                        height: '30px',
+                        position: 'absolute',
+                        top: '12px',
+                        right: '12px',
+                    }}
+                />
                 <CardHeader
                     title={activity.ActivityGroup.Activity.title}
                     subheader={activity.ActivityGroup.Group.groupName ?? ''}
@@ -323,16 +335,6 @@ export default function ActivityCard({ activity, status = 'in-progress' }) {
                         {`${formatTimestamp(activity.ActivityGroup.Activity.startDate)} ~ ${formatTimestamp(activity.ActivityGroup.Activity.endDate)}`}
                     </Typography>
                 </CardContent>
-                <CardActions disableSpacing>
-                    {/* <IconButton aria-label="add to favorites">
-                        <Favorite />
-                    </IconButton> */}
-                    <EnterActivity>
-                        <Button className='enter-activity-button' onClick={handleEnter} style={{ backgroundColor: '#deded6' }}>
-                            Writing Area
-                        </Button>
-                    </EnterActivity>
-                </CardActions>
             </Item>
         </div>
     );

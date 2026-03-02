@@ -34,16 +34,20 @@
 
 
 import React from 'react';
+import Navbar from "../components/HomePage_Navbar";
 // import AboutBackgroundImage from "../assets/undraw_moonlight_-5-ksn.svg";
 import AboutBackgroundImage from "../assets/貓頭鷹about.png";
 
 export default function About() {
   return (
+     <div>
+      <Navbar />
+      
     <div className="about-section-container" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
         <div className="about-section-image-container">
           <img src={AboutBackgroundImage} alt="" className="about-img"/>
         </div>
-        <div className="about-section-text-container" style={{ flex: 1.3, maxWidth: "820px", width: "100%" }}>
+        <div className="about-section-text-container" style={{ flex: 1.3, maxWidth: "1200px", width: "100%" }}>
             {/* <p className="primary-subheading">about us</p> */}
             <h1 className="primary-heading" style={{ maxWidth: "780px" }}>
                 CAWS—Collaborative Argument Writing System (AI 合作論證寫作系統)
@@ -58,6 +62,7 @@ export default function About() {
               </button> */}
             </div>
         </div>
+    </div>
     </div>
   )
 }

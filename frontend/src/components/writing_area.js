@@ -38497,6 +38497,8 @@ const buttonSx = {
   width: '140px',
   height: '44px',
   minWidth: '140px',
+  fontSize: '18px',
+  fontWeight: 700,
   backgroundColor: '#CC95654D',
   color: '#000000',
   '&:hover': {

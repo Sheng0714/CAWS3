@@ -311,11 +311,9 @@
 // }
 
 import React, { useState } from 'react';
-import { Button } from "@mui/material";
 import { useNavigate } from 'react-router-dom';
 import { useMediaQuery, Drawer, List, Divider, ListItem, ListItemButton, ListItemIcon, ListItemText } from "@mui/material";
 import Logo from "../assets/LOGONEW.png";
-import Pencil from "../assets/Pencil.png";
 import { HiOutlineBars3 } from 'react-icons/hi2';
 import HomeIcon from "@mui/icons-material/Home";
 import InfoIcon from "@mui/icons-material/Info";
@@ -358,9 +356,9 @@ export default function Navbar() {
     padding: isMobile ? '0.5rem 1rem' : isTablet ? '0.75rem 1.5rem' : '1rem 2rem',
     backgroundColor: '#FFFFFF',
     minHeight: isTablet ? '80px' : '120px',
-    margin: '0 1.5rem',
+    margin: '0 0rem',
     width: '100%',
-    maxWidth: '1900px',
+    // maxWidth: '1900px',
     fontFamily: '"Reem Kufi", sans-serif',
     zIndex: 1000,
   };
@@ -410,23 +408,6 @@ export default function Navbar() {
     color: '#333',
   };
 
-  const bottomRowStyle = {
-    display: isTablet ? 'none' : 'flex',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: '1rem',
-    marginTop: '1.5rem',
-    minHeight: '30px',
-  };
-
-  const pencilStyle = {
-    width: '65%',
-    maxWidth: '80vw',
-    height: '20px',
-    objectFit: 'contain',
-    marginRight: 'auto',
-  };
-
   const linksContainerStyle = {
     display: 'flex',
     gap: '1rem',
@@ -466,34 +447,28 @@ export default function Navbar() {
         <div style={hamburgerContainerStyle}>
           <HiOutlineBars3 style={menuIconStyle} onClick={() => setOpenMenu(true)} />
         </div>
+        {!isTablet && (
+          <div style={linksContainerStyle}>
+            <a href='/About_student' style={linkStyle}>ABOUT</a>
+            <a href='/home' style={linkStyle}>HOME</a>
+            <a href='/manual' style={linkStyle}>MANUAL</a>
+            <a href='/' style={linkStyle}>LOGOUT</a>
+          </div>
+        )}
       </div>
 
       {/* 下層：鉛筆線 + 按鈕區域 */}
-      <div style={bottomRowStyle}>
-        <img src={Pencil} alt="Pencil Icon" style={pencilStyle} />
-        <div style={linksContainerStyle}>
-          <a href='/About_student' style={linkStyle}>About</a>
-          <a href='/kf' style={linkStyle}>Home</a>
-          <a href='/manual' style={linkStyle}>Manual</a>
-          <a href='/' style={linkStyle}>Logout</a>
-          {/* <Button
-            variant="contained"
-            color="primary"
-            onClick={() => window.open('https://kf6.nccu.edu.tw/', '_blank')}
-          >
-            KF
-          </Button> */}
-          {/* <Button
-            variant="contained"
-            color="secondary"
-            onClick={handleWriteArea}
-          >
-            Writing Area
-          </Button> */}
-        </div>
-      </div>
+
 
       {/* Drawer (平板/手機顯示) */}
+      <div
+        style={{
+          borderBottom: '1px solid #e5e7eb',
+          marginTop: '1rem',
+          marginLeft: isMobile ? '-1rem' : isTablet ? '-1.5rem' : '-2rem',
+          marginRight: isMobile ? '-1rem' : isTablet ? '-1.5rem' : '-2rem',
+        }}
+      />
       <Drawer
         open={openMenu}
         onClose={() => setOpenMenu(false)}

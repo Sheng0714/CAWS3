@@ -39,7 +39,7 @@ img {
 .about-img {
   max-width: 100%;
   height: auto;
-  margin-top: 150px;
+  /* margin-top: 150px; */
 }
 
 .App {
@@ -496,7 +496,7 @@ span {
 }
 
 .about-section-container {
-  margin: 15rem 5rem;
+  margin: 1rem 5rem;
   position: relative;
   display: flex;
   align-items: center;

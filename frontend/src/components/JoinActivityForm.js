@@ -87,14 +87,14 @@ export const JoinActivityForm = ({ callback_setActivities }) => {
       <div>
         <>  
             <div onClick={handleClickOpen}>
-                Add Topic
+                JOIN TOPIC
             </div>
         </>
         <Dialog open={open} onClose={handleClose}>
             <div>
               <img className='modal-image' src={joinActivityImg} />
             </div>
-            <DialogTitle>Add Topic</DialogTitle>
+            <DialogTitle>JOIN TOPIC</DialogTitle>
             <DialogContent>
                 <TextField
                     autoFocus

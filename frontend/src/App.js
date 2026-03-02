@@ -45,7 +45,8 @@ export default function App() {
     <ModeProvider>
       <Router className="App">
           <Routes>
-              <Route path='/' element={[<Home/>, <About/>, <Footer/>]}></Route>
+              {/* <Route path='/' element={[<Home/>, <About/>, <Footer/>]}></Route> */}
+              <Route path='/' element={[<Home/>]}></Route>
               <Route path='/about' element={<About/>}></Route>
               <Route path='/home' element={<RequireAuth loginPath='/'><Index/></RequireAuth>}></Route>
               <Route path='/teacher/home' element={<RequireAuth loginPath='/'><IndexOfTeacher/></RequireAuth>}></Route>
@@ -70,8 +71,7 @@ export default function App() {
               <Route path='/manual' element={<Manual/>}></Route>
               <Route path='/studentfuntion' element={<RequireAuth loginPath='/'><Studentfuntion/></RequireAuth>}></Route>
               <Route path='/Chatbot' element={<RequireAuth loginPath='/'><Chatbot/></RequireAuth>}></Route>
-              <Route path='/Chatbotlogin' element={<RequireAuth loginPath='/'><Chatbotlogin/></RequireAuth>}></Route>
-              
+              <Route path='/Chatbotlogin' element={<RequireAuth loginPath='/'><Chatbotlogin/></RequireAuth>}></Route>      
               <Route path='/Newchat' element={<RequireAuth loginPath='/'><Newchat/></RequireAuth>}></Route>
               <Route path='/Chathistory' element={<RequireAuth loginPath='/'><Chathistory/></RequireAuth>}></Route>
               <Route path='/freebackstudent' element={<RequireAuth loginPath='/'><Freebackstudent/></RequireAuth>}></Route>

@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar_Student";
+import backIcon from "../assets/back.png";
 
 import number1 from "../assets/數字1.png";
 import number2 from "../assets/數字2.png";
@@ -59,7 +60,8 @@ export default function Studentfuntion() {
 
   const handleEnterClick = (id) => {
     if (id === 1) {
-      navigate("/kfweb");
+      // navigate("https://kf6.nccu.edu.tw/");
+       window.open("https://kf6.nccu.edu.tw/", "_blank", "noopener,noreferrer");
       return;
     }
     if (id === 2) {
@@ -94,12 +96,20 @@ export default function Studentfuntion() {
             marginBottom: "32px",
           }}
         >
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            <img src={backIcon} alt="Back" width={25} height={25} />
+          </button>
+
           <img
             src={cawsOwl}
             alt="CAWS owl"
             style={{
-              width: "130px",
-              height: "130px",
+              width: "170px",
+              height: "170px",
               objectFit: "contain",
             }}
           />
@@ -110,7 +120,9 @@ export default function Studentfuntion() {
               border: "1px solid #e2e8f0",
               borderRadius: "16px",
               padding: "16px 20px",
-              maxWidth: "520px",
+              width: "900px",
+              maxWidth: "100%",
+              // margin: "0 auto",
               boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
               color: "#1e293b",
               fontSize: "25px",
@@ -118,18 +130,18 @@ export default function Studentfuntion() {
               textAlign: "left",
             }}
           >
-            <p style={{ margin: 0 }}>Hi! I'm your CAWS Bot.</p>
-            <p style={{ margin: 0 }}>These are the <strong>4</strong> main functions of CAWS.</p>
-            <p style={{ margin: 0 }}>Please select one of the followings.</p>
+            <p style={{ margin: 0, fontWeight: 700 }}>Hi! I'm your CAWS Bot.</p>
+            <p style={{ margin: 0, fontWeight: 700 }}>These are the <strong><span style={{ fontSize: "36px" }}>4</span></strong> main functions of CAWS.Please select one of the followings.
+</p>
+            
           </div>
         </div>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gridTemplateColumns: "repeat(4, 1fr)",
             gap: "24px",
-            justifyItems: "center",
           }}
         >
           {cardData.map((card) => (
@@ -138,14 +150,13 @@ export default function Studentfuntion() {
               style={{
                 position: "relative",
                 width: "100%",
-                maxWidth: "270px",
                 minHeight: "380px",
                 background: "#ffffff",
                 borderRadius: "20px",
                 border: "1px solid #dbe3ef",
                 boxShadow: "0 10px 25px rgba(30, 41, 59, 0.08)",
                 padding: "20px 18px 24px",
-                textAlign: "center",
+                textAlign: "left",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
@@ -179,30 +190,43 @@ export default function Studentfuntion() {
               <h2
                 style={{
                   margin: "0 0 10px",
-                  padding: "20px 20px",
+                  padding: "20px 0",
                   fontSize: "24px",
+                  lineHeight: 1.3,
+                  height: "112px",
                   color: "#0f172a",
+                  textAlign: "center",
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
                 {card.title}
               </h2>
 
-              {card.description.map((line) => (
-                <p
-                  key={line}
-                  style={{
-                    margin: "2px auto",
-                    fontSize: "16px",
-                    lineHeight: 1.6,
-                    color: "#334155",
-                    textAlign: "left",
-                    width: "fit-content",
-                    maxWidth: "100%",
-                  }}
-                >
-                  {line}
-                </p>
-              ))}
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: "300px",
+                }}
+              >
+                {card.description.map((line) => (
+                  <p
+                    key={line}
+                    style={{
+                      margin: "2px 0",
+                      fontSize: "16px",
+                      lineHeight: 1.6,
+                      color: "#334155",
+                      textAlign: "center",
+                      width: "100%",
+                    }}
+                  >
+                    {line}
+                  </p>
+                ))}
+              </div>
 
               <button
                 type="button"
@@ -220,38 +244,16 @@ export default function Studentfuntion() {
                   cursor: "pointer",
                 }}
               >
-                Enter
+                ENTER
               </button>
             </div>
           ))}
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginTop: "28px",
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            style={{
-              width: "140px",
-              height: "44px",
-              background: "rgba(204, 149, 101, 0.3)",
-              border: "1.5px solid #000000",
-              borderRadius: "10px",
-              fontSize: "18px",
-              fontWeight: 700,
-              color: "#111111",
-              cursor: "pointer",
-            }}
-          >
-            Back
-          </button>
-        </div>
       </div>
     </div>
   );
 }
+
+
+

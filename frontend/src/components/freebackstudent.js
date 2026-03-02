@@ -94,7 +94,7 @@ const WritingArea = () => {
                 minRows={10}
                 value={editorContent}
                 onChange={(e) => setEditorContent(e.target.value)}
-                placeholder="請在這裡撰寫內容..."
+                placeholder=""
                 sx={{
                   height: '100%',
                   width: '100%',
@@ -124,6 +124,7 @@ const WritingArea = () => {
                   rows={4}
                   fullWidth
                   value={teacherFeedback}
+                  InputProps={{ readOnly: true }}
                   onChange={(e) => setTeacherFeedback(e.target.value)}
                 />
               </Box>
@@ -143,6 +144,7 @@ const WritingArea = () => {
                     <TextField
                       size="small"
                       value={claimsCount}
+                      InputProps={{ readOnly: true }}
                       onChange={(e) => setClaimsCount(e.target.value)}
                       sx={{ width: '80px', ...blackBorderFieldSx }}
                     />
@@ -150,6 +152,7 @@ const WritingArea = () => {
                       size="small"
                       fullWidth
                       value={claimsText}
+                      InputProps={{ readOnly: true }}
                       onChange={(e) => setClaimsText(e.target.value)}
                       sx={blackBorderFieldSx}
                     />
@@ -160,6 +163,7 @@ const WritingArea = () => {
                     <TextField
                       size="small"
                       value={groundsCount}
+                      InputProps={{ readOnly: true }}
                       onChange={(e) => setGroundsCount(e.target.value)}
                       sx={{ width: '80px', ...blackBorderFieldSx }}
                     />
@@ -167,6 +171,7 @@ const WritingArea = () => {
                       size="small"
                       fullWidth
                       value={groundsText}
+                      InputProps={{ readOnly: true }}
                       onChange={(e) => setGroundsText(e.target.value)}
                       sx={blackBorderFieldSx}
                     />
@@ -177,6 +182,7 @@ const WritingArea = () => {
                     <TextField
                       size="small"
                       value={rebuttalsCount}
+                      InputProps={{ readOnly: true }}
                       onChange={(e) => setRebuttalsCount(e.target.value)}
                       sx={{ width: '80px', ...blackBorderFieldSx }}
                     />
@@ -184,6 +190,7 @@ const WritingArea = () => {
                       size="small"
                       fullWidth
                       value={rebuttalsText}
+                      InputProps={{ readOnly: true }}
                       onChange={(e) => setRebuttalsText(e.target.value)}
                       sx={blackBorderFieldSx}
                     />
@@ -192,7 +199,12 @@ const WritingArea = () => {
 
                 <Box sx={{ width: '140px', display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <Box sx={{ fontWeight: 'bold' }}>Score</Box>
-                  <TextField size="small" value={score} onChange={(e) => setScore(e.target.value)} />
+                  <TextField
+                    size="small"
+                    value={score}
+                    InputProps={{ readOnly: true }}
+                    onChange={(e) => setScore(e.target.value)}
+                  />
                   <Button
                     variant="contained"
                     onClick={() => navigate(-1)}
@@ -221,3 +233,5 @@ const WritingArea = () => {
 };
 
 export default WritingArea;
+
+

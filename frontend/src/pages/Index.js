@@ -1,142 +1,23 @@
-// import config from '../config.json';
-// import axios from 'axios';
-// import React, { useState, useEffect } from 'react';
-// import IndexPage_Navbar from '../components/IndexPage_Navbar';
-// import {
-//   Grid,
-//   Select,
-//   InputLabel,
-//   MenuItem,
-//   FormControl,
-//   Box,
-//   useMediaQuery,
-//   useTheme,
-// } from '@mui/material';
-// import io from 'socket.io-client';
-// import ActivityCard from '../components/ActivityCard';
-// import url from '../url.json';
-
-
-
-
-// export default function Index() {
-//   const [all, setAll] = useState('');
-//   const [activities, setActivities] = useState([]);
-//   const [ws, setWs] = useState(null);
-//   const theme = useTheme();
-//   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-//   const handleChange = (event) => {
-//     setAll(event.target.value);
-//   };
-
-//   const connectWebSocket = () => {
-//     setWs(io(url.backendHost));
-//   };
-
-//   useEffect(() => {
-//     const getActivities = async () => {
-//       try {
-//         const fetchData = await axios.get(`${url.backendHost + config[4].myJoinedActivityList}/${localStorage.getItem('userId')}`);
-//         setActivities(fetchData.data);
-//         console.log("fetchData: ", fetchData.data)
-//       } catch (err) {
-//         // console.log(err);
-//       }
-//     };
-//     getActivities();
-
-//     if (ws) {
-//       initWebSocket();
-//     }
-//   }, [ws]);
-
-//   const initWebSocket = () => {
-//     ws.on('connect', () => {
-//       // console.log(ws.id);
-//     });
-
-//     ws.on('event02', (arg, callback) => {
-//       // console.log(arg);
-//       callback({
-//         status: 'event02 ok',
-//       });
-//     });
-//   };
-
-//   return (
-//     <div className="home-container" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
-//       <IndexPage_Navbar callback_setActivities={setActivities}/>
-//       <h2>Topic List</h2>
-//       {/* <Box sx={{ maxWidth: 120 }} className="activity-status">
-//         <FormControl fullWidth>
-//           <InputLabel id="demo-simple-select-label">狀態</InputLabel>
-//           <Select
-//             labelId="demo-simple-select-label"
-//             id="demo-simple-select"
-//             value={all}
-//             label="狀態"
-//             onChange={handleChange}
-//           >
-//             <MenuItem value={10}>全部</MenuItem>
-//             <MenuItem value={20}>已完成</MenuItem>
-//             <MenuItem value={30}>進行中</MenuItem>
-//             <MenuItem value={30}>未開始</MenuItem>
-//           </Select>
-//         </FormControl>
-//       </Box> */}
-//       <Grid
-//         container
-//         direction="row"
-//         justifyContent="center"
-//         alignItems="stretch"
-//         spacing={3}
-//         style={{ paddingRight: '120px', paddingLeft: '120px' }}
-//       >
-//         {activities.map((activity) => (
-//           <Grid item xs={8} sm={isMobile ? 8 : 4} key={activity.id}>
-//             <ActivityCard activity={activity} />
-//           </Grid>
-//         ))}
-//       </Grid>
-//     </div>
-//   );
-// }
-
-
-
 import config from '../config.json';
 import axios from 'axios';
-import React, { useState, useEffect } from 'react';
-import IndexPage_Navbar from '../components/IndexPage_Navbar';
-import {
-  Grid,
-  Select,
-  InputLabel,
-  MenuItem,
-  FormControl,
-  Box,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+import React, { useState, useEffect, useRef } from 'react';
+// import IndexPage_Navbar from '../components/IndexPage_Navbar';
+import IndexPage_Navbar from '../components/Navbar_Student';
+import { JoinActivityForm } from '../components/JoinActivityForm';
+import { Box, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import io from 'socket.io-client';
 import ActivityCard from '../components/ActivityCard';
 import url from '../url.json';
 
-
-
-
 export default function Index() {
-  const [all, setAll] = useState('');
   const [activities, setActivities] = useState([]);
   const [ws, setWs] = useState(null);
   const userName = localStorage.getItem('name') || 'User';
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-  const handleChange = (event) => {
-    setAll(event.target.value);
-  };
+  const inProgressRowRef = useRef(null);
+  const completedRowRef = useRef(null);
 
   const connectWebSocket = () => {
     setWs(io(url.backendHost));
@@ -145,9 +26,11 @@ export default function Index() {
   useEffect(() => {
     const getActivities = async () => {
       try {
-        const fetchData = await axios.get(`${url.backendHost + config[4].myJoinedActivityList}/${localStorage.getItem('userId')}`);
+        const fetchData = await axios.get(
+          `${url.backendHost + config[4].myJoinedActivityList}/${localStorage.getItem('userId')}`
+        );
         setActivities(fetchData.data);
-        console.log("fetchData: ", fetchData.data)
+        console.log('fetchData: ', fetchData.data);
       } catch (err) {
         // console.log(err);
       }
@@ -185,57 +68,86 @@ export default function Index() {
   const inProgressActivities = activities.filter((activity) => !isCompletedActivity(activity));
   const completedActivities = activities.filter((activity) => isCompletedActivity(activity));
 
+  const scrollRow = (rowRef, direction) => {
+    if (!rowRef.current) return;
+    const amount = isMobile ? 240 : 380;
+    rowRef.current.scrollBy({
+      left: direction === 'right' ? amount : -amount,
+      behavior: 'smooth',
+    });
+  };
+
   return (
     <div className="home-container" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
-      <IndexPage_Navbar callback_setActivities={setActivities}/>
-      <h1 style={{ textAlign: 'left', paddingLeft: '120px' }}>{`Welcome back ${userName}!`}</h1>
-      {/* <Box sx={{ maxWidth: 120 }} className="activity-status">
-        <FormControl fullWidth>
-          <InputLabel id="demo-simple-select-label">狀態</InputLabel>
-          <Select
-            labelId="demo-simple-select-label"
-            id="demo-simple-select"
-            value={all}
-            label="狀態"
-            onChange={handleChange}
-          >
-            <MenuItem value={10}>全部</MenuItem>
-            <MenuItem value={20}>已完成</MenuItem>
-            <MenuItem value={30}>進行中</MenuItem>
-            <MenuItem value={30}>未開始</MenuItem>
-          </Select>
-        </FormControl>
-      </Box> */}
+      <IndexPage_Navbar callback_setActivities={setActivities} showJoinActivity={false} />
+      <Box
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingLeft: '120px',
+          paddingRight: '120px',
+        }}
+      >
+        <h1 style={{ textAlign: 'left' }}>{`Welcome back ${userName}!`}</h1>
+        <button className="join-activity-button">
+          <JoinActivityForm callback_setActivities={setActivities} />
+        </button>
+      </Box>
+
       <h2 style={{ textAlign: 'left', paddingLeft: '120px' }}>In Progress</h2>
-      <Grid
-        container
-        direction="row"
-        justifyContent="center"
-        alignItems="stretch"
-        spacing={3}
-        style={{ paddingRight: '120px', paddingLeft: '120px' }}
-      >
+      <Box style={{ display: 'flex', alignItems: 'center', paddingRight: '120px', paddingLeft: '120px' }}>
+        <IconButton aria-label="scroll left" onClick={() => scrollRow(inProgressRowRef, 'left')}>
+          <ChevronLeft />
+        </IconButton>
+        <Box
+          ref={inProgressRowRef}
+          style={{
+            display: 'flex',
+            gap: '24px',
+            overflowX: 'auto',
+            scrollBehavior: 'smooth',
+            flex: 1,
+            paddingBottom: '8px',
+          }}
+        >
         {inProgressActivities.map((activity) => (
-          <Grid item xs={8} sm={isMobile ? 8 : 4} key={activity.id}>
+          <Box key={activity.id} style={{ flex: '0 0 auto', width: isMobile ? '85%' : '360px' }}>
             <ActivityCard activity={activity} status="in-progress" />
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+        </Box>
+        <IconButton aria-label="scroll right" onClick={() => scrollRow(inProgressRowRef, 'right')}>
+          <ChevronRight />
+        </IconButton>
+      </Box>
+
       <h2 style={{ textAlign: 'left', paddingLeft: '120px', marginTop: '24px' }}>Completed</h2>
-      <Grid
-        container
-        direction="row"
-        justifyContent="center"
-        alignItems="stretch"
-        spacing={3}
-        style={{ paddingRight: '120px', paddingLeft: '120px' }}
-      >
+      <Box style={{ display: 'flex', alignItems: 'center', paddingRight: '120px', paddingLeft: '120px' }}>
+        <IconButton aria-label="scroll left" onClick={() => scrollRow(completedRowRef, 'left')}>
+          <ChevronLeft />
+        </IconButton>
+        <Box
+          ref={completedRowRef}
+          style={{
+            display: 'flex',
+            gap: '24px',
+            overflowX: 'auto',
+            scrollBehavior: 'smooth',
+            flex: 1,
+            paddingBottom: '8px',
+          }}
+        >
         {completedActivities.map((activity) => (
-          <Grid item xs={8} sm={isMobile ? 8 : 4} key={activity.id}>
+          <Box key={activity.id} style={{ flex: '0 0 auto', width: isMobile ? '85%' : '360px' }}>
             <ActivityCard activity={activity} status="completed" />
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+        </Box>
+        <IconButton aria-label="scroll right" onClick={() => scrollRow(completedRowRef, 'right')}>
+          <ChevronRight />
+        </IconButton>
+      </Box>
     </div>
   );
 }

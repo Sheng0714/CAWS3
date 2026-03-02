@@ -49,7 +49,7 @@ function DropdownItem({ img = '', text = '', onClick = null }) {
 }
 
 
-export default function IndexPage_Navbar({callback_setActivities}) {
+export default function IndexPage_Navbar({callback_setActivities, showJoinActivity = true}) {
     const singOut = useSignOut();
     const navigate = useNavigate();
 
@@ -103,7 +103,7 @@ export default function IndexPage_Navbar({callback_setActivities}) {
 
     return (
       <>
-        <nav ref={menuRef}>
+      <nav ref={menuRef}>
             <div className='nav-logo-container'>
                 <img alt='' 
                 src={Logo} 
@@ -117,9 +117,11 @@ export default function IndexPage_Navbar({callback_setActivities}) {
             </div>
             <div className='nav-buttons'>
                 {/* <button className='common-button' onClick={() => navigate("/teacher/home")}>創建活動</button> */}
-                <button className='join-activity-button'>
-                  <JoinActivityForm callback_setActivities={callback_setActivities}/>
-                </button>
+                {showJoinActivity && (
+                  <button className='join-activity-button'>
+                    <JoinActivityForm callback_setActivities={callback_setActivities}/>
+                  </button>
+                )}
                 <div className="menu-trigger" onClick={() => { setOpen(!open) }}>
                     <Avatar {...stringAvatar(name)} />
                 </div>
@@ -136,6 +138,7 @@ export default function IndexPage_Navbar({callback_setActivities}) {
                 <h3><button className='register-button' onClick={logout}>logout</button></h3>
             </div>
       </nav>
+      <div style={{ borderBottom: '1px solid #e5e7eb', width: '100%' }} />
       <EditProfileModal open={isEditProfileOpen} onClose={handleCloseEditProfile} />
       </>
     )
