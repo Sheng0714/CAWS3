@@ -211,7 +211,10 @@ const WritingArea = () => {
                     sx={{
                       width: '30%',
                       minWidth: '90px',
+                      alignSelf: 'center',
                       color: '#000',
+                      fontWeight: 'bold',
+                      border: '1px solid #000',
                       backgroundColor: 'rgba(204, 149, 101, 0.3)',
                       boxShadow: 'none',
                       '&:hover': {

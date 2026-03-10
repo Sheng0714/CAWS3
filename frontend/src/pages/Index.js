@@ -90,7 +90,7 @@ export default function Index() {
         }}
       >
         <h1 style={{ textAlign: 'left' }}>{`Welcome back ${userName}!`}</h1>
-        <button className="join-activity-button">
+         <button className="join-activity-button">
           <JoinActivityForm callback_setActivities={setActivities} />
         </button>
       </Box>

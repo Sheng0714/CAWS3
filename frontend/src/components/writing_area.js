@@ -38490,8 +38490,15 @@
 
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Button } from '@mui/material';
+import { Box, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import axios from 'axios';
 import Navbar from './Navbar_Student';
+import HamburgerLineIcon from '../assets/橫線.png';
+import LeftArrowIcon from '../assets/左箭頭.png';
+import KFSummaryIcon from '../assets/KFSummary.png';
+import WritingOutlineIcon from '../assets/WritingOutline.png';
+import NotesAreaIcon from '../assets/NotesArea.png';
+
 
 const buttonSx = {
   width: '140px',
@@ -38499,10 +38506,14 @@ const buttonSx = {
   minWidth: '140px',
   fontSize: '18px',
   fontWeight: 700,
-  backgroundColor: '#CC95654D',
+  backgroundColor: '#FFFFFF',
   color: '#000000',
+  border: '2px solid #000000',
+  borderRadius: '999px',
+  boxShadow: 'none',
   '&:hover': {
-    backgroundColor: '#CC95654D',
+    backgroundColor: '#ece8e5',
+    boxShadow: 'none',
   },
 };
 
@@ -38540,22 +38551,143 @@ const ensureQuillLoaded = () => {
   });
 };
 
+const notionApiBases = [
+  process.env.REACT_APP_NOTION_API_BASE_URL,
+  '/api/notion',
+  '/notion-api',
+  'http://localhost:4000',
+  'http://140.115.126.27:4000',
+].filter(Boolean);
+
+const upsertEssayToNotion = async (payload) => {
+  const token = localStorage.getItem('jwtToken');
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  let lastError = null;
+
+  for (const base of notionApiBases) {
+    const normalizedBase = base.replace(/\/+$/, '');
+    const url = `${normalizedBase}/api/update-note`;
+
+    try {
+      await axios.patch(url, payload, {
+        timeout: 15000,
+        headers,
+      });
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('Notion request failed');
+};
+
+const fetchEssayFromNotion = async ({ studentName, className, theme }) => {
+  const token = localStorage.getItem('jwtToken');
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  let lastError = null;
+
+  for (const base of notionApiBases) {
+    const normalizedBase = base.replace(/\/+$/, '');
+    const url = `${normalizedBase}/api/get-essay/${encodeURIComponent(studentName)}`;
+
+    try {
+      const response = await axios.get(url, {
+        timeout: 15000,
+        headers,
+        params: { className, theme },
+      });
+      return response?.data?.data || null;
+    } catch (error) {
+      const isBackendJson =
+        error?.response &&
+        typeof error.response.data === 'object' &&
+        error.response.data !== null &&
+        Object.prototype.hasOwnProperty.call(error.response.data, 'success');
+      if (error?.response?.status === 404 && isBackendJson) {
+        const notFoundError = new Error('NOT_FOUND');
+        notFoundError.code = 'NOT_FOUND';
+        throw notFoundError;
+      }
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('Fetch essay from Notion failed');
+};
+
+const buildEssayStorageKey = (studentName, className, theme) =>
+  `essayData::${encodeURIComponent(studentName || '')}::${encodeURIComponent(className || '')}::${encodeURIComponent(theme || '')}`;
+const buildSubmitLockKey = (studentName, className, theme) =>
+  `submitLocked::${encodeURIComponent(studentName || '')}::${encodeURIComponent(className || '')}::${encodeURIComponent(theme || '')}`;
+
 const WritingArea = () => {
   const [editorContent, setEditorContent] = useState('');
+  const [studentName, setStudentName] = useState('');
   const [activityTitle, setActivityTitle] = useState('');
   const [groupName, setGroupName] = useState('');
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [openConfirmSubmitDialog, setOpenConfirmSubmitDialog] = useState(false);
 
   const quillRootRef = useRef(null);
   const quillInstanceRef = useRef(null);
 
   useEffect(() => {
-    const savedEssay = localStorage.getItem('essayData') || localStorage.getItem('editorData') || '';
-    const savedActivityTitle = localStorage.getItem('activityTitle') || '';
-    const savedGroupName = localStorage.getItem('groupName') || '';
+    let mounted = true;
+    const loadInitialData = async () => {
+      const savedStudentName = localStorage.getItem('name') || '';
+      const savedActivityTitle = localStorage.getItem('activityTitle') || '';
+      const savedGroupName = localStorage.getItem('groupName') || '';
+      const scopedEssayKey = buildEssayStorageKey(savedStudentName, savedActivityTitle, savedGroupName);
+      const scopedSavedEssay = localStorage.getItem(scopedEssayKey) || '';
+      const scopedSubmitLockKey = buildSubmitLockKey(savedStudentName, savedActivityTitle, savedGroupName);
+      const scopedSubmitLocked = localStorage.getItem(scopedSubmitLockKey) === 'true';
 
-    setEditorContent(savedEssay);
-    setActivityTitle(savedActivityTitle);
-    setGroupName(savedGroupName);
+      if (!mounted) return;
+      setStudentName(savedStudentName);
+      setActivityTitle(savedActivityTitle);
+      setGroupName(savedGroupName);
+      setEditorContent(scopedSavedEssay);
+      setIsSubmitted(scopedSubmitLocked);
+
+      if (!savedStudentName || !savedActivityTitle || !savedGroupName) {
+        setEditorContent('');
+        return;
+      }
+
+      try {
+        const notionData = await fetchEssayFromNotion({
+          studentName: savedStudentName,
+          className: savedActivityTitle,
+          theme: savedGroupName,
+        });
+
+        const fetchedEssay = notionData?.essayContent || '';
+        if (!mounted) return;
+
+        setEditorContent(fetchedEssay);
+        localStorage.setItem(scopedEssayKey, fetchedEssay);
+        localStorage.setItem('essayData', fetchedEssay);
+        localStorage.setItem('editorData', fetchedEssay);
+      } catch (error) {
+        if (!mounted) return;
+        if (error?.code === 'NOT_FOUND' || error?.response?.status === 404) {
+          setEditorContent('');
+          localStorage.removeItem(scopedEssayKey);
+          localStorage.removeItem('essayData');
+          localStorage.removeItem('editorData');
+          return;
+        }
+        console.error('從 Notion 載入議論文失敗，改用該主題本機資料:', error);
+      }
+    };
+
+    loadInitialData();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -38601,16 +38733,97 @@ const WritingArea = () => {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const quill = quillInstanceRef.current;
+    if (!quill) return;
+    if (quill.root.innerHTML === (editorContent || '')) return;
+    quill.root.innerHTML = editorContent || '';
   }, [editorContent]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (isSubmitted) return;
+
+    const currentStudentName =
+      localStorage.getItem('name') ||
+      localStorage.getItem('username') ||
+      localStorage.getItem('userName') ||
+      '';
+    const className = activityTitle || localStorage.getItem('activityTitle') || '';
+    const theme = groupName || localStorage.getItem('groupName') || '';
+    const scopedEssayKey = buildEssayStorageKey(currentStudentName, className, theme);
+
+    localStorage.setItem(scopedEssayKey, editorContent);
+    localStorage.setItem('essayData', editorContent);
+    localStorage.setItem('editorData', editorContent);
+
+    if (!currentStudentName || !className || !theme) {
+      alert('已先儲存到本機，但缺少姓名、班級或主題，無法同步到 Notion。');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await upsertEssayToNotion({
+        studentName: currentStudentName,
+        className,
+        theme,
+        essayContent: editorContent,
+        noteContent: localStorage.getItem('noteData') || '',
+        kfAnalysisContent: localStorage.getItem('kfAnalysisData') || '',
+        outlineContent: localStorage.getItem('outlineData') || '',
+        chatHistory: (() => {
+          const raw = localStorage.getItem('chatHistory');
+          if (!raw) return [];
+          try {
+            return JSON.parse(raw);
+          } catch {
+            return [];
+          }
+        })(),
+      });
+      alert('Saved successfully!');
+    } catch (error) {
+      console.error('同步到 Notion 失敗:', error);
+      const errorMessage = error?.response?.data?.error || error?.message || '未知錯誤';
+      alert(`已先儲存到本機，但同步 Notion 失敗：${errorMessage}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (isSubmitted) return;
+
+    const currentStudentName =
+      localStorage.getItem('name') ||
+      localStorage.getItem('username') ||
+      localStorage.getItem('userName') ||
+      '';
+    const className = activityTitle || localStorage.getItem('activityTitle') || '';
+    const theme = groupName || localStorage.getItem('groupName') || '';
+    const scopedEssayKey = buildEssayStorageKey(currentStudentName, className, theme);
+
+    localStorage.setItem(scopedEssayKey, editorContent);
     localStorage.setItem('essayData', editorContent);
     localStorage.setItem('editorData', editorContent);
   };
 
-  const handleSubmit = () => {
-    localStorage.setItem('essayData', editorContent);
-    localStorage.setItem('editorData', editorContent);
+  const handleConfirmSubmit = () => {
+    const currentStudentName =
+      localStorage.getItem('name') ||
+      localStorage.getItem('username') ||
+      localStorage.getItem('userName') ||
+      '';
+    const className = activityTitle || localStorage.getItem('activityTitle') || '';
+    const theme = groupName || localStorage.getItem('groupName') || '';
+    const scopedSubmitLockKey = buildSubmitLockKey(currentStudentName, className, theme);
+
+    handleSubmit();
+    localStorage.setItem(scopedSubmitLockKey, 'true');
+    setIsSubmitted(true);
+    setOpenConfirmSubmitDialog(false);
   };
 
   return (
@@ -38619,95 +38832,179 @@ const WritingArea = () => {
       <Box
         sx={{
           minHeight: 'calc(100vh - 120px)',
+          height: 'calc(100vh - 120px)',
           display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          p: 2,
+          justifyContent: 'flex-start',
+          alignItems: 'stretch',
+          p: 0,
+          backgroundColor: '#ffffff',
         }}
       >
         <Box
           sx={{
             width: '100%',
-            maxWidth: '1000px',
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             gap: 0,
+            height: '100%',
           }}
         >
           <Box
             sx={{
-              width: '100%',
-              backgroundColor: '#ada695',
-              borderRadius: '8px 8px 0 0',
-              px: 2,
-              py: 1.5,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: 2,
-              flexWrap: 'nowrap',
-              whiteSpace: 'nowrap',
-              fontSize: '22px',
-              fontWeight: 600,
-              '& .class-topic-text': {
-                fontSize: '22px !important',
-                lineHeight: 1.2,
-              },
-            }}
-          >
-            <span className="class-topic-text">Class: {activityTitle || '-'}</span>
-            <span className="class-topic-text">|</span>
-            <span className="class-topic-text">Topic: {groupName || '-'}</span>
-          </Box>
-
-          <Box
-            sx={{
-              width: '100%',
-              border: '3px solid #000000',
-              borderTop: '0',
-              borderRadius: '0 0 8px 8px',
-              backgroundColor: '#ffffff',
+              width: isSidebarExpanded ? '300px' : '70px',
+              minWidth: isSidebarExpanded ? '300px' : '70px',
+              height: '100%',
+              backgroundColor: '#E0E0E0',
+              borderRadius: 0,
+              transition: 'width 0.2s ease',
+              p: 0,
               overflow: 'hidden',
-              '& .ql-toolbar.ql-snow': {
-                border: 'none',
-                borderBottom: '1px solid #ddd',
-              },
-              '& .ql-container.ql-snow': {
-                border: 'none',
-                minHeight: '500px',
-              },
-              '& .ql-editor': {
-                minHeight: '500px',
-                fontSize: '16px',
-              },
             }}
           >
-            <div ref={quillRootRef} />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, p: 0 }}>
+              <Button
+                variant="text"
+                onClick={() => setIsSidebarExpanded((prev) => !prev)}
+                sx={{
+                  minWidth: 0,
+                  width: '100%',
+                  p: 0.5,
+                  justifyContent: isSidebarExpanded ? 'flex-end' : 'center',
+                }}
+              >
+                <img
+                  src={isSidebarExpanded ? LeftArrowIcon : HamburgerLineIcon}
+                  alt="menu-toggle"
+                  style={{ width: '30px', height: '30px' }}
+                />
+              </Button>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: isSidebarExpanded ? 'flex-start' : 'center' }}>
+                  <img src={KFSummaryIcon} alt="KF Summary" style={{ width: '30px', height: '30px' }} />
+                  {isSidebarExpanded && <span style={{ fontSize: '16px' }}>KF Summary:</span>}
+                </Box>
+                {isSidebarExpanded && <Box sx={{ width: '300px', height: '150px', border: '1px solid #9e9e9e', backgroundColor: '#ffffff' }} />}
+              </Box>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: isSidebarExpanded ? 'flex-start' : 'center' }}>
+                  <img src={WritingOutlineIcon} alt="Writing Outline" style={{ width: '30px', height: '30px' }} />
+                  {isSidebarExpanded && <span style={{ fontSize: '16px' }}>Writing Outline:</span>}
+                </Box>
+                {isSidebarExpanded && <Box sx={{ width: '300px', height: '150px', border: '1px solid #9e9e9e', backgroundColor: '#ffffff' }} />}
+              </Box>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: isSidebarExpanded ? 'flex-start' : 'center' }}>
+                  <img src={NotesAreaIcon} alt="Notes Area" style={{ width: '30px', height: '30px' }} />
+                  {isSidebarExpanded && <span style={{ fontSize: '16px' }}>Notes Area:</span>}
+                </Box>
+                {isSidebarExpanded && <Box sx={{ width: '300px', height: '150px', border: '1px solid #9e9e9e', backgroundColor: '#ffffff' }} />}
+              </Box>
+            </Box>
           </Box>
 
           <Box
             sx={{
+              flex: 1,
               display: 'flex',
-              justifyContent: 'center',
+              flexDirection: 'column',
               alignItems: 'center',
-              gap: 2,
-              flexWrap: 'wrap',
-              mt: 2,
+              gap: 0,
+              p: 2,
             }}
           >
-            <Button variant="contained" onClick={() => window.history.back()} sx={buttonSx}>
-              Back
-            </Button>
-            <Button variant="contained" onClick={handleSave} sx={buttonSx}>
-              Save
-            </Button>
-            <Button variant="contained" onClick={handleSubmit} sx={buttonSx}>
-              Submit
-            </Button>
+            <Box
+              sx={{
+                width: '100%',
+                border: '2px solid #000000',
+                borderRadius: '8px',
+                backgroundColor: '#ffffff',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                '& .class-topic-text': {
+                  fontSize: '22px !important',
+                  lineHeight: 1.2,
+                },
+                '& .ql-toolbar.ql-snow': {
+                  border: 'none',
+                  borderTop: '1px solid #bdbdbd',
+                  borderBottom: '1px solid #ddd',
+                  backgroundColor: '#ffffff !important',
+                },
+                '& .ql-container.ql-snow': {
+                  border: 'none',
+                  minHeight: '500px',
+                  backgroundColor: '#ffffff !important',
+                },
+                '& .ql-editor': {
+                  minHeight: '500px',
+                  fontSize: '16px',
+                  backgroundColor: '#ffffff !important',
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  width: '100%',
+                  backgroundColor: '#ffffff',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  fontSize: '22px',
+                  fontWeight: 600,
+                }}
+              >
+                <Box sx={{ px: 2, pt: 1.5, pb: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  <span className="class-topic-text">學生: {studentName || '-'}</span>
+                  <span className="class-topic-text">班級: {activityTitle || '-'}</span>
+                  <span className="class-topic-text">主題: {groupName || '-'}</span>
+                </Box>
+              </Box>
+              <div ref={quillRootRef} style={{ backgroundColor: '#ffffff' }} />
+            </Box>
+
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 2,
+                flexWrap: 'wrap',
+                mt: 2,
+              }}
+            >
+              <Button variant="contained" onClick={() => window.history.back()} sx={buttonSx}>
+                Back
+              </Button>
+              <Button variant="contained" onClick={handleSave} sx={buttonSx} disabled={isSaving || isSubmitted}>
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+              <Button variant="contained" onClick={() => setOpenConfirmSubmitDialog(true)} sx={buttonSx} disabled={isSubmitted}>
+                Submit
+              </Button>
+            </Box>
           </Box>
         </Box>
       </Box>
+
+      <Dialog open={openConfirmSubmitDialog} onClose={() => setOpenConfirmSubmitDialog(false)}>
+        <DialogTitle>確認繳交</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            是否確定要繳交？繳交後無法重新繳交。
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenConfirmSubmitDialog(false)} color="primary">
+            取消
+          </Button>
+          <Button onClick={handleConfirmSubmit} color="primary" autoFocus>
+            確定繳交
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

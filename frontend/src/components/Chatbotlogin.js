@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "./Navbar_Student";
 import backIcon from "../assets/back.png";
 
@@ -9,6 +9,9 @@ import cawsOwl from "../assets/去背.png";
 
 export default function Studentfuntion() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const chatbotEntryMode =
+    location.state?.chatbotEntryMode || sessionStorage.getItem("chatbotEntryMode") || "unknown";
 
   const actionButtonStyle = {
     width: "228px",
@@ -48,7 +51,7 @@ export default function Studentfuntion() {
             onClick={() => navigate(-1)}
             style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
           >
-            <img src={backIcon} alt="Back" width={25} height={25} />
+            <img src={backIcon} alt="Back" width={35} height={35} />
           </button>
 
           <img
@@ -119,7 +122,7 @@ export default function Studentfuntion() {
               />
               <button
                 type="button"
-                onClick={() => navigate("/Newchat")}
+                onClick={() => navigate("/Newchat", { state: { chatbotEntryMode } })}
                 style={actionButtonStyle}
               >
                 Start New Chat

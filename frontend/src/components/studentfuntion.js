@@ -12,7 +12,7 @@ import feature1 from "../assets/學生功能1.png";
 import feature2 from "../assets/學生功能2.png";
 import feature3 from "../assets/學生功能3.png";
 import feature4 from "../assets/學生功能4.png";
-import cawsOwl from "../assets/去背.png";
+import cawsOwl from "../assets/揮手.gif";
 
 const cardData = [
   {
@@ -40,7 +40,7 @@ const cardData = [
     id: 3,
     numberImage: number3,
     featureImage: feature3,
-    title: "Argumentative Writing",
+    title: "Writing Area",
     description: [
       "Select this after discussing with the CAWS BOT.",
       "Start writing your argumentative essay.",
@@ -76,7 +76,7 @@ export default function Studentfuntion() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ece8e5" }}>
+    <div style={{ minHeight: "100vh" }}>
       <Navbar />
 
       <div
@@ -101,7 +101,7 @@ export default function Studentfuntion() {
             onClick={() => navigate(-1)}
             style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
           >
-            <img src={backIcon} alt="Back" width={25} height={25} />
+            <img src={backIcon} alt="Back" width={35} height={35} />
           </button>
 
           <img
@@ -131,7 +131,7 @@ export default function Studentfuntion() {
             }}
           >
             <p style={{ margin: 0, fontWeight: 700 }}>Hi! I'm your CAWS Bot.</p>
-            <p style={{ margin: 0, fontWeight: 700 }}>These are the <strong><span style={{ fontSize: "36px" }}>4</span></strong> main functions of CAWS.Please select one of the followings.
+            <p style={{ margin: 0, fontWeight: 700 }}>These are the <strong><span style={{ fontSize: "36px" }}>4</span></strong> main functions of CAWS. Please select one of the followings.
 </p>
             
           </div>
@@ -139,115 +139,123 @@ export default function Studentfuntion() {
 
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "24px",
+            background: "#ece8e5",
+            borderRadius: "24px",
+            padding: "24px",
           }}
         >
-          {cardData.map((card) => (
-            <div
-              key={card.id}
-              style={{
-                position: "relative",
-                width: "100%",
-                minHeight: "380px",
-                background: "#ffffff",
-                borderRadius: "20px",
-                border: "1px solid #dbe3ef",
-                boxShadow: "0 10px 25px rgba(30, 41, 59, 0.08)",
-                padding: "20px 18px 24px",
-                textAlign: "left",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <img
-                src={card.numberImage}
-                alt={`number-${card.id}`}
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  position: "absolute",
-                  top: "16px",
-                  left: "16px",
-                  objectFit: "contain",
-                }}
-              />
-
-              <img
-                src={card.featureImage}
-                alt={card.title}
-                style={{
-                  width: "142px",
-                  height: "142px",
-                  objectFit: "contain",
-                  marginTop: "34px",
-                  marginBottom: "18px",
-                }}
-              />
-
-              <h2
-                style={{
-                  margin: "0 0 10px",
-                  padding: "20px 0",
-                  fontSize: "24px",
-                  lineHeight: 1.3,
-                  height: "112px",
-                  color: "#0f172a",
-                  textAlign: "center",
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {card.title}
-              </h2>
-
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: "24px",
+            }}
+          >
+            {cardData.map((card) => (
               <div
+                key={card.id}
                 style={{
+                  position: "relative",
                   width: "100%",
-                  maxWidth: "300px",
+                  minHeight: "380px",
+                  background: "#ffffff",
+                  borderRadius: "20px",
+                  border: "1px solid #dbe3ef",
+                  boxShadow: "0 10px 25px rgba(30, 41, 59, 0.08)",
+                  padding: "20px 18px 24px",
+                  textAlign: "left",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
                 }}
               >
-                {card.description.map((line) => (
-                  <p
-                    key={line}
-                    style={{
-                      margin: "2px 0",
-                      fontSize: "16px",
-                      lineHeight: 1.6,
-                      color: "#334155",
-                      textAlign: "center",
-                      width: "100%",
-                    }}
-                  >
-                    {line}
-                  </p>
-                ))}
-              </div>
+                <img
+                  src={card.numberImage}
+                  alt={`number-${card.id}`}
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    position: "absolute",
+                    top: "16px",
+                    left: "16px",
+                    objectFit: "contain",
+                  }}
+                />
 
-              <button
-                type="button"
-                onClick={() => handleEnterClick(card.id)}
-                style={{
-                  marginTop: "auto",
-                  width: "140px",
-                  height: "44px",
-                  background: "rgba(204, 149, 101, 0.3)",
-                  border: "1.5px solid #000000",
-                  borderRadius: "10px",
-                  fontSize: "18px",
-                  fontWeight: 700,
-                  color: "#111111",
-                  cursor: "pointer",
-                }}
-              >
-                ENTER
-              </button>
-            </div>
-          ))}
+                <img
+                  src={card.featureImage}
+                  alt={card.title}
+                  style={{
+                    width: "142px",
+                    height: "142px",
+                    objectFit: "contain",
+                    marginTop: "34px",
+                    marginBottom: "18px",
+                  }}
+                />
+
+                <h2
+                  style={{
+                    margin: "0 0 10px",
+                    padding: "20px 0",
+                    fontSize: "24px",
+                    lineHeight: 1.3,
+                    height: "112px",
+                    color: "#0f172a",
+                    textAlign: "center",
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {card.title}
+                </h2>
+
+                <div
+                  style={{
+                    width: "100%",
+                    maxWidth: "300px",
+                  }}
+                >
+                  {card.description.map((line) => (
+                    <p
+                      key={line}
+                      style={{
+                        margin: "2px 0",
+                        fontSize: "16px",
+                        lineHeight: 1.6,
+                        color: "#334155",
+                        textAlign: "center",
+                        width: "100%",
+                      }}
+                    >
+                      {line}
+                    </p>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleEnterClick(card.id)}
+                  style={{
+                    marginTop: "auto",
+                    width: "140px",
+                    height: "44px",
+                    background: "rgba(204, 149, 101, 0.3)",
+                    border: "1.5px solid #000000",
+                    borderRadius: "10px",
+                    fontSize: "18px",
+                    fontWeight: 700,
+                    color: "#111111",
+                    cursor: "pointer",
+                  }}
+                >
+                  ENTER
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
       </div>

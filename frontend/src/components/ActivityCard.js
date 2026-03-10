@@ -319,8 +319,8 @@ export default function ActivityCard({ activity, status = 'in-progress' }) {
                     src={status === 'in-progress' ? hasNotificationIcon : noNotificationIcon}
                     alt={status === 'in-progress' ? '有通知' : '沒通知'}
                     style={{
-                        width: '30px',
-                        height: '30px',
+                        width: '35px',
+                        height: '35px',
                         position: 'absolute',
                         top: '12px',
                         right: '12px',

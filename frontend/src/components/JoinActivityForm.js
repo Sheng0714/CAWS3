@@ -2,12 +2,13 @@ import config from '../config.json';
 import axios from "axios";
 import React, { useState } from 'react'
 import { Button, TextField, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Link } from '@mui/material';
-import joinActivityImg from '../assets/undraw_join_re_w1lh.svg';
+import joinTopicIcon from '../assets/JoinTopic.png';
 import url from '../url.json';
 
 export const JoinActivityForm = ({ callback_setActivities }) => {
     const userId = localStorage.getItem('userId'); 
     const [open, setOpen] = React.useState(false);
+    const [isJoinCodeFocused, setIsJoinCodeFocused] = React.useState(false);
     const [data, setData] = useState({
         userId: userId,
         joinCode: ""
@@ -85,31 +86,87 @@ export const JoinActivityForm = ({ callback_setActivities }) => {
   
     return (
       <div>
-        <>  
-            <div onClick={handleClickOpen}>
-                JOIN TOPIC
-            </div>
+        <>
+            <button
+                type="button"
+                onClick={handleClickOpen}
+                style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    border: 'none',
+                    background: 'transparent',
+                    padding: 0,
+                    textAlign: 'center'
+                }}
+            >
+                <img
+                    src={joinTopicIcon}
+                    alt="Join Topic"
+                    style={{ width: '35px', height: '35px' }}
+                />
+                <span style={{ fontSize: '20px', fontWeight: 700, lineHeight: 1 }}>
+                    JOIN TOPIC
+                </span>
+            </button>
         </>
-        <Dialog open={open} onClose={handleClose}>
-            <div>
-              <img className='modal-image' src={joinActivityImg} />
-            </div>
-            <DialogTitle>JOIN TOPIC</DialogTitle>
-            <DialogContent>
+        <Dialog
+            open={open}
+            onClose={handleClose}
+            PaperProps={{
+                sx: {
+                    width: '400px',
+                    maxWidth: '92vw',
+                    minHeight: '300px',
+                    backgroundColor: '#fff2e7'
+                }
+            }}
+        >
+            <DialogTitle
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700
+                }}
+            >
+                <span style={{ fontSize: '24px', fontWeight: 700 }}>JOIN TOPIC</span>
+            </DialogTitle>
+            <DialogContent sx={{ textAlign: 'center' }}>
+                <DialogContentText sx={{ mb: 2, textAlign: 'center', color: '#000' }}>
+                    Please ask your teacher for the topic invitation code.
+                </DialogContentText>
                 <TextField
                     autoFocus
                     margin="dense"
                     id="title"
-                    label={"Please enter the invitation code"}
+                    label={isJoinCodeFocused ? "" : "Please enter the invitation code"}
                     type="text"
                     name='joinCode'
                     value={data.joinCode}
                     fullWidth
-                    variant="standard"
+                    variant="outlined"
+                    InputProps={{
+                        sx: {
+                            '& input': {
+                                textAlign: 'center'
+                            }
+                        }
+                    }}
+                    InputLabelProps={{
+                        sx: {
+                            width: '100%',
+                            textAlign: 'center'
+                        }
+                    }}
+                    onFocus={() => setIsJoinCodeFocused(true)}
+                    onBlur={() => setIsJoinCodeFocused(false)}
                     onChange={handleChange}
                 />
             </DialogContent>
-            <DialogActions>
+            <DialogActions sx={{ justifyContent: 'flex-end', pb: 2, px: 3 }}>
                 <Button type='submit' onClick={handleSubmit}>Join</Button>
             </DialogActions>
         </Dialog>

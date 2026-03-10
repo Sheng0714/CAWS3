@@ -174,9 +174,9 @@ nav {
   outline: none;
   border: none;
   border-style: solid;
-  border-color: rgba(204, 149, 101, 0.3);
-  border-radius: 5rem;
-  font-size: 1.1rem;
+  border-color: rgb(255, 255, 255);
+  border-radius: 1rem;
+  font-size: 20px;
   cursor: pointer;
   font-weight: 600;
   transition: 0.2s;
