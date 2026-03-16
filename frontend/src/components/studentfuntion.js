@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar_Student";
 import backIcon from "../assets/back.png";
@@ -55,10 +55,68 @@ const cardData = [
   },
 ];
 
+const buildSubmitLockKey = (studentName, className, theme) =>
+  `submitLocked::${encodeURIComponent(studentName || "")}::${encodeURIComponent(
+    className || ""
+  )}::${encodeURIComponent(theme || "")}`;
+
+const getScoringUnlocked = () => {
+  const studentName =
+    localStorage.getItem("name") ||
+    localStorage.getItem("username") ||
+    localStorage.getItem("userName") ||
+    "";
+  const className = localStorage.getItem("activityTitle") || "";
+  const theme = localStorage.getItem("groupName") || "";
+  if (!studentName || !className || !theme) return false;
+
+  const scopedSubmitLockKey = buildSubmitLockKey(studentName, className, theme);
+  return localStorage.getItem(scopedSubmitLockKey) === "true";
+};
+
+const getIsCompletedEntry = () =>
+  localStorage.getItem("isCompletedActivityEntry") === "true";
+
 export default function Studentfuntion() {
   const navigate = useNavigate();
+  const [isScoringUnlocked, setIsScoringUnlocked] = useState(getScoringUnlocked);
+  const [isCompletedEntry, setIsCompletedEntry] = useState(getIsCompletedEntry);
+  const [showScoringLockTooltip, setShowScoringLockTooltip] = useState(false);
+  const scoringLockedTooltip =
+    "Please submit your argumentative essay in the Writing Area first!!!";
+
+  const refreshScoringUnlockState = useCallback(() => {
+    setIsScoringUnlocked(getScoringUnlocked());
+  }, []);
+
+  const refreshCompletedEntryState = useCallback(() => {
+    setIsCompletedEntry(getIsCompletedEntry());
+  }, []);
+
+  const isCompletedLockedCard = useCallback(
+    (cardId) => isCompletedEntry && (cardId === 1 || cardId === 3),
+    [isCompletedEntry]
+  );
+
+  useEffect(() => {
+    refreshScoringUnlockState();
+    refreshCompletedEntryState();
+    window.addEventListener("focus", refreshScoringUnlockState);
+    window.addEventListener("focus", refreshCompletedEntryState);
+    window.addEventListener("storage", refreshScoringUnlockState);
+    window.addEventListener("storage", refreshCompletedEntryState);
+
+    return () => {
+      window.removeEventListener("focus", refreshScoringUnlockState);
+      window.removeEventListener("focus", refreshCompletedEntryState);
+      window.removeEventListener("storage", refreshScoringUnlockState);
+      window.removeEventListener("storage", refreshCompletedEntryState);
+    };
+  }, [refreshCompletedEntryState, refreshScoringUnlockState]);
 
   const handleEnterClick = (id) => {
+    if (isCompletedLockedCard(id)) return;
+
     if (id === 1) {
       // navigate("https://kf6.nccu.edu.tw/");
        window.open("https://kf6.nccu.edu.tw/", "_blank", "noopener,noreferrer");
@@ -83,7 +141,7 @@ export default function Studentfuntion() {
         style={{
           maxWidth: "1200px",
           margin: "0 auto",
-          padding: "32px 20px 56px",
+          padding: "0px 20px 40px",
         }}
       >
         <div
@@ -93,7 +151,7 @@ export default function Studentfuntion() {
             alignItems: "center",
             gap: "12px",
             flexWrap: "wrap",
-            marginBottom: "32px",
+            marginBottom: "20px",
           }}
         >
           <button
@@ -108,18 +166,18 @@ export default function Studentfuntion() {
             src={cawsOwl}
             alt="CAWS owl"
             style={{
-              width: "170px",
-              height: "170px",
+              width: "150px",
+              height: "150px",
               objectFit: "contain",
             }}
           />
 
           <div
             style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
+              background: "rgba(105, 83, 83, 0.1)",
+              border: "1.5px solid #000000",
               borderRadius: "16px",
-              padding: "16px 20px",
+              padding: "12px 20px",
               width: "900px",
               maxWidth: "100%",
               // margin: "0 auto",
@@ -139,7 +197,6 @@ export default function Studentfuntion() {
 
         <div
           style={{
-            background: "#ece8e5",
             borderRadius: "24px",
             padding: "24px",
           }}
@@ -147,22 +204,31 @@ export default function Studentfuntion() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: "24px",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: "16px",
+              alignItems: "stretch",
+              justifyItems: "center",
             }}
           >
-            {cardData.map((card) => (
+            {cardData.map((card) => {
+              const isScoringCard = card.id === 4;
+              const isScoringLocked = isScoringCard && !isScoringUnlocked;
+              const isCompletedLocked = isCompletedLockedCard(card.id);
+              const isEnterLocked = isScoringLocked || isCompletedLocked;
+
+              return (
               <div
                 key={card.id}
                 style={{
                   position: "relative",
                   width: "100%",
-                  minHeight: "380px",
+                  maxWidth: "300px",
+                  minHeight: "310px",
                   background: "#ffffff",
                   borderRadius: "20px",
-                  border: "1px solid #dbe3ef",
+                  border: "1.5px solid #000000",
                   boxShadow: "0 10px 25px rgba(30, 41, 59, 0.08)",
-                  padding: "20px 18px 24px",
+                  padding: "18px 16px 16px",
                   textAlign: "left",
                   display: "flex",
                   flexDirection: "column",
@@ -196,11 +262,11 @@ export default function Studentfuntion() {
 
                 <h2
                   style={{
-                    margin: "0 0 10px",
-                    padding: "20px 0",
-                    fontSize: "24px",
+                    margin: "0 0 6px",
+                    padding: "10px 0",
+                    fontSize: "20px",
                     lineHeight: 1.3,
-                    height: "112px",
+                    height: "72px",
                     color: "#0f172a",
                     textAlign: "center",
                     width: "100%",
@@ -235,26 +301,71 @@ export default function Studentfuntion() {
                   ))}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleEnterClick(card.id)}
+                <div
+                  onMouseEnter={() => {
+                    if (isScoringLocked) setShowScoringLockTooltip(true);
+                  }}
+                  onMouseLeave={() => setShowScoringLockTooltip(false)}
+                  onFocus={() => {
+                    if (isScoringLocked) setShowScoringLockTooltip(true);
+                  }}
+                  onBlur={() => setShowScoringLockTooltip(false)}
                   style={{
                     marginTop: "auto",
-                    width: "140px",
-                    height: "44px",
-                    background: "rgba(204, 149, 101, 0.3)",
-                    border: "1.5px solid #000000",
-                    borderRadius: "10px",
-                    fontSize: "18px",
-                    fontWeight: 700,
-                    color: "#111111",
-                    cursor: "pointer",
+                    display: "inline-flex",
+                    position: "relative",
+                    cursor: isEnterLocked ? "not-allowed" : "pointer",
                   }}
                 >
-                  ENTER
-                </button>
+                  {isScoringLocked && showScoringLockTooltip && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: "50%",
+                        bottom: "calc(100% + 10px)",
+                        transform: "translateX(-50%)",
+                        maxWidth: "360px",
+                        minWidth: "300px",
+                        padding: "10px 12px",
+                        borderRadius: "8px",
+                        background: "rgba(15, 23, 42, 0.95)",
+                        color: "#ffffff",
+                        fontSize: "18px",
+                        lineHeight: 1.35,
+                        textAlign: "center",
+                        zIndex: 10,
+                        pointerEvents: "none",
+                        boxShadow: "0 8px 18px rgba(0, 0, 0, 0.25)",
+                      }}
+                    >
+                      {scoringLockedTooltip}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleEnterClick(card.id)}
+                    disabled={isEnterLocked}
+                    style={{
+                      width: "140px",
+                      height: "44px",
+                      background: isEnterLocked
+                        ? "rgba(148, 163, 184, 0.35)"
+                        : "rgba(204, 149, 101, 0.3)",
+                      border: "1.5px solid #000000",
+                      borderRadius: "10px",
+                      fontSize: "18px",
+                      fontWeight: 700,
+                      color: isEnterLocked ? "#64748b" : "#111111",
+                      cursor: isEnterLocked ? "not-allowed" : "pointer",
+                      pointerEvents: isEnterLocked ? "none" : "auto",
+                    }}
+                  >
+                    ENTER
+                  </button>
+                </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

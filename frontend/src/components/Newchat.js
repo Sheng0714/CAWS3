@@ -1,18 +1,26 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useRef } from "react";
 import axios from "axios";
 import Navbar from "./Navbar_Student";
+import RagflowMarkdown from "./RagflowMarkdown";
 import config from "../config.json";
 import url from "../url.json";
+import {
+  buildRagflowScopeFromStorage,
+  buildRagflowScopeUserId,
+  syncKfSummaryFromAssistantReply,
+  syncWritingOutlineFromAssistantReply,
+} from "../utils/ragflowChatHistory";
 
 import cawsOwl from "../assets/去背.png";
+import replyIcon from "../assets/發送.png";
 
 const RAGFLOW_API_KEY = "ragflow-E5MjJlMmFlMWMxMTExZjFiZjJkYTYxNz";
 const RAGFLOW_API_SERVER = "https://wu-ragflow.zeabur.app";
 const RAGFLOW_CHAT_ID = "daa6b1a01c0e11f195efa61716fb138a";
 const WRITING_ASSISTANT_AGENT_ID = "857a20ee1c1911f18f96a61716fb138a";
 const WRITING_ANALYSIS_AGENT_ID = "8d9b9b861c1911f1a4fea61716fb138a";
+const WRITING_ANALYSIS_PREFILL_KEY = "writingAnalysisPrefillPrompt";
 
 const CHATBOT_MODE_CONFIG = {
   kf_analysis: {
@@ -50,12 +58,24 @@ export default function Studentfuntion() {
   const [ragflowMessages, setRagflowMessages] = useState([]);
   const [ragflowInput, setRagflowInput] = useState("");
   const hasTriedCreateSessionRef = useRef(false);
+  const hasAutoSentPrefillRef = useRef(false);
   const chatBottomRef = useRef(null);
 
   const chatbotEntryMode =
     location.state?.chatbotEntryMode || sessionStorage.getItem("chatbotEntryMode") || "unknown";
   const activeModeConfig = CHATBOT_MODE_CONFIG[chatbotEntryMode];
   const isSupportedEntry = Boolean(activeModeConfig);
+
+  const historyScope = useMemo(() => {
+    const baseScope = buildRagflowScopeFromStorage();
+    return {
+      ...baseScope,
+      className: className || baseScope.className,
+      topicName: topicName || baseScope.topicName,
+    };
+  }, [className, topicName]);
+
+  const scopeUserId = useMemo(() => buildRagflowScopeUserId(historyScope), [historyScope]);
 
   const buildRagflowApiUrl = (apiName) => {
     if (!activeModeConfig) return "";
@@ -64,19 +84,24 @@ export default function Studentfuntion() {
   };
 
   const parseRagflowSessionMessages = (payload) => {
-    if (!activeModeConfig) return [];
-
-    const rawMessages =
-      activeModeConfig.sourceType === "agent" ? payload?.data?.message : payload?.data?.messages;
-
+    const rawMessages = payload?.data?.messages || payload?.data?.message;
     if (!Array.isArray(rawMessages)) return [];
 
     return rawMessages
-      .map((message, index) => ({
-        id: `session-init-${index}-${Date.now()}`,
-        role: message?.role === "user" ? "user" : "assistant",
-        content: typeof message?.content === "string" ? message.content : "",
-      }))
+      .map((message, index) => {
+        const content =
+          typeof message?.content === "string"
+            ? message.content
+            : typeof message?.answer === "string"
+              ? message.answer
+              : "";
+        return {
+          id: `session-init-${index}-${Date.now()}`,
+          role: message?.role === "user" ? "user" : "assistant",
+          content,
+          createdAt: Date.now(),
+        };
+      })
       .filter((message) => message.content.trim());
   };
 
@@ -89,6 +114,7 @@ export default function Studentfuntion() {
     return {
       id: payload?.data?.id || payload?.data?.message_id || `assistant-${Date.now()}`,
       answer: typeof answer === "string" ? answer : "",
+      createdAt: Date.now(),
     };
   };
 
@@ -135,6 +161,7 @@ export default function Studentfuntion() {
 
   useEffect(() => {
     hasTriedCreateSessionRef.current = false;
+    hasAutoSentPrefillRef.current = false;
     setRagflowSessionId("");
     setRagflowMessages([]);
     setRagflowInput("");
@@ -155,18 +182,38 @@ export default function Studentfuntion() {
       setRagflowMessages([]);
 
       try {
-        const response = await fetch(buildRagflowApiUrl("sessions"), {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${RAGFLOW_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ name: `${activeModeConfig.title} session` }),
-        });
+        const sessionName = `${activeModeConfig.title} session`;
+        let payload = null;
 
-        const payload = await response.json();
-        if (!response.ok || payload?.code !== 0) {
-          throw new Error(payload?.message || `HTTP ${response.status}`);
+        if (activeModeConfig.sourceType === "agent") {
+          const createUrl = `${buildRagflowApiUrl("sessions")}?user_id=${encodeURIComponent(scopeUserId)}`;
+          const response = await fetch(createUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${RAGFLOW_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name: sessionName }),
+          });
+
+          payload = await response.json();
+          if (!response.ok || payload?.code !== 0) {
+            throw new Error(payload?.message || `HTTP ${response.status}`);
+          }
+        } else {
+          const createResponse = await fetch(buildRagflowApiUrl("sessions"), {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${RAGFLOW_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name: sessionName }),
+          });
+
+          payload = await createResponse.json();
+          if (!createResponse.ok || payload?.code !== 0) {
+            throw new Error(payload?.message || `HTTP ${createResponse.status}`);
+          }
         }
 
         const newSessionId =
@@ -174,6 +221,22 @@ export default function Studentfuntion() {
 
         if (!newSessionId) {
           throw new Error("RAGFLOW session id missing in response.");
+        }
+
+        if (activeModeConfig.sourceType === "chat") {
+          const bindScopeResponse = await fetch(`${buildRagflowApiUrl("sessions")}/${newSessionId}`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${RAGFLOW_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name: sessionName, user_id: scopeUserId }),
+          });
+
+          const bindScopePayload = await bindScopeResponse.json();
+          if (!bindScopeResponse.ok || bindScopePayload?.code !== 0) {
+            throw new Error(bindScopePayload?.message || `HTTP ${bindScopeResponse.status}`);
+          }
         }
 
         if (!isCancelled) {
@@ -199,7 +262,7 @@ export default function Studentfuntion() {
     return () => {
       isCancelled = true;
     };
-  }, [isSupportedEntry, activeModeConfig]);
+  }, [isSupportedEntry, activeModeConfig, scopeUserId]);
 
   const requestRagflowCompletion = async (question, sessionId) => {
     if (!isSupportedEntry) {
@@ -233,8 +296,9 @@ export default function Studentfuntion() {
     }
   }, [ragflowMessages, isRagflowSending]);
 
-  const sendRagflowMessage = async () => {
-    const question = ragflowInput.trim();
+  const sendRagflowMessage = async (prefillQuestion) => {
+    const question =
+      typeof prefillQuestion === "string" ? prefillQuestion.trim() : ragflowInput.trim();
     if (!question || !ragflowSessionId || isRagflowSending) {
       return;
     }
@@ -243,9 +307,12 @@ export default function Studentfuntion() {
       id: `user-${Date.now()}`,
       role: "user",
       content: question,
+      createdAt: Date.now(),
     };
 
-    setRagflowInput("");
+    if (typeof prefillQuestion !== "string") {
+      setRagflowInput("");
+    }
     setRagflowError("");
     setRagflowMessages((prev) => [...prev, userMessage]);
     setIsRagflowSending(true);
@@ -253,12 +320,15 @@ export default function Studentfuntion() {
     try {
       const completion = await requestRagflowCompletion(question, ragflowSessionId);
       const answer = completion.answer || "";
+      syncKfSummaryFromAssistantReply(chatbotEntryMode, answer);
+      syncWritingOutlineFromAssistantReply(chatbotEntryMode, answer);
       setRagflowMessages((prev) => [
         ...prev,
         {
           id: completion.id || `assistant-${Date.now()}`,
           role: "assistant",
           content: answer,
+          createdAt: completion.createdAt || Date.now(),
         },
       ]);
     } catch (error) {
@@ -268,6 +338,19 @@ export default function Studentfuntion() {
       setIsRagflowSending(false);
     }
   };
+
+  useEffect(() => {
+    if (chatbotEntryMode !== "writing_analysis") return;
+    if (!ragflowSessionId || isRagflowSending || hasAutoSentPrefillRef.current) return;
+
+    const prefillPrompt = sessionStorage.getItem(WRITING_ANALYSIS_PREFILL_KEY) || "";
+    const normalizedPrompt = prefillPrompt.trim();
+    if (!normalizedPrompt) return;
+
+    hasAutoSentPrefillRef.current = true;
+    sessionStorage.removeItem(WRITING_ANALYSIS_PREFILL_KEY);
+    void sendRagflowMessage(normalizedPrompt);
+  }, [chatbotEntryMode, isRagflowSending, ragflowSessionId]);
 
   return (
     <div style={{ minHeight: "100vh", background: "#ece8e5" }}>
@@ -422,12 +505,6 @@ export default function Studentfuntion() {
           )}
 
           {isSupportedEntry && ragflowSessionId && (
-            <p style={{ marginTop: 0, color: "#334155", fontSize: "16px" }}>
-              Session ID: {ragflowSessionId}
-            </p>
-          )}
-
-          {isSupportedEntry && ragflowSessionId && (
             <div
               style={{
                 width: "100%",
@@ -465,21 +542,21 @@ export default function Studentfuntion() {
                         maxWidth: "78%",
                         padding: "10px 12px",
                         borderRadius: "10px",
-                        whiteSpace: "pre-wrap",
                         lineHeight: 1.5,
-                        fontSize: "15px",
+                        fontSize: "18px",
+                        wordBreak: "break-word",
                         background: message.role === "user" ? "#dbeafe" : "#ffffff",
                         border: "1px solid #d1d5db",
                         color: "#0f172a",
                       }}
                     >
-                      {message.content}
+                      <RagflowMarkdown content={message.content} />
                     </div>
                   </div>
                 ))}
                 {isRagflowSending && (
                   <p style={{ margin: 0, color: "#475569", fontSize: "14px" }}>
-                    RAGFLOW is replying...
+                    I am thinking...
                   </p>
                 )}
                 <div ref={chatBottomRef} />
@@ -491,7 +568,7 @@ export default function Studentfuntion() {
                   padding: "12px",
                   display: "flex",
                   gap: "10px",
-                  alignItems: "flex-end",
+                  alignItems: "center",
                 }}
               >
                 <textarea
@@ -503,7 +580,7 @@ export default function Studentfuntion() {
                       sendRagflowMessage();
                     }
                   }}
-                  placeholder="Ask RAGFLOW..."
+                  placeholder="Please enter the content you would like to ask."
                   rows={2}
                   style={{
                     flex: 1,
@@ -513,7 +590,7 @@ export default function Studentfuntion() {
                     borderRadius: "10px",
                     border: "1px solid #cbd5e1",
                     padding: "10px 12px",
-                    fontSize: "14px",
+                    fontSize: "18px",
                     lineHeight: 1.4,
                     fontFamily: "inherit",
                   }}
@@ -523,17 +600,23 @@ export default function Studentfuntion() {
                   onClick={sendRagflowMessage}
                   disabled={isRagflowSending || !ragflowInput.trim()}
                   style={{
-                    width: "90px",
-                    height: "42px",
-                    borderRadius: "10px",
-                    border: "1.5px solid #0f172a",
-                    background: isRagflowSending || !ragflowInput.trim() ? "#e2e8f0" : "#bfdbfe",
-                    color: "#0f172a",
-                    fontWeight: 700,
+                    width: "30px",
+                    height: "30px",
+                    border: "none",
+                    background: "transparent",
+                    padding: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     cursor: isRagflowSending || !ragflowInput.trim() ? "not-allowed" : "pointer",
+                    opacity: isRagflowSending || !ragflowInput.trim() ? 0.4 : 1,
                   }}
                 >
-                  Send
+                  <img
+                    src={replyIcon}
+                    alt="Send"
+                    style={{ width: "30px", height: "30px", objectFit: "contain" }}
+                  />
                 </button>
               </div>
             </div>

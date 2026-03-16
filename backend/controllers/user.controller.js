@@ -170,7 +170,7 @@ exports.batchRegistration = async (req, res) => {
           users,
         });
         res.status(500).send({
-          message: "資料匯入失敗，請檢查是否有重複註冊的問題!",
+          message: "The data import failed. Please check whether there is a duplicate registration issue.",
           error: err.message,
         });
       });

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "./Navbar_Student";
 import backIcon from "../assets/back.png";
@@ -7,11 +7,30 @@ import ICON1 from "../assets/新聊天.png";
 import ICON2 from "../assets/歷史紀錄2.png";
 import cawsOwl from "../assets/去背.png";
 
+const getIsCompletedEntry = () =>
+  localStorage.getItem("isCompletedActivityEntry") === "true";
+
 export default function Studentfuntion() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isCompletedEntry, setIsCompletedEntry] = useState(getIsCompletedEntry);
   const chatbotEntryMode =
     location.state?.chatbotEntryMode || sessionStorage.getItem("chatbotEntryMode") || "unknown";
+
+  const refreshCompletedEntryState = useCallback(() => {
+    setIsCompletedEntry(getIsCompletedEntry());
+  }, []);
+
+  useEffect(() => {
+    refreshCompletedEntryState();
+    window.addEventListener("focus", refreshCompletedEntryState);
+    window.addEventListener("storage", refreshCompletedEntryState);
+
+    return () => {
+      window.removeEventListener("focus", refreshCompletedEntryState);
+      window.removeEventListener("storage", refreshCompletedEntryState);
+    };
+  }, [refreshCompletedEntryState]);
 
   const actionButtonStyle = {
     width: "228px",
@@ -24,6 +43,7 @@ export default function Studentfuntion() {
     color: "#111111",
     cursor: "pointer",
   };
+  const startNewChatLocked = isCompletedEntry;
 
   return (
     <div style={{ minHeight: "100vh", background: "#ece8e5" }}>
@@ -122,8 +142,20 @@ export default function Studentfuntion() {
               />
               <button
                 type="button"
-                onClick={() => navigate("/Newchat", { state: { chatbotEntryMode } })}
-                style={actionButtonStyle}
+                onClick={() => {
+                  if (startNewChatLocked) return;
+                  navigate("/Newchat", { state: { chatbotEntryMode } });
+                }}
+                disabled={startNewChatLocked}
+                style={{
+                  ...actionButtonStyle,
+                  background: startNewChatLocked
+                    ? "rgba(148, 163, 184, 0.35)"
+                    : actionButtonStyle.background,
+                  color: startNewChatLocked ? "#64748b" : actionButtonStyle.color,
+                  cursor: startNewChatLocked ? "not-allowed" : "pointer",
+                  pointerEvents: startNewChatLocked ? "none" : "auto",
+                }}
               >
                 Start New Chat
               </button>
@@ -144,7 +176,7 @@ export default function Studentfuntion() {
               />
               <button
                 type="button"
-                onClick={() => navigate("/Chathistory")}
+                onClick={() => navigate("/Chathistory", { state: { chatbotEntryMode } })}
                 style={actionButtonStyle}
               >
                 Chat History

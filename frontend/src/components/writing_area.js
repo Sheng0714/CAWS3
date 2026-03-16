@@ -38489,15 +38489,19 @@
 
 
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Box, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Box, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip } from '@mui/material';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar_Student';
+import RagflowMarkdown from './RagflowMarkdown';
 import HamburgerLineIcon from '../assets/橫線.png';
+import HomeImage3 from '../assets/首頁3.png';
 import LeftArrowIcon from '../assets/左箭頭.png';
 import KFSummaryIcon from '../assets/KFSummary.png';
 import WritingOutlineIcon from '../assets/WritingOutline.png';
 import NotesAreaIcon from '../assets/NotesArea.png';
+import CopyIcon from '../assets/複製.png';
 
 
 const buttonSx = {
@@ -38620,8 +38624,36 @@ const buildEssayStorageKey = (studentName, className, theme) =>
   `essayData::${encodeURIComponent(studentName || '')}::${encodeURIComponent(className || '')}::${encodeURIComponent(theme || '')}`;
 const buildSubmitLockKey = (studentName, className, theme) =>
   `submitLocked::${encodeURIComponent(studentName || '')}::${encodeURIComponent(className || '')}::${encodeURIComponent(theme || '')}`;
+const WRITING_ANALYSIS_PREFILL_KEY = 'writingAnalysisPrefillPrompt';
+const extractPlainTextFromHtml = (htmlContent) => {
+  if (!htmlContent) return '';
+  return htmlContent
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '- ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\r/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+const countEnglishWords = (htmlContent) => {
+  if (!htmlContent) return 0;
+  const plainText = htmlContent
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!plainText) return 0;
+  const matches = plainText.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g);
+  return matches ? matches.length : 0;
+};
 
 const WritingArea = () => {
+  const navigate = useNavigate();
   const [editorContent, setEditorContent] = useState('');
   const [studentName, setStudentName] = useState('');
   const [activityTitle, setActivityTitle] = useState('');
@@ -38629,10 +38661,37 @@ const WritingArea = () => {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isCompletedEntry, setIsCompletedEntry] = useState(false);
   const [openConfirmSubmitDialog, setOpenConfirmSubmitDialog] = useState(false);
+  const [kfSummaryContent, setKfSummaryContent] = useState('');
+  const [outlineContent, setOutlineContent] = useState('');
+  const [notesContent, setNotesContent] = useState('');
+  const [activeSidebarEditor, setActiveSidebarEditor] = useState('');
 
   const quillRootRef = useRef(null);
   const quillInstanceRef = useRef(null);
+  const englishWordCount = useMemo(() => countEnglishWords(editorContent), [editorContent]);
+  const isReadOnly = isSubmitted || isCompletedEntry;
+
+  const copyTextToClipboard = async (content) => {
+    if (!content) return;
+
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(content);
+      return;
+    }
+
+    const textArea = document.createElement('textarea');
+    textArea.value = content;
+    textArea.setAttribute('readonly', '');
+    textArea.style.position = 'fixed';
+    textArea.style.top = '-9999px';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -38640,10 +38699,16 @@ const WritingArea = () => {
       const savedStudentName = localStorage.getItem('name') || '';
       const savedActivityTitle = localStorage.getItem('activityTitle') || '';
       const savedGroupName = localStorage.getItem('groupName') || '';
+      const completedEntry =
+        localStorage.getItem('isCompletedActivityEntry') === 'true' ||
+        localStorage.getItem('activityEntryStatus') === 'completed';
       const scopedEssayKey = buildEssayStorageKey(savedStudentName, savedActivityTitle, savedGroupName);
       const scopedSavedEssay = localStorage.getItem(scopedEssayKey) || '';
       const scopedSubmitLockKey = buildSubmitLockKey(savedStudentName, savedActivityTitle, savedGroupName);
       const scopedSubmitLocked = localStorage.getItem(scopedSubmitLockKey) === 'true';
+      const savedKfSummary = localStorage.getItem('kfAnalysisData') || '';
+      const savedOutline = localStorage.getItem('outlineData') || '';
+      const savedNotes = localStorage.getItem('noteData') || '';
 
       if (!mounted) return;
       setStudentName(savedStudentName);
@@ -38651,6 +38716,10 @@ const WritingArea = () => {
       setGroupName(savedGroupName);
       setEditorContent(scopedSavedEssay);
       setIsSubmitted(scopedSubmitLocked);
+      setIsCompletedEntry(completedEntry);
+      setKfSummaryContent(savedKfSummary);
+      setOutlineContent(savedOutline);
+      setNotesContent(savedNotes);
 
       if (!savedStudentName || !savedActivityTitle || !savedGroupName) {
         setEditorContent('');
@@ -38665,12 +38734,21 @@ const WritingArea = () => {
         });
 
         const fetchedEssay = notionData?.essayContent || '';
+        const fetchedKfSummary = savedKfSummary || notionData?.kfAnalysisContent || '';
+        const fetchedOutline = savedOutline || notionData?.outlineContent || '';
+        const fetchedNotes = notionData?.noteContent || savedNotes;
         if (!mounted) return;
 
         setEditorContent(fetchedEssay);
+        setKfSummaryContent(fetchedKfSummary);
+        setOutlineContent(fetchedOutline);
+        setNotesContent(fetchedNotes);
         localStorage.setItem(scopedEssayKey, fetchedEssay);
         localStorage.setItem('essayData', fetchedEssay);
         localStorage.setItem('editorData', fetchedEssay);
+        localStorage.setItem('kfAnalysisData', fetchedKfSummary);
+        localStorage.setItem('outlineData', fetchedOutline);
+        localStorage.setItem('noteData', fetchedNotes);
       } catch (error) {
         if (!mounted) return;
         if (error?.code === 'NOT_FOUND' || error?.response?.status === 404) {
@@ -38696,7 +38774,12 @@ const WritingArea = () => {
     const init = async () => {
       try {
         await ensureQuillLoaded();
-        if (!mounted || !quillRootRef.current || quillInstanceRef.current) return;
+        if (!mounted || !quillRootRef.current) return;
+
+        if (quillInstanceRef.current) {
+          quillInstanceRef.current.enable(!isReadOnly);
+          return;
+        }
 
         const Quill = window.Quill;
         const quill = new Quill(quillRootRef.current, {
@@ -38717,6 +38800,7 @@ const WritingArea = () => {
 
         quill.root.style.fontSize = '16px';
         quill.root.innerHTML = editorContent || '';
+        quill.enable(!isReadOnly);
 
         quill.on('text-change', () => {
           setEditorContent(quill.root.innerHTML);
@@ -38733,7 +38817,7 @@ const WritingArea = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [isReadOnly]);
 
   useEffect(() => {
     const quill = quillInstanceRef.current;
@@ -38743,7 +38827,7 @@ const WritingArea = () => {
   }, [editorContent]);
 
   const handleSave = async () => {
-    if (isSubmitted) return;
+    if (isReadOnly) return;
 
     const currentStudentName =
       localStorage.getItem('name') ||
@@ -38757,6 +38841,9 @@ const WritingArea = () => {
     localStorage.setItem(scopedEssayKey, editorContent);
     localStorage.setItem('essayData', editorContent);
     localStorage.setItem('editorData', editorContent);
+    localStorage.setItem('kfAnalysisData', kfSummaryContent);
+    localStorage.setItem('outlineData', outlineContent);
+    localStorage.setItem('noteData', notesContent);
 
     if (!currentStudentName || !className || !theme) {
       alert('已先儲存到本機，但缺少姓名、班級或主題，無法同步到 Notion。');
@@ -38770,9 +38857,9 @@ const WritingArea = () => {
         className,
         theme,
         essayContent: editorContent,
-        noteContent: localStorage.getItem('noteData') || '',
-        kfAnalysisContent: localStorage.getItem('kfAnalysisData') || '',
-        outlineContent: localStorage.getItem('outlineData') || '',
+        noteContent: notesContent || '',
+        kfAnalysisContent: kfSummaryContent || '',
+        outlineContent: outlineContent || '',
         chatHistory: (() => {
           const raw = localStorage.getItem('chatHistory');
           if (!raw) return [];
@@ -38783,7 +38870,7 @@ const WritingArea = () => {
           }
         })(),
       });
-      alert('Saved successfully!');
+      alert('Saved successfully. Before submitting, you can go to Writing Analysis mode to check the quality of your argumentative essay.');
     } catch (error) {
       console.error('同步到 Notion 失敗:', error);
       const errorMessage = error?.response?.data?.error || error?.message || '未知錯誤';
@@ -38794,7 +38881,7 @@ const WritingArea = () => {
   };
 
   const handleSubmit = () => {
-    if (isSubmitted) return;
+    if (isReadOnly) return;
 
     const currentStudentName =
       localStorage.getItem('name') ||
@@ -38808,9 +38895,14 @@ const WritingArea = () => {
     localStorage.setItem(scopedEssayKey, editorContent);
     localStorage.setItem('essayData', editorContent);
     localStorage.setItem('editorData', editorContent);
+    localStorage.setItem('kfAnalysisData', kfSummaryContent);
+    localStorage.setItem('outlineData', outlineContent);
+    localStorage.setItem('noteData', notesContent);
   };
 
   const handleConfirmSubmit = () => {
+    if (isReadOnly) return;
+
     const currentStudentName =
       localStorage.getItem('name') ||
       localStorage.getItem('username') ||
@@ -38824,6 +38916,82 @@ const WritingArea = () => {
     localStorage.setItem(scopedSubmitLockKey, 'true');
     setIsSubmitted(true);
     setOpenConfirmSubmitDialog(false);
+  };
+
+  const handleGoToWritingAnalysis = () => {
+    const chatbotEntryMode = 'writing_analysis';
+    const writingDraft = extractPlainTextFromHtml(editorContent);
+    if (writingDraft) {
+      sessionStorage.setItem(WRITING_ANALYSIS_PREFILL_KEY, writingDraft);
+    } else {
+      sessionStorage.removeItem(WRITING_ANALYSIS_PREFILL_KEY);
+    }
+    sessionStorage.setItem('chatbotEntryMode', chatbotEntryMode);
+    navigate('/Chatbotlogin', { state: { chatbotEntryMode } });
+  };
+
+  const handleCopySidebarContent = async (content, label) => {
+    if (!content.trim()) {
+      alert(`${label} 目前是空的，沒有可複製內容。`);
+      return;
+    }
+
+    try {
+      await copyTextToClipboard(content);
+      alert(`${label} 已複製。`);
+    } catch (error) {
+      console.error(`Copy failed for ${label}:`, error);
+      alert(`${label} 複製失敗，請稍後再試。`);
+    }
+  };
+
+  const renderEditableMarkdownPanel = ({ fieldKey, value, onUpdate, placeholder }) => {
+    if (activeSidebarEditor === fieldKey) {
+      return (
+        <Box
+          component="textarea"
+          value={value}
+          autoFocus
+          onBlur={() => setActiveSidebarEditor('')}
+          onChange={(event) => onUpdate(event.target.value)}
+          sx={{
+            width: '100%',
+            height: '150px',
+            border: '1px solid #9e9e9e',
+            backgroundColor: '#ffffff',
+            p: 1,
+            boxSizing: 'border-box',
+            resize: 'none',
+            fontSize: '14px',
+            fontFamily: 'inherit',
+          }}
+        />
+      );
+    }
+
+    return (
+      <Box
+        onClick={() => setActiveSidebarEditor(fieldKey)}
+        sx={{
+          width: '100%',
+          height: '150px',
+          border: '1px solid #9e9e9e',
+          backgroundColor: '#ffffff',
+          p: 1,
+          boxSizing: 'border-box',
+          overflowY: 'auto',
+          cursor: 'text',
+          fontSize: '14px',
+          lineHeight: 1.4,
+        }}
+      >
+        {value.trim() ? (
+          <RagflowMarkdown content={value} />
+        ) : (
+          <span style={{ color: '#94a3b8' }}>{placeholder}</span>
+        )}
+      </Box>
+    );
   };
 
   return (
@@ -38851,8 +39019,8 @@ const WritingArea = () => {
         >
           <Box
             sx={{
-              width: isSidebarExpanded ? '300px' : '70px',
-              minWidth: isSidebarExpanded ? '300px' : '70px',
+              width: isSidebarExpanded ? '500px' : '70px',
+              minWidth: isSidebarExpanded ? '500px' : '70px',
               height: '100%',
               backgroundColor: '#E0E0E0',
               borderRadius: 0,
@@ -38879,29 +39047,131 @@ const WritingArea = () => {
                 />
               </Button>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: isSidebarExpanded ? 'flex-start' : 'center' }}>
-                  <img src={KFSummaryIcon} alt="KF Summary" style={{ width: '30px', height: '30px' }} />
-                  {isSidebarExpanded && <span style={{ fontSize: '16px' }}>KF Summary:</span>}
-                </Box>
-                {isSidebarExpanded && <Box sx={{ width: '300px', height: '150px', border: '1px solid #9e9e9e', backgroundColor: '#ffffff' }} />}
-              </Box>
+              <Tooltip title={isSidebarExpanded ? '' : 'Writing Analysis'} placement="right" disableHoverListener={isSidebarExpanded}>
+                <Button
+                  variant="text"
+                  onClick={handleGoToWritingAnalysis}
+                  sx={{
+                    minWidth: 0,
+                    width: '100%',
+                    p: 0.5,
+                    justifyContent: isSidebarExpanded ? 'flex-start' : 'center',
+                    textTransform: 'none',
+                    color: '#000000',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: isSidebarExpanded ? 'flex-start' : 'center', width: '100%' }}>
+                    <img src={HomeImage3} alt="首頁3" style={{ width: '30px', height: '30px' }} />
+                    {isSidebarExpanded && <span style={{ fontSize: '16px' }}>Writing Analysis</span>}
+                  </Box>
+                </Button>
+              </Tooltip>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: isSidebarExpanded ? 'flex-start' : 'center' }}>
-                  <img src={WritingOutlineIcon} alt="Writing Outline" style={{ width: '30px', height: '30px' }} />
-                  {isSidebarExpanded && <span style={{ fontSize: '16px' }}>Writing Outline:</span>}
-                </Box>
-                {isSidebarExpanded && <Box sx={{ width: '300px', height: '150px', border: '1px solid #9e9e9e', backgroundColor: '#ffffff' }} />}
-              </Box>
+              {isSidebarExpanded && (
+                <>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, px: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <img src={KFSummaryIcon} alt="KF Summary" style={{ width: '30px', height: '30px' }} />
+                        <span style={{ fontSize: '16px' }}>KF Summary:</span>
+                      </Box>
+                      <button
+                        type="button"
+                        onClick={() => handleCopySidebarContent(kfSummaryContent, 'KF Summary')}
+                        disabled={!kfSummaryContent.trim()}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          padding: 0,
+                          cursor: kfSummaryContent.trim() ? 'pointer' : 'not-allowed',
+                          opacity: kfSummaryContent.trim() ? 1 : 0.4,
+                          lineHeight: 0,
+                        }}
+                        title="複製 KF Summary"
+                      >
+                        <img src={CopyIcon} alt="copy-kf-summary" style={{ width: '25px', height: '25px' }} />
+                      </button>
+                    </Box>
+                    {renderEditableMarkdownPanel({
+                      fieldKey: 'kfSummary',
+                      value: kfSummaryContent,
+                      onUpdate: (nextValue) => {
+                        setKfSummaryContent(nextValue);
+                        localStorage.setItem('kfAnalysisData', nextValue);
+                      },
+                      placeholder: '',
+                    })}
+                  </Box>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: isSidebarExpanded ? 'flex-start' : 'center' }}>
-                  <img src={NotesAreaIcon} alt="Notes Area" style={{ width: '30px', height: '30px' }} />
-                  {isSidebarExpanded && <span style={{ fontSize: '16px' }}>Notes Area:</span>}
-                </Box>
-                {isSidebarExpanded && <Box sx={{ width: '300px', height: '150px', border: '1px solid #9e9e9e', backgroundColor: '#ffffff' }} />}
-              </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, px: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <img src={WritingOutlineIcon} alt="Writing Outline" style={{ width: '30px', height: '30px' }} />
+                        <span style={{ fontSize: '16px' }}>Writing Outline:</span>
+                      </Box>
+                      <button
+                        type="button"
+                        onClick={() => handleCopySidebarContent(outlineContent, 'Writing Outline')}
+                        disabled={!outlineContent.trim()}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          padding: 0,
+                          cursor: outlineContent.trim() ? 'pointer' : 'not-allowed',
+                          opacity: outlineContent.trim() ? 1 : 0.4,
+                          lineHeight: 0,
+                        }}
+                        title="複製 Writing Outline"
+                      >
+                        <img src={CopyIcon} alt="copy-writing-outline" style={{ width: '25px', height: '25px' }} />
+                      </button>
+                    </Box>
+                    {renderEditableMarkdownPanel({
+                      fieldKey: 'outline',
+                      value: outlineContent,
+                      onUpdate: (nextValue) => {
+                        setOutlineContent(nextValue);
+                        localStorage.setItem('outlineData', nextValue);
+                      },
+                      placeholder: '',
+                    })}
+                  </Box>
+
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, px: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <img src={NotesAreaIcon} alt="Notes Area" style={{ width: '30px', height: '30px' }} />
+                        <span style={{ fontSize: '16px' }}>Notes Area:</span>
+                      </Box>
+                      <button
+                        type="button"
+                        onClick={() => handleCopySidebarContent(notesContent, 'Notes Area')}
+                        disabled={!notesContent.trim()}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          padding: 0,
+                          cursor: notesContent.trim() ? 'pointer' : 'not-allowed',
+                          opacity: notesContent.trim() ? 1 : 0.4,
+                          lineHeight: 0,
+                        }}
+                        title="複製 Notes Area"
+                      >
+                        <img src={CopyIcon} alt="copy-notes-area" style={{ width: '25px', height: '25px' }} />
+                      </button>
+                    </Box>
+                    {renderEditableMarkdownPanel({
+                      fieldKey: 'notes',
+                      value: notesContent,
+                      onUpdate: (nextValue) => {
+                        setNotesContent(nextValue);
+                        localStorage.setItem('noteData', nextValue);
+                      },
+                      placeholder: '點擊即可編輯 Notes Area',
+                    })}
+                  </Box>
+                </>
+              )}
             </Box>
           </Box>
 
@@ -38942,6 +39212,7 @@ const WritingArea = () => {
                 '& .ql-editor': {
                   minHeight: '500px',
                   fontSize: '16px',
+                  paddingBottom: '44px',
                   backgroundColor: '#ffffff !important',
                 },
               }}
@@ -38957,12 +39228,34 @@ const WritingArea = () => {
                 }}
               >
                 <Box sx={{ px: 2, pt: 1.5, pb: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  <span className="class-topic-text">學生: {studentName || '-'}</span>
-                  <span className="class-topic-text">班級: {activityTitle || '-'}</span>
-                  <span className="class-topic-text">主題: {groupName || '-'}</span>
+                  <span className="class-topic-text">Student: {studentName || '-'}</span>
+                  <span className="class-topic-text">Class: {activityTitle || '-'}</span>
+                  <span className="class-topic-text">Topic: {groupName || '-'}</span>
                 </Box>
               </Box>
-              <div ref={quillRootRef} style={{ backgroundColor: '#ffffff' }} />
+              <Box sx={{ position: 'relative', backgroundColor: '#ffffff' }}>
+                <div ref={quillRootRef} style={{ backgroundColor: '#ffffff' }} />
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    right: 14,
+                    bottom: 10,
+                    px: 1,
+                    py: 0.35,
+                    borderRadius: '999px',
+                    border: '1px solid #c9c9c9',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    color: '#444',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    lineHeight: 1,
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                  }}
+                >
+                  Words: {englishWordCount}
+                </Box>
+              </Box>
             </Box>
 
             <Box
@@ -38978,10 +39271,10 @@ const WritingArea = () => {
               <Button variant="contained" onClick={() => window.history.back()} sx={buttonSx}>
                 Back
               </Button>
-              <Button variant="contained" onClick={handleSave} sx={buttonSx} disabled={isSaving || isSubmitted}>
+              <Button variant="contained" onClick={handleSave} sx={buttonSx} disabled={isSaving || isReadOnly}>
                 {isSaving ? 'Saving...' : 'Save'}
               </Button>
-              <Button variant="contained" onClick={() => setOpenConfirmSubmitDialog(true)} sx={buttonSx} disabled={isSubmitted}>
+              <Button variant="contained" onClick={() => setOpenConfirmSubmitDialog(true)} sx={buttonSx} disabled={isReadOnly}>
                 Submit
               </Button>
             </Box>

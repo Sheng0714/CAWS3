@@ -1240,7 +1240,7 @@ export default function Home() {
       localStorage.setItem("role", role);
       alert("Login Successful!");
       if (role === "student") navigate("/home");
-      else if (role === "teacher") navigate("/teacher/teacher_home");
+      else if (role === "teacher") navigate("/TeacherFunction");
     } catch (error) {
       if (!error.response) alert("登入失敗,請再試一次");
       else {

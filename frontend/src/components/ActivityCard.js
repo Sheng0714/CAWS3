@@ -283,6 +283,8 @@ export default function ActivityCard({ activity, status = 'in-progress' }) {
         localStorage.setItem('joinCode', Group.joinCode);
         localStorage.setItem('activityTitle', Activity.title);
         localStorage.setItem('groupName', Group.groupName || '');
+        localStorage.setItem('activityEntryStatus', status);
+        localStorage.setItem('isCompletedActivityEntry', status === 'completed' ? 'true' : 'false');
 
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);

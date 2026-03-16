@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Container } from "@mui/material";
+import { Button, Container, useMediaQuery } from "@mui/material";
 import { useNavigate } from 'react-router-dom'; // 引入 useNavigate
 import Logo from "../assets/揮手.gif";
 import { HiOutlineBars3 } from 'react-icons/hi2';
@@ -14,6 +14,7 @@ export default function Navbar() {
   const [openMenu, setOpenMenu] = useState(false);
   const navigate = useNavigate(); // 使用 useNavigate 進行導航
   const role = localStorage.getItem("role") || "student";
+  const isBelow1300 = useMediaQuery('(max-width: 1299px)');
   const menuOptions = [
     {
       text: "Home",
@@ -70,9 +71,11 @@ const handleLogoClick = () => {
         tabIndex={0}
         onKeyDown={(e) => e.key === 'Enter' && handleLogoClick()}
          />
-        <p style={{ marginLeft: '150px', position: 'relative', top: '-75px', fontSize: '24px' }}>
-          Collaborative Argumentation and Writing System
-        </p>
+        {!isBelow1300 && (
+          <p style={{ marginLeft: '150px', position: 'relative', top: '-75px', fontSize: '24px' }}>
+            Collaborative Argumentation and Writing System
+          </p>
+        )}
       </div>
 
       <div className="navbar-links-container">

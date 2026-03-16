@@ -555,7 +555,7 @@ export default function Navbar() {
   const [openRegister, setOpenRegister] = useState(false);
   const navigate = useNavigate();
 
-  const isBelow900 = useMediaQuery('(max-width: 900px)');
+  const isBelow1300 = useMediaQuery('(max-width: 1299px)');
   const isTablet = useMediaQuery('(max-width: 768px)');
   const isMobile = useMediaQuery('(max-width: 480px)');
 
@@ -686,7 +686,7 @@ export default function Navbar() {
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && handleLogoClick()}
           />
-          {!isBelow900 && (
+          {!isBelow1300 && (
             <p style={navTitleStyle}>
               Collaborative Argumentation and Writing System
             </p>

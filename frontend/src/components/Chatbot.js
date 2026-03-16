@@ -125,7 +125,7 @@ export default function Studentfuntion() {
               textAlign: "left",
             }}
           >
-            <p style={{ margin: 0, fontWeight: 700 }}>Please enter one of the following Chatbots before starting your writing.</p>
+            <p style={{ margin: 0, fontWeight: 700 }}>Please enter one of the following Chatbots.</p>
             
           </div>
         </div>

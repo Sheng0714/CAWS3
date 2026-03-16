@@ -38,6 +38,8 @@ import Chatbotlogin from './components/Chatbotlogin.js';
 import Newchat from './components/Newchat.js';
 import Chathistory from './components/Chathistory.js';
 import Freebackstudent from './components/freebackstudent.js';
+import TeacherFunction from './components/TeacherFunction.js';
+import JoinStudents from './components/JoinStudents.js';
 
 
 export default function App() {
@@ -75,6 +77,8 @@ export default function App() {
               <Route path='/Newchat' element={<RequireAuth loginPath='/'><Newchat/></RequireAuth>}></Route>
               <Route path='/Chathistory' element={<RequireAuth loginPath='/'><Chathistory/></RequireAuth>}></Route>
               <Route path='/freebackstudent' element={<RequireAuth loginPath='/'><Freebackstudent/></RequireAuth>}></Route>
+              <Route path='/TeacherFunction' element={<RequireAuth loginPath='/'><TeacherFunction/></RequireAuth>}></Route>
+              <Route path='/JoinStudents' element={<RequireAuth loginPath='/'><JoinStudents/></RequireAuth>}></Route>
           </Routes>
       </Router>
     </ModeProvider>
