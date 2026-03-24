@@ -39,13 +39,15 @@ exports.create = async (req, res) => {
 
 // Create and Save one Group
 exports.createOneGroupForActivity = async (req, res) => {
-    const { groupName, activityId, userId } = req.body;
+    const { groupName, activityId, userId, startDate, endDate } = req.body;
 
     try {
         const joinCode = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 5)();
         const group = await Group.create({
             groupName: groupName,
             joinCode: joinCode,
+            startDate: startDate || null,
+            endDate: endDate || null,
             activityId: activityId,
             userId: userId
         });
@@ -71,7 +73,7 @@ exports.createOneGroupForActivity = async (req, res) => {
 
 // Create and Save new Groups
 exports.createGroupsForActivity = async (req, res) => {
-    const { groupName, activityId, numGroups } = req.body;
+    const { groupName, activityId, numGroups, startDate, endDate } = req.body;
     if (!req.user.haveActivities.includes(parseInt(activityId))) {
         return res.status(403).send("You are not authorized to access this resource.");
     }
@@ -84,6 +86,8 @@ exports.createGroupsForActivity = async (req, res) => {
             const group = await Group.create({
                 groupName: groupName,
                 joinCode: joinCode,
+                startDate: startDate || null,
+                endDate: endDate || null,
                 activityId: activityId,
                 userId: new Array()
             });
@@ -157,7 +161,7 @@ exports.findOneActivity = (req, res) => {
             include: [
                 {
                     model: Group,
-                    attributes: ["id", "groupName", "joinCode", "userId"],
+                    attributes: ["id", "groupName", "joinCode", "startDate", "endDate", "userId"],
                     through: { attributes: [] }
                 },
             ] 

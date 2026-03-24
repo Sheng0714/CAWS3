@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar_Student";
+import StudentLeftSidebar from "./StudentLeftSidebar";
 import backIcon from "../assets/back.png";
 
 import number1 from "../assets/數字1.png";
@@ -69,14 +70,17 @@ export default function Studentfuntion() {
   };
 
   return (
-    <div style={{ minHeight: "100vh" }}>
+    <div style={{ minHeight: "100vh", background: "#ffffff", display: "flex", flexDirection: "column" }}>
       <Navbar />
+      <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
+        <StudentLeftSidebar activeMenuKey="chatbot" />
+        <div style={{ flex: 1, minWidth: 0 }}>
 
       <div
         style={{
           maxWidth: "1200px",
           margin: "0 auto",
-          padding: "32px 20px 56px",
+          padding: "0px 20px 56px",
         }}
       >
         <div
@@ -86,7 +90,7 @@ export default function Studentfuntion() {
             alignItems: "center",
             gap: "12px",
             flexWrap: "wrap",
-            marginBottom: "32px",
+            marginBottom: "0px",
           }}
         >
           <button
@@ -109,12 +113,12 @@ export default function Studentfuntion() {
 
           <div
             style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
+              background: "rgba(105, 83, 83, 0.1)",
+              border: "1.5px solid #000000",
               borderRadius: "16px",
               padding: "16px 20px",
-              height: "155px",
-              width: "900px",
+              height: "100px",
+              width: "700px",
               maxWidth: "100%",
               display: "flex",
               alignItems: "center",
@@ -132,9 +136,9 @@ export default function Studentfuntion() {
 
         <div
           style={{
-            background: "#ece8e5",
+            background: "transparent",
             borderRadius: "24px",
-            padding: "24px",
+            padding: "0px",
           }}
         >
           <div
@@ -155,7 +159,7 @@ export default function Studentfuntion() {
                   minHeight: "380px",
                   background: "#ffffff",
                   borderRadius: "20px",
-                  border: "1px solid #dbe3ef",
+                  border: "1.5px solid #000000",
                   boxShadow: "0 10px 25px rgba(30, 41, 59, 0.08)",
                   padding: "20px 18px 24px",
                   textAlign: "center",
@@ -240,6 +244,8 @@ export default function Studentfuntion() {
           </div>
         </div>
 
+      </div>
+        </div>
       </div>
     </div>
   );

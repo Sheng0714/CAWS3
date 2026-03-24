@@ -40,6 +40,8 @@ import Chathistory from './components/Chathistory.js';
 import Freebackstudent from './components/freebackstudent.js';
 import TeacherFunction from './components/TeacherFunction.js';
 import JoinStudents from './components/JoinStudents.js';
+import ClassManage from './components/ClassManage.js';
+import StudentWork from './components/StudentWork.js';
 
 
 export default function App() {
@@ -79,6 +81,8 @@ export default function App() {
               <Route path='/freebackstudent' element={<RequireAuth loginPath='/'><Freebackstudent/></RequireAuth>}></Route>
               <Route path='/TeacherFunction' element={<RequireAuth loginPath='/'><TeacherFunction/></RequireAuth>}></Route>
               <Route path='/JoinStudents' element={<RequireAuth loginPath='/'><JoinStudents/></RequireAuth>}></Route>
+              <Route path='/ClassManage' element={<RequireAuth loginPath='/'><ClassManage/></RequireAuth>}></Route>
+              <Route path='/StudentWork' element={<RequireAuth loginPath='/'><StudentWork/></RequireAuth>}></Route>
           </Routes>
       </Router>
     </ModeProvider>

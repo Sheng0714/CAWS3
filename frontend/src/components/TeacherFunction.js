@@ -32,7 +32,7 @@ const cardData = [
     featureImage: feature2,
     title: "Manage Class",
     description: ["Create Classes and Argumentative Essay Topics"],
-    enterPath: "",
+    enterPath: "/ClassManage",
   },
   {
     id: 3,
@@ -43,7 +43,7 @@ const cardData = [
       "Select this after discussing with the CAWS BOT.",
       "Start writing your argumentative essay.",
     ],
-    enterPath: "",
+    enterPath: "/StudentWork",
   },
   {
     id: 4,

@@ -353,9 +353,9 @@ export default function Navbar() {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'stretch',
-    padding: isMobile ? '0.5rem 1rem' : isTablet ? '0.75rem 1.5rem' : '1rem 2rem',
+    padding: isMobile ? '0.35rem 1rem 0' : isTablet ? '0.5rem 1.5rem 0' : '0.6rem 2rem 0',
     backgroundColor: '#FFFFFF',
-    minHeight: isTablet ? '80px' : '120px',
+    minHeight: isTablet ? '64px' : '96px',
     margin: '0 0rem',
     width: '100%',
     // maxWidth: '1900px',
@@ -368,7 +368,7 @@ export default function Navbar() {
     alignItems: 'center',
     justifyContent: 'space-between',
     flex: '1',
-    minHeight: '60px',
+    minHeight: isTablet ? '48px' : '56px',
   };
 
   const leftTopStyle = {
@@ -381,14 +381,14 @@ export default function Navbar() {
   };
 
   const logoStyle = {
-    width: isMobile ? '80px' : isTablet ? '100px' : '120px',
-    height: isMobile ? '60px' : isTablet ? '80px' : '100px',
+    width: isMobile ? '70px' : isTablet ? '86px' : '100px',
+    height: isMobile ? '52px' : isTablet ? '64px' : '76px',
     objectFit: 'contain',
     cursor: 'pointer',
   };
 
   const navTitleStyle = {
-    fontSize: isMobile ? '12px' : isTablet ? '16px' : '30px',
+    fontSize: isMobile ? '12px' : isTablet ? '16px' : '26px',
     fontWeight: 'normal',
     color: '#333',
     margin: 0,
@@ -464,7 +464,7 @@ export default function Navbar() {
       <div
         style={{
           borderBottom: '1px solid #e5e7eb',
-          marginTop: '1rem',
+          marginTop: isMobile ? '0.25rem' : '0.35rem',
           marginLeft: isMobile ? '-1rem' : isTablet ? '-1.5rem' : '-2rem',
           marginRight: isMobile ? '-1rem' : isTablet ? '-1.5rem' : '-2rem',
         }}

@@ -5,6 +5,14 @@ module.exports = (sequelize, DataTypes) => {
           type: DataTypes.STRING,
           allowNull: false,
       },
+      startDate: {
+          type: DataTypes.DATE,
+          allowNull: true,
+      },
+      endDate: {
+          type: DataTypes.DATE,
+          allowNull: true,
+      },
       activityId: DataTypes.INTEGER,
       userId: DataTypes.ARRAY(DataTypes.INTEGER)
   }, {});

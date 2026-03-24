@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar_Student";
+import StudentLeftSidebar from "./StudentLeftSidebar";
 import backIcon from "../assets/back.png";
 
 import number1 from "../assets/數字1.png";
@@ -134,8 +135,11 @@ export default function Studentfuntion() {
   };
 
   return (
-    <div style={{ minHeight: "100vh" }}>
+    <div style={{ minHeight: "100vh", background: "#ffffff", display: "flex", flexDirection: "column" }}>
       <Navbar />
+      <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
+        <StudentLeftSidebar />
+        <div style={{ flex: 1, minWidth: 0 }}>
 
       <div
         style={{
@@ -177,6 +181,7 @@ export default function Studentfuntion() {
               background: "rgba(105, 83, 83, 0.1)",
               border: "1.5px solid #000000",
               borderRadius: "16px",
+              marginTop: "10px",
               padding: "12px 20px",
               width: "900px",
               maxWidth: "100%",
@@ -369,6 +374,8 @@ export default function Studentfuntion() {
           </div>
         </div>
 
+      </div>
+        </div>
       </div>
     </div>
   );

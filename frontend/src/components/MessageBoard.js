@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import Navbar from "../components/Navbar_Teacher";
+import Navbar from "../components/Navbar_Student";
 import { styled } from "@mui/system";
 import url from "../url.json";
 

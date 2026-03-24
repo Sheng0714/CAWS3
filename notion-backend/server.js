@@ -1487,6 +1487,81 @@ function splitTextIntoChunks(text, maxLength = 2000) {
     return chunks;
 }
 
+const normalizeLookupValue = (value) => String(value ?? '').replace(/\u3000/g, ' ').trim();
+
+const sortByLastEditedDesc = (pages = []) =>
+    [...pages].sort(
+        (a, b) => new Date(b?.last_edited_time || 0).getTime() - new Date(a?.last_edited_time || 0).getTime()
+    );
+
+const createScopeFilter = (operator, studentName, className, theme) => ({
+    and: [
+        {
+            property: '學生姓名',
+            title: {
+                [operator]: studentName,
+            },
+        },
+        {
+            property: '班級',
+            rich_text: {
+                [operator]: className,
+            },
+        },
+        {
+            property: '主題',
+            rich_text: {
+                [operator]: theme,
+            },
+        },
+    ],
+});
+
+async function findPageByScope({ studentName, className, theme }) {
+    const strictResponse = await notion.databases.query({
+        database_id: NOTION_DATABASE_ID,
+        filter: createScopeFilter('equals', studentName, className, theme),
+    });
+
+    if (strictResponse.results.length > 0) {
+        return {
+            page: sortByLastEditedDesc(strictResponse.results)[0],
+            matchedBy: 'equals',
+        };
+    }
+
+    const fuzzyResponse = await notion.databases.query({
+        database_id: NOTION_DATABASE_ID,
+        filter: createScopeFilter('contains', studentName, className, theme),
+    });
+
+    if (fuzzyResponse.results.length > 0) {
+        return {
+            page: sortByLastEditedDesc(fuzzyResponse.results)[0],
+            matchedBy: 'contains',
+        };
+    }
+
+    return { page: null, matchedBy: null };
+}
+
+const joinRichText = (richTextValue) =>
+    Array.isArray(richTextValue)
+        ? richTextValue.map((item) => item?.plain_text ?? item?.text?.content ?? '').join('')
+        : '';
+
+const safeJsonParse = (value, fallbackValue) => {
+    if (!value) {
+        return fallbackValue;
+    }
+    try {
+        return JSON.parse(value);
+    } catch (error) {
+        console.warn('Failed to parse stored JSON content:', error?.message || error);
+        return fallbackValue;
+    }
+};
+
 // 處理提交到 Notion 的端點（包括所有欄位）
 app.post('/api/submit-to-notion', async (req, res) => {
     console.log('收到請求:', req.body);
@@ -1592,8 +1667,12 @@ app.post('/api/submit-to-notion', async (req, res) => {
 
 // 根據學生姓名、班級名稱和主題名稱從 Notion 資料庫中獲取議論文內容
 app.get('/api/get-essay/:studentName', async (req, res) => {
-    const { studentName } = req.params;
-    const { className, theme } = req.query;
+    const studentName = normalizeLookupValue(req.params.studentName);
+    const className = normalizeLookupValue(req.query.className);
+    const theme = normalizeLookupValue(req.query.theme);
+    const normalizedStudentName = studentName;
+    const normalizedClassName = className;
+    const normalizedTheme = theme;
 
     if (!studentName || !className || !theme) {
         return res.status(400).json({
@@ -1610,26 +1689,37 @@ app.get('/api/get-essay/:studentName', async (req, res) => {
                     {
                         property: '學生姓名',
                         title: {
-                            equals: studentName,
+                            equals: normalizedStudentName,
                         },
                     },
                     {
                         property: '班級',
                         rich_text: {
-                            equals: className,
+                            equals: normalizedClassName,
                         },
                     },
                     {
                         property: '主題',
                         rich_text: {
-                            equals: theme,
+                            equals: normalizedTheme,
                         },
                     },
                 ],
             },
         });
 
-        if (response.results.length === 0) {
+        let candidateResults = Array.isArray(response?.results) ? response.results : [];
+        let matchedBy = 'equals';
+        if (candidateResults.length === 0) {
+            const fuzzyResponse = await notion.databases.query({
+                database_id: NOTION_DATABASE_ID,
+                filter: createScopeFilter('contains', studentName, className, theme),
+            });
+            candidateResults = Array.isArray(fuzzyResponse?.results) ? fuzzyResponse.results : [];
+            matchedBy = 'contains';
+        }
+
+        if (candidateResults.length === 0) {
             return res.status(404).json({
                 success: false,
                 error: '未找到符合學生姓名、班級和主題的議論文內容',
@@ -1637,7 +1727,19 @@ app.get('/api/get-essay/:studentName', async (req, res) => {
         }
 
         // 拼接多個 rich_text 區塊的內容
-        const page = response.results[0];
+        const latestPage = sortByLastEditedDesc(candidateResults)[0];
+        const page = {
+            ...latestPage,
+            properties: new Proxy(latestPage?.properties || {}, {
+                get(target, prop) {
+                    const value = target[prop];
+                    if (value !== undefined) {
+                        return value;
+                    }
+                    return { rich_text: [] };
+                },
+            }),
+        };
         const essayContent = page.properties['議論文內容'].rich_text.map(item => item.text.content).join('');
         const noteContent = page.properties['筆記區'].rich_text.map(item => item.text.content).join('');
         const kfAnalysisContent = page.properties['KF摘要'].rich_text.map(item => item.text.content).join('');
@@ -1650,9 +1752,10 @@ app.get('/api/get-essay/:studentName', async (req, res) => {
                 essayContent,
                 noteContent,
                 kfAnalysisContent,
-                chatHistory: chatHistoryContent ? JSON.parse(chatHistoryContent) : [],
+                chatHistory: safeJsonParse(chatHistoryContent, []),
                 outlineContent,
             },
+            matchedBy,
         });
     } catch (error) {
         console.error('Notion API 錯誤詳情:', error);
@@ -1668,9 +1771,12 @@ app.patch('/api/update-note', async (req, res) => {
     console.log('收到更新請求:', req.body);
 
     const { studentName, className, theme, noteContent, essayContent, kfAnalysisContent, chatHistory, outlineContent } = req.body;
+    const normalizedStudentName = normalizeLookupValue(studentName);
+    const normalizedClassName = normalizeLookupValue(className);
+    const normalizedTheme = normalizeLookupValue(theme);
 
     // 驗證請求數據
-    if (!studentName || !className || !theme) {
+    if (!normalizedStudentName || !normalizedClassName || !normalizedTheme) {
         return res.status(400).json({
             success: false,
             error: '缺少必要字段：studentName, className 和 theme 為必填項',
@@ -1686,19 +1792,19 @@ app.patch('/api/update-note', async (req, res) => {
                     {
                         property: '學生姓名',
                         title: {
-                            equals: studentName,
+                            equals: normalizedStudentName,
                         },
                     },
                     {
                         property: '班級',
                         rich_text: {
-                            equals: className,
+                            equals: normalizedClassName,
                         },
                     },
                     {
                         property: '主題',
                         rich_text: {
-                            equals: theme,
+                            equals: normalizedTheme,
                         },
                     },
                 ],
@@ -1732,9 +1838,18 @@ app.patch('/api/update-note', async (req, res) => {
             text: { content: chunk }
         }));
 
-        if (queryResponse.results.length > 0) {
+        let matchedPage = sortByLastEditedDesc(queryResponse.results)[0] || null;
+        if (!matchedPage) {
+            const fuzzyResponse = await notion.databases.query({
+                database_id: NOTION_DATABASE_ID,
+                filter: createScopeFilter('contains', normalizedStudentName, normalizedClassName, normalizedTheme),
+            });
+            matchedPage = sortByLastEditedDesc(fuzzyResponse.results)[0] || null;
+        }
+
+        if (matchedPage) {
             // 如果記錄存在，更新該記錄
-            const pageId = queryResponse.results[0].id;
+            const pageId = matchedPage.id;
 
             const updateResponse = await notion.pages.update({
                 page_id: pageId,

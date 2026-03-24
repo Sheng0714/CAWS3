@@ -1,896 +1,25 @@
-// import React, { useState, useEffect } from "react";
-// import {
-//   Button,
-//   Box,
-//   TextField,
-//   Typography,
-//   FormControl,
-//   InputLabel,
-//   Select,
-//   MenuItem,
-//   Paper,
-// } from "@mui/material";
-// import FroalaEditor from "react-froala-wysiwyg";
-// import "froala-editor/js/plugins.pkgd.min.js";
-// import "froala-editor/css/froala_editor.pkgd.min.css";
-// import "froala-editor/css/froala_style.min.css";
-// import Navbar from "../components/Navbar_Teacher";
-// import { styled } from "@mui/system";
-
-// // 自定義樣式
-// const MainContainer = styled(Box)(({ theme }) => ({
-//   display: "flex",
-//   height: "calc(100vh - 64px)", // 減去 Navbar 高度
-//   [theme?.breakpoints?.down("md") || "@media (max-width: 960px)"]: {
-//     flexDirection: "column",
-//     height: "auto",
-//   },
-// }));
-
-// const LeftBox = styled(Box)(({ theme }) => ({
-//   flex: 1,
-//   padding: "5px",
-//   borderRight: "1px solid #ccc",
-//   display: "flex",
-//   flexDirection: "column",
-//   marginTop: "-75px",
-//   [theme?.breakpoints?.down("md") || "@media (max-width: 960px)"]: {
-//     marginTop: 0,
-//     borderRight: "none",
-//     borderBottom: "1px solid #ccc",
-//     height: "50vh",
-//   },
-// }));
-
-// const RightBox = styled(Box)(({ theme }) => ({
-//   flex: 2,
-//   padding: "20px",
-//   borderLeft: "1px solid #ccc",
-//   position: "relative",
-//   marginTop: "-75px",
-//   display: "flex",
-//   flexDirection: "column",
-//   [theme?.breakpoints?.down("md") || "@media (max-width: 960px)"]: {
-//     marginTop: 0,
-//     borderLeft: "none",
-//     height: "auto",
-//   },
-// }));
-
-// const TitleBox = styled(Box)(({ theme }) => ({
-//   width: "100%",
-//   height: "50px",
-//   display: "flex",
-//   justifyContent: "center",
-//   alignItems: "center",
-//   backgroundColor: "#B7C5FF",
-//   fontSize: "18px",
-//   fontWeight: "bold",
-// }));
-
-// const CommentPaper = styled(Paper)(({ theme }) => ({
-//   marginTop: "20px",
-//   padding: "16px",
-//   backgroundColor: "#FFFFFF",
-//   boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     marginTop: "10px",
-//     padding: "12px",
-//   },
-// }));
-
-// const CommentTextField = styled(TextField)(({ theme }) => ({
-//   width: "100%",
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     marginBottom: "10px",
-//   },
-// }));
-
-// const RatingContainer = styled(Box)(({ theme }) => ({
-//   marginTop: "20px",
-//   display: "flex",
-//   flexDirection: "column", // 改為垂直排列
-//   gap: "15px", // 每個欄位之間的間距
-//   alignItems: "flex-start",
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     gap: "10px",
-//   },
-// }));
-
-// const ButtonContainer = styled(Box)(({ theme }) => ({
-//   marginTop: "20px",
-//   display: "flex",
-//   gap: "10px",
-//   justifyContent: "flex-end",
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     justifyContent: "center",
-//   },
-// }));
-
-// const ScoreDisplay = styled(Box)(({ theme }) => ({
-//   display: "flex",
-//   alignItems: "center",
-//   gap: "10px",
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     gap: "5px",
-//   },
-// }));
-
-// const ScoreLabel = styled(Typography)(({ theme }) => ({
-//   fontSize: "16px",
-//   fontWeight: "bold",
-//   color: "#1976d2",
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     fontSize: "14px",
-//   },
-// }));
-
-// const ScoreInput = styled(TextField)(({ theme }) => ({
-//   width: "60px",
-//   "& input": {
-//     textAlign: "center",
-//   },
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     width: "50px",
-//   },
-// }));
-
-// const CorrectEssays = () => {
-//   const [editorContent, setEditorContent] = useState(""); // 儲存 Froala 編輯器內容
-//   const [comment, setComment] = useState(""); // 儲存評語
-//   const [ratings, setRatings] = useState({
-//     claims: 0,
-//     grounds: 0,
-//     rebuttals: 0,
-//   }); // 儲存評分
-//   const [totalScore, setTotalScore] = useState(0); // 儲存總分
-
-//   // 評分選項和描述
-//   const ratingOptions = {
-//     claims: [
-//       { value: 0, label: "0", description: "" },
-//       { value: 1, label: "1: 弱的主張，文章無法提出有效的論點", description: "弱的主張，文章無法提出有效的論點" },
-//       { value: 2, label: "2: 強的主張，文章能提出有效的論點", description: "強的主張，文章能提出有效的論點" },
-//     ],
-//     grounds: [
-//       { value: 0, label: "0", description: "" },
-//       { value: 1, label: "1: 證據不足，無法提出有效的佐證資料", description: "證據不足，無法提出有效的佐證資料" },
-//       { value: 2, label: "2: 主觀個人意見，佐證資料屬於主觀的個人意見", description: "主觀個人意見，佐證資料屬於主觀的個人意見" },
-//       { value: 3, label: "3: 客觀外部資料，佐證資料來自於客觀的外部資料", description: "客觀外部資料，佐證資料來自於客觀的外部資料" },
-//       {
-//         value: 4,
-//         label: "4: 包含客觀的外部資料及主觀的個人意見，佐證資料包含了客觀的外部資料及主觀的個人意見，充分支持論點",
-//         description: "包含客觀的外部資料及主觀的個人意見，佐證資料包含了客觀的外部資料及主觀的個人意見，充分支持論點",
-//       },
-//     ],
-//     rebuttals: [
-//       { value: 0, label: "0", description: "" },
-//       { value: 1, label: "1: 弱的反駁論點，僅包含了自己的論點", description: "弱的反駁論點，僅包含了自己的論點" },
-//       { value: 2, label: "2: 強有力的反駁論點，包含了反方的論點及反駁論點", description: "強有力的反駁論點，包含了反方的論點及反駁論點" },
-//     ],
-//   };
-
-//   // 初始化時載入儲存的內容
-//   useEffect(() => {
-//     const savedEditorData = localStorage.getItem("editorData");
-//     if (savedEditorData) {
-//       setEditorContent(savedEditorData);
-//     }
-
-//     const savedComment = localStorage.getItem("comment");
-//     if (savedComment) {
-//       setComment(savedComment);
-//     }
-
-//     const savedRatings = localStorage.getItem("ratings");
-//     if (savedRatings) {
-//       const parsedRatings = JSON.parse(savedRatings);
-//       setRatings(parsedRatings);
-//       // 計算初始總分
-//       setTotalScore(
-//         parsedRatings.claims + parsedRatings.grounds + parsedRatings.rebuttals
-//       );
-//     }
-
-//     const savedTotalScore = localStorage.getItem("totalScore");
-//     if (savedTotalScore) {
-//       setTotalScore(parseInt(savedTotalScore, 10));
-//     }
-//   }, []);
-
-//   // 當評分改變時，自動計算總分
-//   useEffect(() => {
-//     const total = ratings.claims + ratings.grounds + ratings.rebuttals;
-//     setTotalScore(total);
-//   }, [ratings]);
-
-//   // 設置 Froala 編輯器選項
-//   const config = {
-//     placeholderText: "開始編輯...",
-//     charCounterCount: false,
-//     toolbarButtons: [
-//       "bold",
-//       "italic",
-//       "underline",
-//       "strikeThrough",
-//       "fontSize",
-//       "color",
-//       "fontFamily",
-//       "backColor",
-//       "align",
-//       "orderedList",
-//       "unorderedList",
-//       "insertImage",
-//       "insertTable",
-//       "link",
-//       "undo",
-//       "redo",
-//       "clearFormatting",
-//       "fullscreen",
-//       "html",
-//       "insertHR",
-//       "specialCharacters",
-//     ],
-//   };
-
-//   // 處理評語輸入
-//   const handleCommentChange = (e) => {
-//     setComment(e.target.value);
-//   };
-
-//   // 處理評分選擇
-//   const handleRatingChange = (category) => (e) => {
-//     setRatings((prev) => ({
-//       ...prev,
-//       [category]: e.target.value,
-//     }));
-//   };
-
-//   // 處理總分手動修改
-//   const handleTotalScoreChange = (e) => {
-//     const value = parseInt(e.target.value, 10);
-//     if (!isNaN(value) && value >= 0 && value <= 8) {
-//       setTotalScore(value);
-//     }
-//   };
-
-//   // 儲存編輯器內容、評語、評分和總分
-//   const handleSave = () => {
-//     localStorage.setItem("editorData", editorContent);
-//     localStorage.setItem("comment", comment);
-//     localStorage.setItem("ratings", JSON.stringify(ratings));
-//     localStorage.setItem("totalScore", totalScore.toString());
-//     alert("儲存成功!");
-//   };
-
-//   // 模擬送出（可改為後端 API）
-//   const handleSubmit = () => {
-//     alert(
-//       "送出成功！\n評語: " +
-//         comment +
-//         "\n評分: " +
-//         JSON.stringify(ratings) +
-//         "\n總分: " +
-//         totalScore
-//     );
-//     // 這裡可以添加後端 API 請求
-//   };
-
-//   return (
-//     <div>
-//       <Navbar />
-
-//       {/* 主內容區域 */}
-//       <MainContainer>
-//         {/* 左邊容器：寫作精靈 */}
-//         <LeftBox>
-//           <TitleBox>寫作精靈</TitleBox>
-//           <div
-//             style={{
-//               border: "2px solid black",
-//               borderRadius: "8px",
-//               padding: "10px",
-//               flex: 1,
-//               overflowY: "auto",
-//               backgroundColor: "#FFFFFF",
-//               marginBottom: "10px",
-//             }}
-//           >
-//             <iframe
-//               src="https://140.115.126.193/chat/share?shared_id=8f34f200ef5911ef91480242ac120005&from=agent&auth=JkZGFjM2JjZjAwMDExZWY4ZTkxMDI0Mm"
-//               style={{ width: "100%", height: "100%", minHeight: "600px" }}
-//               frameBorder="0"
-//               title="Chat Widget"
-//             />
-//           </div>
-//         </LeftBox>
-
-//         {/* 右邊容器：寫作區 */}
-//         <RightBox>
-//           <TitleBox>寫作區</TitleBox>
-//           <FroalaEditor
-//             tag="textarea"
-//             config={config}
-//             model={editorContent}
-//             onModelChange={(newContent) => setEditorContent(newContent)}
-//           />
-
-//           {/* 評語區域 */}
-//           <CommentPaper>
-//             <CommentTextField
-//               label="評語"
-//               value={comment}
-//               onChange={handleCommentChange}
-//               multiline
-//               rows={4}
-//               variant="outlined"
-//             />
-
-//             {/* 評分表 */}
-//             <RatingContainer>
-//               <FormControl sx={{ minWidth: 200 }}>
-//                 <InputLabel>Claims</InputLabel>
-//                 <Select
-//                   value={ratings.claims}
-//                   onChange={handleRatingChange("claims")}
-//                   label="Claims"
-//                 >
-//                   {ratingOptions.claims.map((option) => (
-//                     <MenuItem key={option.value} value={option.value}>
-//                       {option.label}
-//                     </MenuItem>
-//                   ))}
-//                 </Select>
-//               </FormControl>
-
-//               <FormControl sx={{ minWidth: 200 }}>
-//                 <InputLabel>Grounds</InputLabel>
-//                 <Select
-//                   value={ratings.grounds}
-//                   onChange={handleRatingChange("grounds")}
-//                   label="Grounds"
-//                 >
-//                   {ratingOptions.grounds.map((option) => (
-//                     <MenuItem key={option.value} value={option.value}>
-//                       {option.label}
-//                     </MenuItem>
-//                   ))}
-//                 </Select>
-//               </FormControl>
-
-//               <FormControl sx={{ minWidth: 200 }}>
-//                 <InputLabel>Rebuttals</InputLabel>
-//                 <Select
-//                   value={ratings.rebuttals}
-//                   onChange={handleRatingChange("rebuttals")}
-//                   label="Rebuttals"
-//                 >
-//                   {ratingOptions.rebuttals.map((option) => (
-//                     <MenuItem key={option.value} value={option.value}>
-//                       {option.label}
-//                     </MenuItem>
-//                   ))}
-//                 </Select>
-//               </FormControl>
-
-//               {/* 顯示總分並允許手動修改 */}
-//               <ScoreDisplay>
-//                 <ScoreLabel>分數</ScoreLabel>
-//                 <ScoreInput
-//                   type="number"
-//                   value={totalScore}
-//                   onChange={handleTotalScoreChange}
-//                   inputProps={{ min: 0, max: 8 }}
-//                   variant="outlined"
-//                 />
-//               </ScoreDisplay>
-//             </RatingContainer>
-//           </CommentPaper>
-
-//           {/* 儲存和送出按鈕 */}
-//           <ButtonContainer>
-//             <Button variant="contained" color="primary" onClick={handleSave}>
-//               儲存
-//             </Button>
-//             <Button variant="contained" color="secondary" onClick={handleSubmit}>
-//               送出
-//             </Button>
-//           </ButtonContainer>
-//         </RightBox>
-//       </MainContainer>
-//     </div>
-//   );
-// };
-
-// export default CorrectEssays;
-
-
-
-
-// import React, { useState, useEffect } from "react";
-// import {
-//   Button,
-//   Box,
-//   TextField,
-//   Typography,
-//   FormControl,
-//   InputLabel,
-//   Select,
-//   MenuItem,
-//   Paper,
-//   Dialog,
-//   DialogTitle,
-//   DialogContent,
-//   DialogContentText,
-//   DialogActions,
-// } from "@mui/material";
-// import FroalaEditor from "react-froala-wysiwyg";
-// import "froala-editor/js/plugins.pkgd.min.js";
-// import "froala-editor/css/froala_editor.pkgd.min.css";
-// import "froala-editor/css/froala_style.min.css";
-// import Navbar from "../components/Navbar_Teacher";
-// import { styled } from "@mui/system";
-
-// // 自定義樣式
-// const MainContainer = styled(Box)(({ theme }) => ({
-//   display: "flex",
-//   height: "calc(100vh - 64px)", // 減去 Navbar 高度
-//   [theme?.breakpoints?.down("md") || "@media (max-width: 960px)"]: {
-//     flexDirection: "column",
-//     height: "auto",
-//   },
-// }));
-
-// const LeftBox = styled(Box)(({ theme }) => ({
-//   flex: 1,
-//   padding: "5px",
-//   borderRight: "1px solid #ccc",
-//   display: "flex",
-//   flexDirection: "column",
-//   marginTop: "-75px",
-//   [theme?.breakpoints?.down("md") || "@media (max-width: 960px)"]: {
-//     marginTop: 0,
-//     borderRight: "none",
-//     borderBottom: "1px solid #ccc",
-//     height: "50vh",
-//   },
-// }));
-
-// const RightBox = styled(Box)(({ theme }) => ({
-//   flex: 2,
-//   padding: "20px",
-//   borderLeft: "1px solid #ccc",
-//   position: "relative",
-//   marginTop: "-75px",
-//   display: "flex",
-//   flexDirection: "column",
-//   [theme?.breakpoints?.down("md") || "@media (max-width: 960px)"]: {
-//     marginTop: 0,
-//     borderLeft: "none",
-//     height: "auto",
-//   },
-// }));
-
-// const TitleBox = styled(Box)(({ theme }) => ({
-//   width: "100%",
-//   height: "50px",
-//   display: "flex",
-//   justifyContent: "center",
-//   alignItems: "center",
-//   backgroundColor: "#B7C5FF",
-//   fontSize: "18px",
-//   fontWeight: "bold",
-// }));
-
-// const CommentPaper = styled(Paper)(({ theme }) => ({
-//   marginTop: "20px",
-//   padding: "16px",
-//   backgroundColor: "#FFFFFF",
-//   boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     marginTop: "10px",
-//     padding: "12px",
-//   },
-// }));
-
-// const CommentTextField = styled(TextField)(({ theme }) => ({
-//   width: "100%",
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     marginBottom: "10px",
-//   },
-// }));
-
-// const RatingContainer = styled(Box)(({ theme }) => ({
-//   marginTop: "20px",
-//   display: "flex",
-//   flexDirection: "column", // 改為垂直排列
-//   gap: "15px", // 每個欄位之間的間距
-//   alignItems: "flex-start",
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     gap: "10px",
-//   },
-// }));
-
-// const ButtonContainer = styled(Box)(({ theme }) => ({
-//   marginTop: "20px",
-//   display: "flex",
-//   gap: "10px",
-//   justifyContent: "flex-end",
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     justifyContent: "center",
-//   },
-// }));
-
-// const ScoreDisplay = styled(Box)(({ theme }) => ({
-//   display: "flex",
-//   alignItems: "center",
-//   gap: "10px",
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     gap: "5px",
-//   },
-// }));
-
-// const ScoreLabel = styled(Typography)(({ theme }) => ({
-//   fontSize: "16px",
-//   fontWeight: "bold",
-//   color: "#1976d2",
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     fontSize: "14px",
-//   },
-// }));
-
-// const ScoreInput = styled(TextField)(({ theme }) => ({
-//   width: "60px",
-//   "& input": {
-//     textAlign: "center",
-//   },
-//   [theme?.breakpoints?.down("sm") || "@media (max-width: 600px)"]: {
-//     width: "50px",
-//   },
-// }));
-
-// const CorrectEssays = () => {
-//   const [editorContent, setEditorContent] = useState(""); // 儲存 Froala 編輯器內容
-//   const [comment, setComment] = useState(""); // 儲存評語
-//   const [ratings, setRatings] = useState({
-//     claims: 0,
-//     grounds: 0,
-//     rebuttals: 0,
-//   }); // 儲存評分
-//   const [totalScore, setTotalScore] = useState(0); // 儲存總分
-//   const [openTempSaveDialog, setOpenTempSaveDialog] = useState(false); // 控制暫存成功彈窗
-
-//   // 評分選項和描述
-//   const ratingOptions = {
-//     claims: [
-//       { value: 0, label: "0", description: "" },
-//       { value: 1, label: "1: 弱的主張，文章無法提出有效的論點", description: "弱的主張，文章無法提出有效的論點" },
-//       { value: 2, label: "2: 強的主張，文章能提出有效的論點", description: "強的主張，文章能提出有效的論點" },
-//     ],
-//     grounds: [
-//       { value: 0, label: "0", description: "" },
-//       { value: 1, label: "1: 證據不足，無法提出有效的佐證資料", description: "證據不足，無法提出有效的佐證資料" },
-//       { value: 2, label: "2: 主觀個人意見，佐證資料屬於主觀的個人意見", description: "主觀個人意見，佐證資料屬於主觀的個人意見" },
-//       { value: 3, label: "3: 客觀外部資料，佐證資料來自於客觀的外部資料", description: "客觀外部資料，佐證資料來自於客觀的外部資料" },
-//       {
-//         value: 4,
-//         label: "4: 包含客觀的外部資料及主觀的個人意見，佐證資料包含了客觀的外部資料及主觀的個人意見，充分支持論點",
-//         description: "包含客觀的外部資料及主觀的個人意見，佐證資料包含了客觀的外部資料及主觀的個人意見，充分支持論點",
-//       },
-//     ],
-//     rebuttals: [
-//       { value: 0, label: "0", description: "" },
-//       { value: 1, label: "1: 弱的反駁論點，僅包含了自己的論點", description: "弱的反駁論點，僅包含了自己的論點" },
-//       { value: 2, label: "2: 強有力的反駁論點，包含了反方的論點及反駁論點", description: "強有力的反駁論點，包含了反方的論點及反駁論點" },
-//     ],
-//   };
-
-//   // 初始化時載入儲存的內容
-//   useEffect(() => {
-//     const savedEditorData = localStorage.getItem("editorData");
-//     if (savedEditorData) {
-//       setEditorContent(savedEditorData);
-//     }
-
-//     const savedComment = localStorage.getItem("comment");
-//     if (savedComment) {
-//       setComment(savedComment);
-//     }
-
-//     const savedRatings = localStorage.getItem("ratings");
-//     if (savedRatings) {
-//       const parsedRatings = JSON.parse(savedRatings);
-//       setRatings(parsedRatings);
-//       // 計算初始總分
-//       setTotalScore(
-//         parsedRatings.claims + parsedRatings.grounds + parsedRatings.rebuttals
-//       );
-//     }
-
-//     const savedTotalScore = localStorage.getItem("totalScore");
-//     if (savedTotalScore) {
-//       setTotalScore(parseInt(savedTotalScore, 10));
-//     }
-//   }, []);
-
-//   // 當評分改變時，自動計算總分
-//   useEffect(() => {
-//     const total = ratings.claims + ratings.grounds + ratings.rebuttals;
-//     setTotalScore(total);
-//   }, [ratings]);
-
-//   // 設置 Froala 編輯器選項
-//   const config = {
-//     placeholderText: "開始編輯...",
-//     charCounterCount: false,
-//     toolbarButtons: [
-//       "bold",
-//       "italic",
-//       "underline",
-//       "strikeThrough",
-//       "fontSize",
-//       "color",
-//       "fontFamily",
-//       "backColor",
-//       "align",
-//       "orderedList",
-//       "unorderedList",
-//       "insertImage",
-//       "insertTable",
-//       "link",
-//       "undo",
-//       "redo",
-//       "clearFormatting",
-//       "fullscreen",
-//       "html",
-//       "insertHR",
-//       "specialCharacters",
-//     ],
-//   };
-
-//   // 處理評語輸入
-//   const handleCommentChange = (e) => {
-//     setComment(e.target.value);
-//   };
-
-//   // 處理評分選擇
-//   const handleRatingChange = (category) => (e) => {
-//     setRatings((prev) => ({
-//       ...prev,
-//       [category]: e.target.value,
-//     }));
-//   };
-
-//   // 處理總分手動修改
-//   const handleTotalScoreChange = (e) => {
-//     const value = parseInt(e.target.value, 10);
-//     if (!isNaN(value) && value >= 0 && value <= 8) {
-//       setTotalScore(value);
-//     }
-//   };
-
-//   // 儲存編輯器內容、評語、評分和總分
-//   const handleSave = () => {
-//     localStorage.setItem("editorData", editorContent);
-//     localStorage.setItem("comment", comment);
-//     localStorage.setItem("ratings", JSON.stringify(ratings));
-//     localStorage.setItem("totalScore", totalScore.toString());
-//     alert("儲存成功!");
-//   };
-
-//   // 暫存編輯器內容、評語、評分和總分，並顯示彈窗
-//   const handleTempSave = () => {
-//     localStorage.setItem("editorData", editorContent);
-//     localStorage.setItem("comment", comment);
-//     localStorage.setItem("ratings", JSON.stringify(ratings));
-//     localStorage.setItem("totalScore", totalScore.toString());
-//     setOpenTempSaveDialog(true); // 顯示暫存成功彈窗
-//   };
-
-//   // 關閉暫存成功彈窗
-//   const handleCloseTempSaveDialog = () => {
-//     setOpenTempSaveDialog(false);
-//   };
-
-//   // 模擬送出（可改為後端 API）
-//   const handleSubmit = () => {
-//     alert(
-//       "送出成功！\n評語: " +
-//         comment +
-//         "\n評分: " +
-//         JSON.stringify(ratings) +
-//         "\n總分: " +
-//         totalScore
-//     );
-//     // 這裡可以添加後端 API 請求
-//   };
-
-//   return (
-//     <div>
-//       <Navbar />
-
-//       {/* 主內容區域 */}
-//       <MainContainer>
-//         {/* 左邊容器：寫作精靈 */}
-//         {/* <LeftBox>
-//           <TitleBox>寫作精靈</TitleBox>
-//           <div
-//             style={{
-//               border: "2px solid black",
-//               borderRadius: "8px",
-//               padding: "10px",
-//               flex: 1,
-//               overflowY: "auto",
-//               backgroundColor: "#FFFFFF", // 修正拼寫錯誤
-//               marginBottom: "10px",
-//             }}
-//           >
-//             <iframe
-//               src="https://140.115.126.193/chat/share?shared_id=8f34f200ef5911ef91480242ac120005&from=agent&auth=hmY2Y0MjNjMWQ5YTExZjBhMGQ5MDI0Mm"
-//               style={{ width: "100%", height: "100%", minHeight: "600px" }}
-//               frameBorder="0"
-//               title="Chat Widget"
-//             />
-//           </div>
-//         </LeftBox> */}
-
-//         {/* 右邊容器：寫作區 */}
-//         <RightBox>
-//           <TitleBox>寫作區</TitleBox>
-//           <FroalaEditor
-//             tag="textarea"
-//             config={config}
-//             model={editorContent}
-//             onModelChange={(newContent) => setEditorContent(newContent)}
-//           />
-
-//           {/* 評語區域 */}
-//           <CommentPaper>
-//             <CommentTextField
-//               label="評語"
-//               value={comment}
-//               onChange={handleCommentChange}
-//               multiline
-//               rows={4}
-//               variant="outlined"
-//             />
-
-//             {/* 評分表 */}
-//             <RatingContainer>
-//               <FormControl sx={{ minWidth: 200 }}>
-//                 <InputLabel>Claims</InputLabel>
-//                 <Select
-//                   value={ratings.claims}
-//                   onChange={handleRatingChange("claims")}
-//                   label="Claims"
-//                 >
-//                   {ratingOptions.claims.map((option) => (
-//                     <MenuItem key={option.value} value={option.value}>
-//                       {option.label}
-//                     </MenuItem>
-//                   ))}
-//                 </Select>
-//               </FormControl>
-
-//               <FormControl sx={{ minWidth: 200 }}>
-//                 <InputLabel>Grounds</InputLabel>
-//                 <Select
-//                   value={ratings.grounds}
-//                   onChange={handleRatingChange("grounds")}
-//                   label="Grounds"
-//                 >
-//                   {ratingOptions.grounds.map((option) => (
-//                     <MenuItem key={option.value} value={option.value}>
-//                       {option.label}
-//                     </MenuItem>
-//                   ))}
-//                 </Select>
-//               </FormControl>
-
-//               <FormControl sx={{ minWidth: 200 }}>
-//                 <InputLabel>Rebuttals</InputLabel>
-//                 <Select
-//                   value={ratings.rebuttals}
-//                   onChange={handleRatingChange("rebuttals")}
-//                   label="Rebuttals"
-//                 >
-//                   {ratingOptions.rebuttals.map((option) => (
-//                     <MenuItem key={option.value} value={option.value}>
-//                       {option.label}
-//                     </MenuItem>
-//                   ))}
-//                 </Select>
-//               </FormControl>
-
-//               {/* 顯示總分並允許手動修改 */}
-//               <ScoreDisplay>
-//                 <ScoreLabel>分數</ScoreLabel>
-//                 <ScoreInput
-//                   type="number"
-//                   value={totalScore}
-//                   onChange={handleTotalScoreChange}
-//                   inputProps={{ min: 0, max: 8 }}
-//                   variant="outlined"
-//                 />
-//               </ScoreDisplay>
-//             </RatingContainer>
-//           </CommentPaper>
-
-//           {/* 儲存和送出按鈕 */}
-//           <ButtonContainer>
-//             {/* 新增暫存按鈕 */}
-//             <Button variant="contained" color="primary" onClick={handleTempSave}>
-//               暫存
-//             </Button>
-//             {/* <Button variant="contained" color="primary" onClick={handleSave}>
-//               儲存
-//             </Button> */}
-//             <Button variant="contained" color="secondary" onClick={handleSubmit}>
-//               送出
-//             </Button>
-//           </ButtonContainer>
-//         </RightBox>
-//       </MainContainer>
-
-//       {/* 暫存成功彈窗 */}
-//       <Dialog open={openTempSaveDialog} onClose={handleCloseTempSaveDialog}>
-//         <DialogTitle>提示</DialogTitle>
-//         <DialogContent>
-//           <DialogContentText>暫存成功！</DialogContentText>
-//         </DialogContent>
-//         <DialogActions>
-//           <Button onClick={handleCloseTempSaveDialog} color="primary">
-//             確定
-//           </Button>
-//         </DialogActions>
-//       </Dialog>
-//     </div>
-//   );
-// };
-
-// export default CorrectEssays;
-
-
-
-
-import React, { useState, useEffect } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import {
-  Button,
-  Box,
-  TextField,
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Paper,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Snackbar,
   Alert,
+  Button,
   CircularProgress,
+  MenuItem,
+  Select,
+  Snackbar,
+  TextField,
 } from "@mui/material";
-import FroalaEditor from "react-froala-wysiwyg";
-import "froala-editor/js/plugins.pkgd.min.js";
-import "froala-editor/css/froala_editor.pkgd.min.css";
-import "froala-editor/css/froala_style.min.css";
-import Navbar from "../components/Navbar_Teacher";
-import { styled } from "@mui/system";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useLocation } from "react-router-dom";
+import Navbar from "../components/Navbar_Student";
 
-// Axios 配置
 const apiAxios = axios.create({
-  baseURL: 'http://140.115.126.27:4000',
+  baseURL: "http://140.115.126.27:4000",
   timeout: 10000,
 });
 
 apiAxios.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('jwtToken');
+    const token = localStorage.getItem("jwtToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -899,444 +28,610 @@ apiAxios.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// 自定義樣式
-const MainContainer = styled(Box)(({ theme }) => ({
-  display: "flex",
-  height: "calc(100vh - 64px)",
-  [theme.breakpoints.down("md")]: {
-    flexDirection: "column",
-    height: "auto",
-  },
-}));
+const notionApiBases = [
+  process.env.REACT_APP_NOTION_API_BASE_URL,
+  "/api/notion",
+  "/notion-api",
+  "http://140.115.126.27:4000",
+  "http://localhost:4000",
+].filter((base) => typeof base === "string" && base.trim() !== "");
 
-const LeftBox = styled(Box)(({ theme }) => ({
-  flex: 1,
-  padding: "5px",
-  borderRight: "1px solid #ccc",
-  display: "flex",
-  flexDirection: "column",
-  marginTop: "-75px",
-  [theme.breakpoints.down("md")]: {
-    marginTop: 0,
-    borderRight: "none",
-    borderBottom: "1px solid #ccc",
-    height: "50vh",
-  },
-}));
+const normalizeScopeValue = (value) => String(value ?? "").replace(/\u3000/g, " ").trim().toLowerCase();
 
-const RightBox = styled(Box)(({ theme }) => ({
-  flex: 2,
-  padding: "20px",
-  borderLeft: "1px solid #ccc",
-  position: "relative",
-  marginTop: "-75px",
-  display: "flex",
-  flexDirection: "column",
-  [theme.breakpoints.down("md")]: {
-    marginTop: 0,
-    borderLeft: "none",
-    height: "auto",
-  },
-}));
+const pickLatestRow = (rows) =>
+  [...rows].sort((a, b) => new Date(b?.submissionDate || 0).getTime() - new Date(a?.submissionDate || 0).getTime())[0];
 
-const TitleBox = styled(Box)(({ theme }) => ({
-  width: "100%",
-  height: "50px",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  backgroundColor: "#B7C5FF",
-  fontSize: "18px",
-  fontWeight: "bold",
-}));
+const fetchStudentsByClassFromNotion = async (className) => {
+  const token = localStorage.getItem("jwtToken");
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  let lastError = null;
 
-const CommentPaper = styled(Paper)(({ theme }) => ({
-  marginTop: "20px",
-  padding: "16px",
-  backgroundColor: "#FFFFFF",
-  boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
-  [theme.breakpoints.down("sm")]: {
-    marginTop: "10px",
-    padding: "12px",
-  },
-}));
+  for (const base of notionApiBases) {
+    const normalizedBase = String(base || "").replace(/\/+$/, "");
+    if (!normalizedBase) continue;
 
-const CommentTextField = styled(TextField)(({ theme }) => ({
-  width: "100%",
-  [theme.breakpoints.down("sm")]: {
-    marginBottom: "10px",
-  },
-}));
-
-const RatingContainer = styled(Box)(({ theme }) => ({
-  marginTop: "20px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "15px",
-  alignItems: "flex-start",
-  [theme.breakpoints.down("sm")]: {
-    gap: "10px",
-  },
-}));
-
-const ButtonContainer = styled(Box)(({ theme }) => ({
-  marginTop: "20px",
-  display: "flex",
-  gap: "10px",
-  justifyContent: "flex-end",
-  [theme.breakpoints.down("sm")]: {
-    justifyContent: "center",
-  },
-}));
-
-const ScoreDisplay = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: "10px",
-  [theme.breakpoints.down("sm")]: {
-    gap: "5px",
-  },
-}));
-
-const ScoreLabel = styled(Typography)(({ theme }) => ({
-  fontSize: "16px",
-  fontWeight: "bold",
-  color: "#1976d2",
-  [theme.breakpoints.down("sm")]: {
-    fontSize: "14px",
-  },
-}));
-
-const ScoreInput = styled(TextField)(({ theme }) => ({
-  width: "60px",
-  "& input": {
-    textAlign: "center",
-  },
-  [theme.breakpoints.down("sm")]: {
-    width: "50px",
-  },
-}));
-
-const CorrectEssays = () => {
-  const [editorContent, setEditorContent] = useState("");
-  const [noteContent, setNoteContent] = useState("");
-  const [comment, setComment] = useState("");
-  const [ratings, setRatings] = useState({
-    claims: 0,
-    grounds: 0,
-    rebuttals: 0,
-  });
-  const [totalScore, setTotalScore] = useState(0);
-  const [openTempSaveDialog, setOpenTempSaveDialog] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
-  const [isLoading, setIsLoading] = useState(false);
-  const location = useLocation();
-  const { studentName, className, theme } = location.state || {};
-
-  const ratingOptions = {
-    claims: [
-      { value: 0, label: "0", description: "" },
-      { value: 1, label: "1: 弱的主張，文章無法提出有效的論點", description: "弱的主張，文章無法提出有效的論點" },
-      { value: 2, label: "2: 強的主張，文章能提出有效的論點", description: "強的主張，文章能提出有效的論點" },
-    ],
-    grounds: [
-      { value: 0, label: "0", description: "" },
-      { value: 1, label: "1: 證據不足，無法提出有效的佐證資料", description: "證據不足，無法提出有效的佐證資料" },
-      { value: 2, label: "2: 主觀個人意見，佐證資料屬於主觀的個人意見", description: "主觀個人意見，佐證資料屬於主觀的個人意見" },
-      { value: 3, label: "3: 客觀外部資料，佐證資料來自於客觀的外部資料", description: "客觀外部資料，佐證資料來自於客觀的外部資料" },
-      {
-        value: 4,
-        label: "4: 包含客觀的外部資料及主觀的個人意見，佐證資料包含了客觀的外部資料及主觀的個人意見，充分支持論點",
-        description: "包含客觀的外部資料及主觀的個人意見，佐證資料包含了客觀的外部資料及主觀的個人意見，充分支持論點",
-      },
-    ],
-    rebuttals: [
-      { value: 0, label: "0", description: "" },
-      { value: 1, label: "1: 弱的反駁論點，僅包含了自己的論點", description: "弱的反駁論點，僅包含了自己的論點" },
-      { value: 2, label: "2: 強有力的反駁論點，包含了反方的論點及反駁論點", description: "強有力的反駁論點，包含了反方的論點及反駁論點" },
-    ],
-  };
-
-  // 初始化時載入 Notion 資料
-  useEffect(() => {
-    if (studentName && className && theme) {
-      const fetchEssayContent = async () => {
-        setIsLoading(true);
-        try {
-          const response = await apiAxios.get(`/api/get-essay/${encodeURIComponent(studentName)}`, {
-            params: { className, theme },
-          });
-          console.log('Fetched essay data:', response.data);
-          if (response.data.success) {
-            setEditorContent(response.data.data.essayContent || '');
-            setNoteContent(response.data.data.noteContent || '');
-          } else {
-            showSnackbar('未找到議論文內容', 'warning');
-            setEditorContent('');
-            setNoteContent('');
-          }
-        } catch (error) {
-          console.error('從 Notion 獲取議論文失敗:', error);
-          showSnackbar(`載入議論文失敗：${error.message}`, 'error');
-        } finally {
-          setIsLoading(false);
+    try {
+      const response = await axios.get(
+        `${normalizedBase}/api/get-students-by-class/${encodeURIComponent(className)}`,
+        {
+          timeout: 12000,
+          headers,
+          withCredentials: false,
         }
-      };
-      fetchEssayContent();
-    } else {
-      showSnackbar('缺少學生資訊，請從學生列表進入', 'error');
+      );
+
+      const rows = response?.data?.data;
+      if (response?.data?.success && Array.isArray(rows)) {
+        return rows;
+      }
+    } catch (error) {
+      lastError = error;
     }
-  }, [studentName, className, theme]);
+  }
 
-  // 當評分改變時，自動計算總分
-  useEffect(() => {
-    const total = Number(ratings.claims) + Number(ratings.grounds) + Number(ratings.rebuttals);
-    setTotalScore(total);
-  }, [ratings]);
+  throw lastError || new Error("Failed to fetch students by class from Notion");
+};
 
-  const config = {
-    placeholderText: "開始編輯...",
-    charCounterCount: false,
-    toolbarButtons: [
-      "bold",
-      "italic",
-      "underline",
-      "strikeThrough",
-      "fontSize",
-      "color",
-      "fontFamily",
-      "backColor",
-      "align",
-      "orderedList",
-      "unorderedList",
-      "insertImage",
-      "insertTable",
-      "link",
-      "undo",
-      "redo",
-      "clearFormatting",
-      "fullscreen",
-      "html",
-      "insertHR",
-      "specialCharacters",
-    ],
-  };
+const fetchEssayByScopeFromNotion = async ({ studentName, className, theme }) => {
+  const token = localStorage.getItem("jwtToken");
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  let lastError = null;
 
-  const handleCommentChange = (e) => {
-    setComment(e.target.value);
-  };
+  for (const base of notionApiBases) {
+    const normalizedBase = String(base || "").replace(/\/+$/, "");
+    if (!normalizedBase) continue;
 
-  const handleRatingChange = (category) => (e) => {
-    setRatings((prev) => ({
-      ...prev,
-      [category]: Number(e.target.value),
-    }));
-  };
+    try {
+      const response = await axios.get(`${normalizedBase}/api/get-essay/${encodeURIComponent(studentName)}`, {
+        timeout: 15000,
+        headers,
+        withCredentials: false,
+        params: { className, theme },
+      });
 
-  const handleTotalScoreChange = (e) => {
-    const value = parseInt(e.target.value, 10);
-    if (!isNaN(value) && value >= 0 && value <= 8) {
-      setTotalScore(value);
+      if (response?.data?.success) {
+        return response.data.data || {};
+      }
+    } catch (error) {
+      lastError = error;
     }
-  };
+  }
 
-  const showSnackbar = (message, severity = 'info') => {
+  throw lastError || new Error("Failed to fetch scoped essay from Notion");
+};
+
+const containerStyle = {
+  width: "min(1160px, 100%)",
+  margin: "0 auto",
+  padding: "0 10px 16px",
+  boxSizing: "border-box",
+  fontSize: "20px",
+};
+
+const sectionBorder = "1px solid #000000";
+
+const selectStyle = {
+  width: "96px",
+  height: "40px",
+  background: "#ffffff",
+  borderRadius: "0",
+  fontSize: "20px",
+  "& .MuiSelect-select": {
+    padding: "8px 10px",
+  },
+  "& .MuiOutlinedInput-notchedOutline": {
+    borderColor: "#000000",
+  },
+};
+
+const commentFieldSx = {
+  maxWidth: "520px",
+  "& .MuiOutlinedInput-root": {
+    borderRadius: 0,
+    backgroundColor: "#ffffff",
+    fontSize: "20px",
+    height: "40px",
+    "& input": {
+      padding: "8px 10px",
+    },
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: "#000000",
+    },
+  },
+};
+
+const scoreFieldSx = {
+  width: "84px",
+  "& .MuiOutlinedInput-root": {
+    borderRadius: 0,
+    backgroundColor: "#ffffff",
+    height: "40px",
+    fontSize: "20px",
+    "& input": {
+      textAlign: "center",
+      padding: "8px 6px",
+      fontWeight: 600,
+    },
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: "#000000",
+    },
+  },
+};
+
+const roundButtonStyle = {
+  textTransform: "none",
+  borderRadius: "18px",
+  borderColor: "#000000",
+  color: "#222222",
+  background: "#e6d5bf",
+  padding: "4px 16px",
+  minWidth: "112px",
+  fontSize: "20px",
+  fontWeight: 600,
+  lineHeight: 1.1,
+};
+
+export default function CorrectEssays() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const studentName =
+    location.state?.studentName || localStorage.getItem("selectedStudentName") || "Harry";
+  const className = location.state?.className || localStorage.getItem("activityTitle") || "Class A";
+  const topicName = location.state?.theme || location.state?.topicName || localStorage.getItem("groupName") || "-";
+
+  const [essayContent, setEssayContent] = useState("");
+  const [matchedScope, setMatchedScope] = useState({
+    className: "",
+    studentName: "",
+    theme: "",
+  });
+  const [humanComment, setHumanComment] = useState("");
+  const [aiComment, setAiComment] = useState("");
+
+  const [claimsScore, setClaimsScore] = useState("");
+  const [groundsScore, setGroundsScore] = useState("");
+  const [rebuttalsScore, setRebuttalsScore] = useState("");
+
+  const [claimsComment, setClaimsComment] = useState("");
+  const [groundsComment, setGroundsComment] = useState("");
+  const [rebuttalsComment, setRebuttalsComment] = useState("");
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
+
+  const totalScore = useMemo(() => {
+    const c = Number.isNaN(Number(claimsScore)) ? 0 : Number(claimsScore || 0);
+    const g = Number.isNaN(Number(groundsScore)) ? 0 : Number(groundsScore || 0);
+    const r = Number.isNaN(Number(rebuttalsScore)) ? 0 : Number(rebuttalsScore || 0);
+    return c + g + r;
+  }, [claimsScore, groundsScore, rebuttalsScore]);
+
+  const showSnackbar = (message, severity = "info") => {
     setSnackbar({ open: true, message, severity });
   };
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ open: false, message: '', severity: 'info' });
+  const resetGradingFields = () => {
+    setHumanComment("");
+    setAiComment("");
+    setClaimsScore("");
+    setGroundsScore("");
+    setRebuttalsScore("");
+    setClaimsComment("");
+    setGroundsComment("");
+    setRebuttalsComment("");
   };
 
-  const handleTempSave = async () => {
-    try {
-      await apiAxios.patch('/api/update-note', {
-        studentName,
-        className,
-        theme,
-        noteContent,
-        essayContent: editorContent,
-      });
-      localStorage.setItem("editorData", editorContent);
-      localStorage.setItem("noteContent", noteContent);
-      localStorage.setItem("comment", comment);
-      localStorage.setItem("ratings", JSON.stringify(ratings));
-      localStorage.setItem("totalScore", totalScore.toString());
-      showSnackbar('暫存成功！', 'success');
-      setOpenTempSaveDialog(true);
-    } catch (error) {
-      console.error('暫存失敗:', error);
-      showSnackbar(`暫存失敗：${error.message}`, 'error');
+  useEffect(() => {
+    const fetchEssay = async () => {
+      if (!studentName || !className || !topicName || topicName === "-") {
+        showSnackbar("Missing class/topic/student context.", "warning");
+        return;
+      }
+
+      setIsLoading(true);
+      resetGradingFields();
+      try {
+        const classCandidates = [className, String(className || "").replace(/\u3000/g, " ").trim()].filter(
+          (value, index, self) => value && self.indexOf(value) === index
+        );
+        let rows = [];
+        let resolvedClassName = className;
+        let lastClassError = null;
+        for (const candidateClassName of classCandidates) {
+          try {
+            rows = await fetchStudentsByClassFromNotion(candidateClassName);
+            resolvedClassName = candidateClassName;
+            break;
+          } catch (error) {
+            lastClassError = error;
+          }
+        }
+        if (!Array.isArray(rows) || rows.length === 0) {
+          throw lastClassError || new Error("No Notion rows found for class");
+        }
+
+        const matchedRows = rows.filter(
+          (item) =>
+            normalizeScopeValue(item?.studentName) === normalizeScopeValue(studentName) &&
+            normalizeScopeValue(item?.theme) === normalizeScopeValue(topicName)
+        );
+
+        if (matchedRows.length === 0) {
+          setEssayContent("");
+          setMatchedScope({ className: "", studentName: "", theme: "" });
+          showSnackbar("Notion has no row matching this CLASS / STUDENT / TOPIC.", "warning");
+          return;
+        }
+
+        const sortedMatchedRows = [pickLatestRow(matchedRows), ...matchedRows].filter(Boolean);
+        const uniqueScopeKeys = new Set();
+        const scopedCandidates = sortedMatchedRows.filter((item) => {
+          const key = `${item?.studentName || ""}::${item?.theme || ""}`;
+          if (uniqueScopeKeys.has(key)) return false;
+          uniqueScopeKeys.add(key);
+          return true;
+        });
+
+        let data = null;
+        let matchedCandidate = null;
+        let lastScopedError = null;
+        for (const candidate of scopedCandidates) {
+          const scopedStudentName = candidate?.studentName || studentName;
+          const scopedTheme = candidate?.theme || topicName;
+          try {
+            data = await fetchEssayByScopeFromNotion({
+              studentName: scopedStudentName,
+              className: resolvedClassName,
+              theme: scopedTheme,
+            });
+            matchedCandidate = candidate;
+            break;
+          } catch (error) {
+            lastScopedError = error;
+          }
+        }
+
+        if (!data) {
+          throw lastScopedError || new Error("No scoped essay found for matched Notion rows");
+        }
+
+        setMatchedScope({
+          className: resolvedClassName,
+          studentName: matchedCandidate?.studentName || studentName,
+          theme: matchedCandidate?.theme || topicName,
+        });
+
+        setEssayContent(data.essayContent || "");
+
+        const rawNote = data.noteContent || "";
+        if (rawNote) {
+          try {
+            const parsed = JSON.parse(rawNote);
+            setHumanComment(parsed.humanComment || "");
+            setAiComment(parsed.aiComment || "");
+            setClaimsScore(parsed.claimsScore ?? "");
+            setGroundsScore(parsed.groundsScore ?? "");
+            setRebuttalsScore(parsed.rebuttalsScore ?? "");
+            setClaimsComment(parsed.claimsComment || "");
+            setGroundsComment(parsed.groundsComment || "");
+            setRebuttalsComment(parsed.rebuttalsComment || "");
+          } catch {
+            setAiComment(rawNote);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load essay from Notion:", error);
+        showSnackbar(`Load failed: ${error?.message || "unknown error"}`, "error");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEssay();
+  }, [studentName, className, topicName]);
+
+  const handleGenerateAiComment = () => {
+    if (!essayContent.trim()) {
+      showSnackbar("No essay content to grade.", "warning");
+      return;
     }
+
+    const nextComment = [
+      "AI suggestion:",
+      `1. Claims score ${claimsScore || 0}, grounds score ${groundsScore || 0}, rebuttals score ${rebuttalsScore || 0}.`,
+      "2. Strengthen evidence by adding concrete data and sources.",
+      "3. Add rebuttal details for opposing viewpoints.",
+    ].join("\n");
+
+    setAiComment(nextComment);
   };
 
   const handleSubmit = async () => {
+    if (!studentName || !className || !topicName || topicName === "-") {
+      showSnackbar("Missing class/topic/student context.", "error");
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      await apiAxios.patch('/api/update-note', {
-        studentName,
-        className,
-        theme,
-        noteContent,
-        essayContent: editorContent,
+      const submitStudentName = matchedScope.studentName || studentName;
+      const submitClassName = matchedScope.className || className;
+      const submitTheme = matchedScope.theme || topicName;
+
+      const notePayload = JSON.stringify({
+        humanComment,
+        aiComment,
+        claimsScore,
+        groundsScore,
+        rebuttalsScore,
+        claimsComment,
+        groundsComment,
+        rebuttalsComment,
+        totalScore,
       });
-      localStorage.setItem("editorData", editorContent);
-      localStorage.setItem("noteContent", noteContent);
-      localStorage.setItem("comment", comment);
-      localStorage.setItem("ratings", JSON.stringify(ratings));
-      localStorage.setItem("totalScore", totalScore.toString());
-      showSnackbar('送出成功！', 'success');
+
+      await apiAxios.patch("/api/update-note", {
+        studentName: submitStudentName,
+        className: submitClassName,
+        theme: submitTheme,
+        noteContent: notePayload,
+        essayContent,
+      });
+
+      showSnackbar("Submitted successfully.", "success");
     } catch (error) {
-      console.error('送出失敗:', error);
-      showSnackbar(`送出失敗：${error.message}`, 'error');
+      console.error("Submit failed:", error);
+      showSnackbar(`Submit failed: ${error?.message || "unknown error"}`, "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleCloseTempSaveDialog = () => {
-    setOpenTempSaveDialog(false);
-  };
+  const menuItemSx = { fontSize: "20px" };
 
   return (
-    <div>
+    <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: '"Times New Roman", serif', fontSize: "20px" }}>
       <Navbar />
-      <MainContainer>
-        {/* <LeftBox>
-          <TitleBox>筆記區</TitleBox>
-          <TextField
-            value={noteContent}
-            onChange={(e) => setNoteContent(e.target.value)}
-            multiline
-            rows={20}
-            variant="outlined"
-            fullWidth
-            sx={{ flex: 1, margin: "10px", backgroundColor: "#FFFFFF" }}
-          />
-        </LeftBox> */}
-        <RightBox>
-          <TitleBox>
-            <Typography sx={{ fontSize: '16px' }}>
-              {studentName ? `學生: ${studentName}` : '未知學生'} | 
-              {className ? ` 班級: ${className}` : '未知班級'} | 
-              {theme ? ` 主題: ${theme}` : '未知主題'}
-            </Typography>
-          </TitleBox>
+
+      <div style={containerStyle}>
+        <div
+          style={{
+            border: sectionBorder,
+            background: "#efefef",
+            padding: "6px 12px",
+            fontSize: "20px",
+            lineHeight: 1.25,
+            marginTop: "8px",
+            fontWeight: 500,
+          }}
+        >
+          <div>{`Class:${className} Student:${studentName}`}</div>
+          <div>{`Topic:${topicName}`}</div>
+          <div>{`Notion: Class:${matchedScope.className || "-"} Student:${matchedScope.studentName || "-"} Topic:${matchedScope.theme || "-"}`}</div>
+        </div>
+
+        <div
+          style={{
+            border: sectionBorder,
+            background: "#ffffff",
+            minHeight: "188px",
+            padding: "8px 10px",
+            fontSize: "20px",
+            lineHeight: 1.55,
+            overflowY: "auto",
+            whiteSpace: "pre-wrap",
+          }}
+        >
           {isLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-              <CircularProgress />
-            </Box>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "190px" }}>
+              <CircularProgress size={26} />
+            </div>
           ) : (
-            <FroalaEditor
-              tag="textarea"
-              config={config}
-              model={editorContent}
-              onModelChange={(newContent) => setEditorContent(newContent)}
-            />
+            essayContent || "No essay content found for this class/topic/student."
           )}
-          <CommentPaper>
-            <CommentTextField
-              label="評語"
-              value={comment}
-              onChange={handleCommentChange}
-              multiline
-              rows={4}
-              variant="outlined"
+        </div>
+
+        <div
+          style={{
+            border: sectionBorder,
+            borderTop: "none",
+            display: "grid",
+            gridTemplateColumns: "1.15fr 0.85fr",
+            background: "#efefef",
+            minHeight: "122px",
+          }}
+        >
+          <div style={{ borderRight: sectionBorder }}>
+            <div style={{ borderBottom: sectionBorder, padding: "6px 10px", fontSize: "20px", fontWeight: 600 }}>
+              Human Grading
+            </div>
+            <textarea
+              value={humanComment}
+              onChange={(event) => setHumanComment(event.target.value)}
+              placeholder="Please enter your comments......"
+              style={{
+                width: "100%",
+                minHeight: "78px",
+                border: "none",
+                padding: "9px 10px",
+                boxSizing: "border-box",
+                resize: "vertical",
+                background: "#efefef",
+                fontSize: "20px",
+                fontFamily: "inherit",
+              }}
             />
-            <RatingContainer>
-              <FormControl sx={{ minWidth: 200 }}>
-                <InputLabel>Claims</InputLabel>
+          </div>
+
+          <div>
+            <div
+              style={{
+                borderBottom: sectionBorder,
+                padding: "4px 8px",
+                display: "flex",
+                justifyContent: "flex-end",
+                alignItems: "center",
+              }}
+            >
+              <Button
+                variant="outlined"
+                onClick={handleGenerateAiComment}
+                style={{ ...roundButtonStyle, minWidth: "126px", fontSize: "20px", padding: "4px 14px" }}
+              >
+                AI Grading
+              </Button>
+            </div>
+            <textarea
+              value={aiComment}
+              onChange={(event) => setAiComment(event.target.value)}
+              placeholder="Click the button to generate comments"
+              style={{
+                width: "100%",
+                minHeight: "78px",
+                border: "none",
+                padding: "9px 10px",
+                boxSizing: "border-box",
+                resize: "vertical",
+                background: "#efefef",
+                fontSize: "20px",
+                fontFamily: "inherit",
+              }}
+            />
+          </div>
+        </div>
+
+        <div
+          style={{
+            border: sectionBorder,
+            borderTop: "none",
+            background: "#efefef",
+            padding: "8px 10px 10px",
+          }}
+        >
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", columnGap: "14px", alignItems: "start" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "120px 110px minmax(260px, 520px)", gap: "8px", alignItems: "center" }}>
+                <div style={{ fontSize: "20px", fontWeight: 700, lineHeight: 1 }}>Claims :</div>
                 <Select
-                  value={ratings.claims}
-                  onChange={handleRatingChange("claims")}
-                  label="Claims"
+                  size="small"
+                  value={claimsScore}
+                  onChange={(event) => setClaimsScore(event.target.value)}
+                  displayEmpty
+                  sx={selectStyle}
                 >
-                  {ratingOptions.claims.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
+                  <MenuItem sx={menuItemSx} value="">Select</MenuItem>
+                  <MenuItem sx={menuItemSx} value={0}>0</MenuItem>
+                  <MenuItem sx={menuItemSx} value={1}>1</MenuItem>
+                  <MenuItem sx={menuItemSx} value={2}>2</MenuItem>
                 </Select>
-              </FormControl>
-              <FormControl sx={{ minWidth: 200 }}>
-                <InputLabel>Grounds</InputLabel>
-                <Select
-                  value={ratings.grounds}
-                  onChange={handleRatingChange("grounds")}
-                  label="Grounds"
-                >
-                  {ratingOptions.grounds.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl sx={{ minWidth: 200 }}>
-                <InputLabel>Rebuttals</InputLabel>
-                <Select
-                  value={ratings.rebuttals}
-                  onChange={handleRatingChange("rebuttals")}
-                  label="Rebuttals"
-                >
-                  {ratingOptions.rebuttals.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <ScoreDisplay>
-                <ScoreLabel>分數</ScoreLabel>
-                <ScoreInput
-                  type="number"
-                  value={totalScore}
-                  onChange={handleTotalScoreChange}
-                  inputProps={{ min: 0, max: 8 }}
-                  variant="outlined"
+                <TextField
+                  size="small"
+                  placeholder="Please enter your comments......"
+                  value={claimsComment}
+                  onChange={(event) => setClaimsComment(event.target.value)}
+                  fullWidth
+                  sx={commentFieldSx}
                 />
-              </ScoreDisplay>
-            </RatingContainer>
-          </CommentPaper>
-          <ButtonContainer>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "120px 110px minmax(260px, 520px)", gap: "8px", alignItems: "center" }}>
+                <div style={{ fontSize: "20px", fontWeight: 700, lineHeight: 1 }}>Grounds:</div>
+                <Select
+                  size="small"
+                  value={groundsScore}
+                  onChange={(event) => setGroundsScore(event.target.value)}
+                  displayEmpty
+                  sx={selectStyle}
+                >
+                  <MenuItem sx={menuItemSx} value="">Select</MenuItem>
+                  <MenuItem sx={menuItemSx} value={0}>0</MenuItem>
+                  <MenuItem sx={menuItemSx} value={1}>1</MenuItem>
+                  <MenuItem sx={menuItemSx} value={2}>2</MenuItem>
+                  <MenuItem sx={menuItemSx} value={3}>3</MenuItem>
+                  <MenuItem sx={menuItemSx} value={4}>4</MenuItem>
+                </Select>
+                <TextField
+                  size="small"
+                  placeholder="Please enter your comments......"
+                  value={groundsComment}
+                  onChange={(event) => setGroundsComment(event.target.value)}
+                  fullWidth
+                  sx={commentFieldSx}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "120px 110px minmax(260px, 520px)", gap: "8px", alignItems: "center" }}>
+                <div style={{ fontSize: "20px", fontWeight: 700, lineHeight: 1 }}>Rebuttals :</div>
+                <Select
+                  size="small"
+                  value={rebuttalsScore}
+                  onChange={(event) => setRebuttalsScore(event.target.value)}
+                  displayEmpty
+                  sx={selectStyle}
+                >
+                  <MenuItem sx={menuItemSx} value="">Select</MenuItem>
+                  <MenuItem sx={menuItemSx} value={0}>0</MenuItem>
+                  <MenuItem sx={menuItemSx} value={1}>1</MenuItem>
+                  <MenuItem sx={menuItemSx} value={2}>2</MenuItem>
+                </Select>
+                <TextField
+                  size="small"
+                  placeholder="Please enter your comments......"
+                  value={rebuttalsComment}
+                  onChange={(event) => setRebuttalsComment(event.target.value)}
+                  fullWidth
+                  sx={commentFieldSx}
+                />
+              </div>
+            </div>
+
+            <div style={{ minWidth: "160px", display: "flex", justifyContent: "center", alignItems: "center", gap: "10px", paddingTop: "2px" }}>
+              <div style={{ fontSize: "20px", fontWeight: 700 }}>Score:</div>
+              <TextField
+                size="small"
+                value={totalScore}
+                inputProps={{ readOnly: true }}
+                sx={scoreFieldSx}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "18px", marginTop: "10px" }}>
             <Button
-              variant="contained"
-              color="primary"
-              onClick={handleTempSave}
-              disabled={isLoading}
+              variant="outlined"
+              onClick={() => navigate(-1)}
+              style={roundButtonStyle}
             >
-              暫存
+              Back ↺
             </Button>
+
             <Button
-              variant="contained"
-              color="secondary"
+              variant="outlined"
               onClick={handleSubmit}
-              disabled={isLoading}
+              disabled={isSubmitting}
+              style={roundButtonStyle}
             >
-              送出
+              {isSubmitting ? "Submitting..." : "Submit"}
             </Button>
-          </ButtonContainer>
-        </RightBox>
-      </MainContainer>
-      <Dialog open={openTempSaveDialog} onClose={handleCloseTempSaveDialog}>
-        <DialogTitle>提示</DialogTitle>
-        <DialogContent>
-          <DialogContentText>暫存成功！</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseTempSaveDialog} color="primary">
-            確定
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </div>
+        </div>
+      </div>
+
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
+        autoHideDuration={5000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
     </div>
   );
-};
-
-export default CorrectEssays;
+}

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "./Navbar_Student";
+import StudentLeftSidebar from "./StudentLeftSidebar";
 import RagflowMarkdown from "./RagflowMarkdown";
 import config from "../config.json";
 import url from "../url.json";
@@ -353,8 +354,11 @@ export default function Studentfuntion() {
   }, [chatbotEntryMode, isRagflowSending, ragflowSessionId]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ece8e5" }}>
+    <div style={{ minHeight: "100vh", background: "#ffffff", display: "flex", flexDirection: "column" }}>
       <Navbar />
+      <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
+        <StudentLeftSidebar activeMenuKey="chatbot" />
+        <div style={{ flex: 1, minWidth: 0 }}>
 
       <div
         style={{
@@ -385,8 +389,8 @@ export default function Studentfuntion() {
 
           <div
             style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
+              background: "rgba(105, 83, 83, 0.1)",
+              border: "1.5px solid #000000",
               borderRadius: "16px",
               padding: "16px 20px",
               maxWidth: "520px",
@@ -621,6 +625,8 @@ export default function Studentfuntion() {
               </div>
             </div>
           )}
+        </div>
+      </div>
         </div>
       </div>
     </div>
