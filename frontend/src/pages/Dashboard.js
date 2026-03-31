@@ -1,474 +1,503 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import ApexCharts from 'apexcharts';
-import io from 'socket.io-client';
+import NavbarStudent from '../components/Navbar_Student';
 import config from '../config.json';
 import url from '../url.json';
-import SimpleNavbar from '../components/SimpleNavbar';
-import Forumm from '../components/Forumm';
-import MessageThread from '../components/MessageThread';
 
+const FALLBACK_CLASSES = [
+  { value: '701', label: 'Class 701' },
+  { value: '702', label: 'Class 702' },
+  { value: '703', label: 'Class 703' },
+  { value: '704', label: 'Class 704' },
+];
 
+const TOPIC_OPTIONS = [
+  { value: 'argumentation', label: 'Argumentative Writing' },
+  { value: 'science', label: 'Scientific Inquiry' },
+  { value: 'society', label: 'Social Issues' },
+  { value: 'media', label: 'Media Literacy' },
+];
 
-export default function Dashboard() {
-    const ws = io.connect(url.socketioHost,{path: '/s/socket.io'});
-    const [data, setData] = useState({ nodes: [], edges: [] });
-    const [groupIds, setGroupIds] = useState([]);
-    const [selectedGroupId, setSelectedGroupId] = useState(sessionStorage.getItem('groupId'));
-    const [displayConfig, setDisplayConfig] = useState({
-        showMonitor: true,
-        showMessageThread: true,
-        showCharts: true
+const TASK_LABELS = ['Topic Understanding', 'Research Collection', 'Group Discussion', 'Argument Building', 'Presentation'];
+const TREND_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
+const scoreFromKey = (key) => {
+  return key.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+};
+
+const dedupeOptionsByValue = (options) => {
+  return Array.from(new Map(options.map((option) => [option.value, option])).values());
+};
+
+const getFallbackClassOptions = () => {
+  const rawValue = localStorage.getItem('groupIds');
+  if (!rawValue) {
+    return FALLBACK_CLASSES;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return FALLBACK_CLASSES;
+    }
+
+    const options = parsed.map((item, index) => {
+      if (item && typeof item === 'object') {
+        const value = String(item.id ?? item.groupId ?? index + 1);
+        const label = item.name || item.className || `Class ${value}`;
+        return { value, label };
+      }
+
+      const value = String(item);
+      return { value, label: `Class ${value}` };
     });
 
-    const toggleDisplay = (key) => {
-        setDisplayConfig(prev => ({
-            ...prev,
-            [key]: !prev[key]
-        }));
-        if (key === 'showCharts' && !displayConfig.showCharts) {
-            setTimeout(renderCharts, 100); // 延遲渲染圖表以確保DOM已更新
-        }
-    };
+    const uniqueOptions = dedupeOptionsByValue(options);
+    return uniqueOptions.length > 0 ? uniqueOptions : FALLBACK_CLASSES;
+  } catch (error) {
+    return FALLBACK_CLASSES;
+  }
+};
 
-    useEffect(() => {
-        const storedGroupIds = JSON.parse(localStorage.getItem('groupIds') || '[]');
-        setGroupIds(storedGroupIds);
+const buildAuthConfig = () => {
+  const jwtToken = localStorage.getItem('jwtToken');
+  if (!jwtToken) {
+    return {};
+  }
 
-        if (!sessionStorage.getItem('groupId') && storedGroupIds.length > 0) {
-            sessionStorage.setItem('groupId', storedGroupIds[0]);
-            setSelectedGroupId(storedGroupIds[0]);
-        }
-    }, []);
+  return {
+    headers: {
+      Authorization: `Bearer ${jwtToken}`,
+    },
+  };
+};
 
-    useEffect(() => {
-        if (ws) {
-            initWebSocket();
-        }
-    }, []);
+const buildPathCandidates = (apiBaseUrl, path) => {
+  const normalizedPath = String(path || '').replace(/^\/+/, '');
+  const withoutApiPrefix = normalizedPath.replace(/^api\/+/i, '');
+  const withApiPrefix = normalizedPath.toLowerCase().startsWith('api/') ? normalizedPath : `api/${normalizedPath}`;
+  const rawCandidates = [withApiPrefix, normalizedPath, withoutApiPrefix];
+  return [...new Set(rawCandidates.filter(Boolean).map((item) => `${apiBaseUrl}${item}`))];
+};
 
-    useEffect(() => {
-        if (selectedGroupId) {
-            getNodes();
-        }
-    }, [selectedGroupId]);
+const requestWithFallback = async ({ method, path, data, apiBaseUrl }) => {
+  const candidates = buildPathCandidates(apiBaseUrl, path);
+  let lastError = null;
 
-    useEffect(() => {
-        if (data.nodes.length > 0 && displayConfig.showCharts) {
-            renderCharts();
-        }
-    }, [data, displayConfig.showCharts]);
+  for (const endpoint of candidates) {
+    try {
+      return await axios({
+        method,
+        url: endpoint,
+        data,
+        ...buildAuthConfig(),
+      });
+    } catch (error) {
+      lastError = error;
+      if (error?.response?.status !== 404) {
+        throw error;
+      }
+    }
+  }
 
-    const handleGroupChange = (event) => {
-        const newGroupId = event.target.value;
-        setSelectedGroupId(newGroupId);
-        sessionStorage.setItem('groupId', newGroupId);
-        clearCharts();
-        getNodes();
-    };
+  if (lastError) {
+    throw lastError;
+  }
 
-    const getNodes = async () => {
-        try {
-            const response = await axios.get(`${url.backendHost + config[8].getNode}/${sessionStorage.getItem('groupId')}`);
+  throw new Error(`No API endpoint candidates available for path: ${path}`);
+};
 
-            //console.log("fetchData: ", response.data[0].Nodes);
-            setData(prevData => ({ nodes: response.data[0].Nodes, edges: prevData.edges }));
-        } catch (error) {
-            console.error('Error fetching nodes:', error.message);
-        }
-    };
+const buildClassData = (classOption, topicOption) => {
+  const seed = scoreFromKey(`${classOption.value}-${topicOption.value}`);
+  const students = 24 + (seed % 11);
+  const activeStudents = Math.min(students, Math.floor(students * (0.72 + ((seed % 12) / 100))));
+  const completedTasks = 8 + (seed % 7);
+  const pendingTasks = 3 + (seed % 4);
+  const submittedHomework = Math.min(students, Math.floor(students * (0.58 + ((seed % 27) / 100))));
+  const unsubmittedHomework = students - submittedHomework;
+  const submissionRate = Math.round((submittedHomework / students) * 100);
 
-    const initWebSocket = () => {
-        ws.on('connect', () => {
-            console.log('WebSocket connected');
-            getNodes();
+  const completionRates = TASK_LABELS.map((task, index) => {
+    const value = 55 + ((seed + index * 11) % 42);
+    return { task, value };
+  });
+
+  const participationTrend = TREND_DAYS.map((day, index) => {
+    const value = 42 + ((seed + index * 9) % 50);
+    return { day, value };
+  });
+
+  const watchList = [
+    { name: 'Student Lin', issue: 'Missed 2 homework submissions', action: 'Arrange after-class make-up submission' },
+    { name: 'Student Chen', issue: 'Low discussion participation', action: 'Assign a speaking role in group work' },
+    { name: 'Student Wang', issue: 'Incorrect citation format', action: 'Provide citation format guidance' },
+    { name: 'Student Chang', issue: 'Weak argument linkage', action: 'Provide a sample argument framework' },
+  ];
+
+  const focusIndex = seed % watchList.length;
+
+  return {
+    summary: {
+      students,
+      activeStudents,
+      activeRate: Math.round((activeStudents / students) * 100),
+      completedTasks,
+      pendingTasks,
+      avgScore: 74 + (seed % 18),
+      submittedHomework,
+      unsubmittedHomework,
+      submissionRate,
+    },
+    completionRates,
+    participationTrend,
+    watchList: [
+      watchList[focusIndex],
+      watchList[(focusIndex + 1) % watchList.length],
+      watchList[(focusIndex + 2) % watchList.length],
+    ],
+  };
+};
+
+const cardStyle = {
+  background: '#ffffff',
+  borderRadius: '18px',
+  padding: '20px',
+  border: '1px solid #e8edf3',
+  boxShadow: '0 8px 24px rgba(17, 43, 73, 0.08)',
+};
+
+const blockTitleStyle = {
+  margin: 0,
+  fontSize: '20px',
+  color: '#133A5A',
+  fontWeight: 700,
+  textAlign: 'center',
+};
+
+export default function Dashboard() {
+  const fallbackClasses = useMemo(() => getFallbackClassOptions(), []);
+  const [classOptions, setClassOptions] = useState(fallbackClasses);
+  const [topicsByClass, setTopicsByClass] = useState(() => {
+    const map = {};
+    fallbackClasses.forEach((classOption) => {
+      map[classOption.value] = TOPIC_OPTIONS;
+    });
+    return map;
+  });
+
+  const [selectedClass, setSelectedClass] = useState(fallbackClasses[0].value);
+  const [selectedTopic, setSelectedTopic] = useState(TOPIC_OPTIONS[0].value);
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
+  const [filterError, setFilterError] = useState('');
+
+  const apiBaseUrl = useMemo(
+    () => (url.backendHost.endsWith('/') ? url.backendHost : `${url.backendHost}/`),
+    []
+  );
+
+  useEffect(() => {
+    const fetchTeacherCreatedFilters = async () => {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        return;
+      }
+
+      setIsFilterLoading(true);
+      setFilterError('');
+
+      try {
+        const response = await requestWithFallback({
+          method: 'get',
+          path: `${config[13].MyCreatedActivity}/${userId}`,
+          apiBaseUrl,
         });
 
-        ws.on(`node-recieve-${sessionStorage.getItem('activityId')}`, handleNodeReceive);
-        ws.on(`edge-recieve-${sessionStorage.getItem('activityId')}`, handleEdgeReceive);
-    };
-
-    const handleNodeReceive = (body) => {
-        console.log('Node received:', body);
-        if (body.groupId == sessionStorage.getItem('groupId')) {
-            const normalizedNode = {
-                ...body,
-                groupId: parseInt(body.groupId, 10),
-                activityId: body.activityId ? parseInt(body.activityId, 10) : undefined,
-                createdAt: body.createdAt || new Date().toISOString(),
-                updatedAt: body.updatedAt || new Date().toISOString(),
-            };
-            setData(prevData => {
-                const updatedNodes = [...prevData.nodes, normalizedNode];
-                return { ...prevData, nodes: updatedNodes };
-            });
+        const activities = Array.isArray(response.data) ? response.data : [];
+        if (activities.length === 0) {
+          return;
         }
-    };
 
-    const handleEdgeReceive = (body) => {
-        console.log('Edge received:', body);
-        if (body.groupId == sessionStorage.getItem('groupId')) {
-            const normalizedEdge = {
-                ...body,
-                groupId: parseInt(body.groupId, 10),
-                activityId: body.activityId ? parseInt(body.activityId, 10) : undefined,
-                createdAt: body.createdAt || new Date().toISOString(),
-                updatedAt: body.updatedAt || new Date().toISOString(),
-            };
-            setData(prevData => {
-                const updatedEdges = [...prevData.edges, normalizedEdge];
-                return { ...prevData, edges: updatedEdges };
-            });
-        }
-    };
+        const parsedClasses = [];
+        const parsedTopicsByClass = {};
 
-    useEffect(() => {
-        if (data.nodes.length > 0) {
-            renderCharts();
-        }
-    }, [data]);
+        activities.forEach((activity, index) => {
+          const classValue = String(activity.id ?? index + 1);
+          const classLabel = activity.title || `Class ${classValue}`;
 
-    const clearCharts = () => {
-        const chartIds = ['tag-chart', 'author-tag-chart', 'cumulative-chart', 'radar-chart'];
-        chartIds.forEach(id => ApexCharts.exec(id, "destroy"));
-    };
+          parsedClasses.push({ value: classValue, label: classLabel });
 
-    const renderCharts = () => {
-        clearCharts(); // 清除先前的圖表
-        const nodes = data.nodes;
-        renderTagChart(nodes);
-        renderAuthorTagChart(nodes);
-        renderCumulativeChart(prepareSeries(prepareData(nodes)));
-        const authorKeywordCount = countKeywords(nodes);
-        renderRadarChart(authorKeywordCount);
-    };
+          const groups = Array.isArray(activity.Groups) ? activity.Groups : [];
+          const topicOptions = groups.map((group, groupIndex) => {
+            const topicValue = String(group.id ?? `${classValue}-${groupIndex + 1}`);
+            const topicLabel = group.groupName || `Topic ${groupIndex + 1}`;
+            return { value: topicValue, label: topicLabel };
+          });
 
-    const renderTagChart = (nodes) => {
-        const tagsCounter = TagsCounter(nodes);
-        const options = {
-            chart: {
-                id: 'tag-chart',
-                type: 'bar',
-                colors: ['#FFFFCC', '#CCFFCC', '#CCCCFF', '#FFDBDB', '#D0F4FF', '#FFFFFF'], 
-            },
-            series: [{
-                name: '標籤數量',
-                data: tagsCounter,
-            }],
-            xaxis: {
-                categories: ['想法', '資訊', '提問', '實驗', '紀錄', '回覆'],
-            },
-            title: {
-                text: '累計標籤圖',
-                align: 'center',
-                margin: 10,
-                style: {
-                    fontSize: '20px',
-                    color: '#333'
-                }
-            }
-        };
-        renderChart("#tag-chart", options);
-    };
-
-    const tagMapping = {
-        idea: '想法',
-        information: '資訊',
-        question: '提問',
-        experiment: '實驗',
-        record: '紀錄',
-        reply: '回覆'
-    };
-
-    const renderAuthorTagChart = (nodes) => {
-        const authorTagCount = nodes.reduce((acc, node) => {
-            if (!acc[node.author]) {
-                acc[node.author] = {
-                    idea: 0,
-                    information: 0,
-                    question: 0,
-                    experiment: 0,
-                    record: 0,
-                    reply: 0,
-                };
-            }
-            acc[node.author][node.tags]++;
-            return acc;
-        }, {});
-
-        const authors = Object.keys(authorTagCount);
-        const dataSeries = Object.keys(tagMapping).map(tag => ({
-            name: tagMapping[tag],
-            data: authors.map(author => authorTagCount[author][tag]),
-        }));
-
-        const options = {
-            chart: {
-                id: 'author-tag-chart',
-                type: 'bar',
-            },
-            series: dataSeries,
-            xaxis: {
-                categories: authors,
-            },
-            title: {
-                text: '個人標籤圖',
-                align: 'center',
-                margin: 10,
-                style: {
-                    fontSize: '20px',
-                    color: '#333'
-                }
-            }
-        };
-
-        renderChart("#author-tag-chart", options);
-    };
-
-    const renderRadarChart = (authorKeywordCount) => {
-        const categories = ["我的想法", "我覺得更好的想法", "我想知道", "這個想法不能解釋", "舉例和參考來源", "我的總結"];
-        const seriesData = Object.keys(authorKeywordCount).map(author => ({
-            name: author,
-            data: categories.map(keyword => Math.ceil(authorKeywordCount[author][keyword])),
-        }));
-
-        const options = {
-            chart: {
-                id: 'radar-chart',
-                type: 'radar',
-            },
-            series: seriesData,
-            xaxis: {
-                categories: categories,
-            },
-            yaxis: {
-                labels: {
-                    formatter: value => Math.round(value).toString(),
-                },
-                min: 0,
-                tickAmount: 4,
-            },
-            dataLabels: {
-                enabled: false,
-            },
-            title: {
-                text: '鷹架數量圖',
-                align: 'center',
-                margin: 10,
-                style: {
-                    fontSize: '20px',
-                    color: '#333'
-                }
-            }
-        };
-
-        renderChart("#radar-chart", options);
-    };
-
-    const renderCumulativeChart = (series) => {
-        //console.log('Series Data for Cumulative Chart:', series);
-
-        const options = {
-            chart: {
-                id: 'cumulative-chart',
-                type: 'line'
-            },
-            series: series,
-            xaxis: {
-                type: 'datetime',
-                title: {
-                    text: 'Updated At'
-                }
-            },
-            yaxis: {
-                title: {
-                    text: 'Cumulative Nodes'
-                }
-            },
-            title: {
-                text: '累計節點時間圖',
-                align: 'center',
-                margin: 10,
-                style: {
-                    fontSize: '20px',
-                    color: '#333'
-                }
-            }
-        };
-
-        renderChart("#cumulative-chart", options);
-    };
-
-    const renderChart = (selector, options) => {
-        const chartElement = document.querySelector(selector);
-        if (chartElement) {
-            const chart = new ApexCharts(chartElement, options);
-            chart.render();
-        } else {
-            console.error(`${selector} element not found`);
-        }
-    };
-
-    const prepareData = (nodes) => {
-        nodes.sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
-
-        const authorCumulativeCount = {};
-        const seriesData = {};
-
-        nodes.forEach(node => {
-            const { author, updatedAt } = node;
-            if (!author) {
-                console.error('Node author is missing:', node);
-                return;
-            }
-            if (!authorCumulativeCount[author]) {
-                authorCumulativeCount[author] = 0;
-                seriesData[author] = [];
-            }
-            authorCumulativeCount[author]++;
-            seriesData[author].push({
-                x: new Date(updatedAt),
-                y: authorCumulativeCount[author]
-            });
+          parsedTopicsByClass[classValue] = topicOptions.length > 0
+            ? dedupeOptionsByValue(topicOptions)
+            : [{ value: `${classValue}-default-topic`, label: 'Untitled Topic' }];
         });
 
-        return seriesData;
-    };
-
-    const prepareSeries = (seriesData) => {
-        return Object.keys(seriesData).map(author => {
-            if (author === undefined || author === null) {
-                console.error('Author is undefined or null:', seriesData);
-                return { name: 'Unknown Author', data: seriesData[author] };
+        const uniqueClassOptions = dedupeOptionsByValue(parsedClasses);
+        if (uniqueClassOptions.length > 0) {
+          setClassOptions(uniqueClassOptions);
+          setTopicsByClass(parsedTopicsByClass);
+          setSelectedClass((prev) => {
+            if (uniqueClassOptions.some((option) => option.value === prev)) {
+              return prev;
             }
-            return {
-                name: author,
-                data: seriesData[author]
-            };
-        });
+            return uniqueClassOptions[0].value;
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load teacher-created filter data:', error);
+        setFilterError('Failed to load teacher-created classes/topics. Fallback data is being used.');
+      } finally {
+        setIsFilterLoading(false);
+      }
     };
 
-    const countKeywords = (nodes) => {
-        const keywords = ["我的想法", "我覺得更好的想法", "我想知道", "這個想法不能解釋", "舉例和參考來源", "我的總結"];
-        const authorKeywordCount = {};
+    fetchTeacherCreatedFilters();
+  }, [apiBaseUrl]);
 
-        nodes.forEach(node => {
-            const { author, content } = node;
-            if (content && typeof content === 'string') {
-                if (!authorKeywordCount[author]) {
-                    authorKeywordCount[author] = {
-                        "我的想法": 0,
-                        "我覺得更好的想法": 0,
-                        "我想知道": 0,
-                        "這個想法不能解釋": 0,
-                        "舉例和參考來源": 0,
-                        "我的總結": 0
-                    };
-                }
-                keywords.forEach(keyword => {
-                    if (content.includes(keyword)) {
-                        authorKeywordCount[author][keyword]++;
-                    }
-                });
-            }
-        });
+  const topicOptions = useMemo(() => {
+    const options = topicsByClass[selectedClass];
+    if (Array.isArray(options) && options.length > 0) {
+      return options;
+    }
+    return TOPIC_OPTIONS;
+  }, [topicsByClass, selectedClass]);
 
-        return authorKeywordCount;
-    };
+  useEffect(() => {
+    if (!topicOptions.some((option) => option.value === selectedTopic)) {
+      setSelectedTopic(topicOptions[0].value);
+    }
+  }, [topicOptions, selectedTopic]);
 
-    const TagsCounter = (inputs) => {
-        const counter = {
-            idea: 0,
-            information: 0,
-            question: 0,
-            experiment: 0,
-            record: 0,
-            reply: 0,
-        };
+  const selectedClassOption = classOptions.find((option) => option.value === selectedClass) || classOptions[0];
+  const selectedTopicOption = topicOptions.find((option) => option.value === selectedTopic) || topicOptions[0];
 
-        inputs.forEach(input => {
-            counter[input.tags]++;
-        });
+  const classData = useMemo(
+    () => buildClassData(selectedClassOption, selectedTopicOption),
+    [selectedClassOption, selectedTopicOption]
+  );
 
-        return [counter.idea, counter.information, counter.question, counter.experiment, counter.record, counter.reply];
-    };
+  return (
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #F6FAFF 0%, #F9F6F1 100%)' }}>
+      <NavbarStudent />
 
-    return (
-        <div className="container" style={{}}>
-            <SimpleNavbar />
-            <div className="dropdown-container" >
-                <label htmlFor="group-select" style={{
-                    marginRight: '10px',
-                    fontWeight: 'bold',
-                    color: '#333',
-                    fontSize: '22px'
-                }}>
-                    目前所在的小組為
-                </label>
-                <select id="group-select" value={selectedGroupId} onChange={handleGroupChange} style={{
-                    fontSize: '1em',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                    padding: '5px'
-                }}>
-                    {groupIds.map((groupId, index) => (
-                        <option key={groupId} value={groupId}>
-                            第{index + 1}組
-                        </option>
-                    ))}
-                </select>
-                <div className="toggle-buttons" style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)'
-                }}>
-                    {/* <button className="toggle-button" onClick={() => toggleDisplay('showMessageThread')}>想法串</button>
-            <button className="toggle-button" onClick={() => toggleDisplay('showCharts')}>儀錶板</button> */}
-                    <button className="toggle-button" onClick={() => toggleDisplay('showMonitor')}>
-                        {displayConfig.showMonitor ? '隱藏監控版' : '顯示監控版'}
-                    </button>
-                </div>
-            </div>
-            <div className="home-container" style={{ display: 'flex', flexDirection: 'row', marginLeft: '60px' }}>
-                {displayConfig.showMessageThread && (
-                    <div style={{ flex: 0.35, display: 'flex', justifyContent: 'center' }}>
-                        <MessageThread groupId={selectedGroupId} />
-                    </div>
-                )}
-                {displayConfig.showCharts && (
-                    <div style={{ flex: 0.65, display: 'flex', flexDirection: 'column' }}>
-                        <div className="chart-row" style={{ marginBottom: '10px', flex: 1 }}>
-                            <div id="cumulative-chart" className="chart-container" style={{ height: '40vh', flex: 1 }}></div>
-                            <div id="radar-chart" className="chart-container" style={{ height: '40vh', flex: 1 }}></div>
-                        </div>
-                        <div className="chart-row" style={{ flex: 1 }}>
-                            <div id="tag-chart" className="chart-container" style={{ height: '40vh', flex: 1 }}></div>
-                            <div id="author-tag-chart" className="chart-container" style={{ height: '40vh', flex: 1 }}></div>
-                        </div>
-                    </div>
-                )}
-            </div>
-            {displayConfig.showMonitor && (
-                <div className="home-container" style={{ display: 'flex', flexDirection: 'row' }}>
-                    {selectedGroupId && (
-                        <div style={{
-                            border: '2px solid #ccc',
-                            borderRadius: '10px',
-                            padding: '10px',
-                            margin: '10px',
-                            width: 'calc(100% - 120px)',  
-                            marginLeft: '90px',
-                            justifyContent: 'center',
-                            overflow: 'hidden',  
-                            boxSizing: 'border-box'  
-                        }}>
-                            <h2 style={{ textAlign: 'center', fontSize: '22px', color: '#333' }}>即時監控畫面</h2>
-                            <Forumm showNavbar={false} groupId={selectedGroupId} />
-                        </div>
-                    )}
-                </div>
+      <main style={{ padding: '24px clamp(16px, 4vw, 48px) 36px' }}>
+        <section
+          style={{
+            ...cardStyle,
+            marginBottom: '20px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px',
+          }}
+        >
+          <div>
+            <h1 style={{ margin: 0, fontSize: '30px', color: '#0F2B46' }}>Student Dashboard</h1>
+            <p style={{ margin: '8px 0 0', color: '#4B6177' }}>Track class progress, task completion, and participation status.</p>
+            {isFilterLoading && (
+              <p style={{ margin: '8px 0 0', color: '#5B7087', fontSize: '13px' }}>
+                Loading teacher-created classes and topics...
+              </p>
             )}
-        </div>
-    );
+            {!isFilterLoading && filterError && (
+              <p style={{ margin: '8px 0 0', color: '#B45309', fontSize: '13px' }}>{filterError}</p>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label htmlFor="class-filter" style={{ fontWeight: 700, color: '#1F4060' }}>
+                Class
+              </label>
+              <select
+                id="class-filter"
+                value={selectedClass}
+                onChange={(event) => setSelectedClass(event.target.value)}
+                style={{
+                  minWidth: '170px',
+                  height: '42px',
+                  borderRadius: '10px',
+                  border: '1px solid #cdd8e6',
+                  padding: '0 12px',
+                  fontSize: '15px',
+                  color: '#1B314A',
+                  backgroundColor: '#fff',
+                }}
+              >
+                {classOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label htmlFor="topic-filter" style={{ fontWeight: 700, color: '#1F4060' }}>
+                Topic
+              </label>
+              <select
+                id="topic-filter"
+                value={selectedTopic}
+                onChange={(event) => setSelectedTopic(event.target.value)}
+                style={{
+                  minWidth: '170px',
+                  height: '42px',
+                  borderRadius: '10px',
+                  border: '1px solid #cdd8e6',
+                  padding: '0 12px',
+                  fontSize: '15px',
+                  color: '#1B314A',
+                  backgroundColor: '#fff',
+                }}
+              >
+                {topicOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section
+          style={{
+            display: 'grid',
+            gap: '18px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          }}
+        >
+          <article style={cardStyle}>
+            <h2 style={blockTitleStyle}>Class Overview</h2>
+            <div
+              style={{
+                marginTop: '14px',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '10px',
+              }}
+            >
+              <div style={{ background: '#ECF5FF', borderRadius: '12px', padding: '12px' }}>
+                <p style={{ margin: 0, color: '#40607D', fontSize: '13px' }}>Total Students</p>
+                <strong style={{ fontSize: '28px', color: '#173F63' }}>{classData.summary.students}</strong>
+              </div>
+              <div style={{ background: '#F6F1FF', borderRadius: '12px', padding: '12px' }}>
+                <p style={{ margin: 0, color: '#40607D', fontSize: '13px' }}>Active Students</p>
+                <strong style={{ fontSize: '28px', color: '#173F63' }}>{classData.summary.activeStudents}</strong>
+              </div>
+              <div style={{ background: '#FFF6E9', borderRadius: '12px', padding: '12px' }}>
+                <p style={{ margin: 0, color: '#40607D', fontSize: '13px' }}>Average Score</p>
+                <strong style={{ fontSize: '28px', color: '#173F63' }}>{classData.summary.avgScore}</strong>
+              </div>
+              <div style={{ background: '#EDF9F2', borderRadius: '12px', padding: '12px' }}>
+                <p style={{ margin: 0, color: '#40607D', fontSize: '13px' }}>Activity Rate</p>
+                <strong style={{ fontSize: '28px', color: '#173F63' }}>{classData.summary.activeRate}%</strong>
+              </div>
+            </div>
+          </article>
+
+          <article style={cardStyle}>
+            <h2 style={blockTitleStyle}>Homework Submission Rate</h2>
+            <div style={{ marginTop: '14px', display: 'flex', gap: '18px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div
+                style={{
+                  width: '150px',
+                  height: '150px',
+                  borderRadius: '50%',
+                  background: `conic-gradient(#2F80ED 0% ${classData.summary.submissionRate}%, #E8EEF7 ${classData.summary.submissionRate}% 100%)`,
+                  position: 'relative',
+                  flexShrink: 0,
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: '20px',
+                    borderRadius: '50%',
+                    backgroundColor: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    fontWeight: 700,
+                    color: '#1A3A5A',
+                  }}
+                >
+                  {classData.summary.submissionRate}%
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gap: '8px', minWidth: '180px' }}>
+                <div style={{ color: '#294865', fontSize: '15px' }}>
+                  <span style={{ color: '#2F80ED', fontWeight: 700 }}>Submitted:</span>
+                  {` ${classData.summary.submittedHomework} students`}
+                </div>
+                <div style={{ color: '#294865', fontSize: '15px' }}>
+                  <span style={{ color: '#6D7F93', fontWeight: 700 }}>Unsubmitted:</span>
+                  {` ${classData.summary.unsubmittedHomework} students`}
+                </div>
+                <div style={{ color: '#4E6377', fontSize: '13px' }}>Current homework submission progress for topic "{selectedTopicOption.label}"</div>
+              </div>
+            </div>
+          </article>
+
+          <article style={cardStyle}>
+            <h2 style={blockTitleStyle}>Weekly Participation Trend</h2>
+            <div style={{ marginTop: '16px', display: 'flex', alignItems: 'flex-end', gap: '12px', minHeight: '170px' }}>
+              {classData.participationTrend.map((item) => (
+                <div key={item.day} style={{ flex: 1, textAlign: 'center' }}>
+                  <div
+                    style={{
+                      height: `${item.value * 1.4}px`,
+                      minHeight: '36px',
+                      borderRadius: '10px 10px 4px 4px',
+                      background: 'linear-gradient(180deg, #FFB86A 0%, #FF8E53 100%)',
+                    }}
+                    title={`${item.value}%`}
+                  />
+                  <div style={{ marginTop: '8px', color: '#2C4A65', fontWeight: 700 }}>{item.day}</div>
+                </div>
+              ))}
+            </div>
+            <p style={{ margin: '12px 0 0', color: '#4E6377', fontSize: '13px' }}>
+              Class "{selectedClassOption.label}" average participation for "{selectedTopicOption.label}" this week is about{' '}
+              {Math.round(classData.participationTrend.reduce((acc, item) => acc + item.value, 0) / classData.participationTrend.length)}%
+            </p>
+          </article>
+
+          <article style={cardStyle}>
+            <h2 style={blockTitleStyle}>Students Needing Attention</h2>
+            <div style={{ marginTop: '14px', display: 'grid', gap: '10px' }}>
+              {classData.watchList.map((student) => (
+                <div
+                  key={student.name + student.issue}
+                  style={{
+                    borderRadius: '12px',
+                    border: '1px solid #e6ecf3',
+                    padding: '12px',
+                    backgroundColor: '#FCFDFE',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px' }}>
+                    <strong style={{ color: '#173F63', fontSize: '16px' }}>{student.name}</strong>
+                    <span style={{ color: '#6A8096', fontSize: '12px' }}>Priority Watch</span>
+                  </div>
+                  <p style={{ margin: '8px 0 4px', color: '#2D4A64', fontSize: '14px' }}>{student.issue}</p>
+                  <p style={{ margin: 0, color: '#5C7187', fontSize: '13px' }}>Suggestion: {student.action}</p>
+                </div>
+              ))}
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  );
 }

@@ -100,6 +100,33 @@ const fetchEssayByScopeFromNotion = async ({ studentName, className, theme }) =>
   throw lastError || new Error("Failed to fetch scoped essay from Notion");
 };
 
+const updateNoteToNotion = async (payload) => {
+  const token = localStorage.getItem("jwtToken");
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  let lastError = null;
+
+  for (const base of notionApiBases) {
+    const normalizedBase = String(base || "").replace(/\/+$/, "");
+    if (!normalizedBase) continue;
+
+    try {
+      const response = await axios.patch(`${normalizedBase}/api/update-note`, payload, {
+        timeout: 15000,
+        headers,
+        withCredentials: false,
+      });
+
+      if (response?.data?.success) {
+        return response.data;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("Failed to update note to Notion");
+};
+
 const containerStyle = {
   width: "min(1160px, 100%)",
   margin: "0 auto",
@@ -171,6 +198,34 @@ const roundButtonStyle = {
   lineHeight: 1.1,
 };
 
+const decodeHtmlEntities = (text) => {
+  if (typeof window === "undefined") return text;
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = text;
+  return textarea.value;
+};
+
+const normalizeEssayContentForDisplay = (value) => {
+  const content = String(value ?? "");
+  if (!content.trim()) return "";
+
+  const hasHtmlTag = /<\/?[a-z][\s\S]*>/i.test(content);
+  const hasHtmlEntity = /&(?:[a-z\d]+|#\d+|#x[a-f\d]+);/i.test(content);
+  if (!hasHtmlTag && !hasHtmlEntity) return content;
+
+  const withLineBreaks = content
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|h[1-6]|blockquote|tr)>/gi, "\n")
+    .replace(/<li>/gi, "• ");
+
+  const withoutTags = withLineBreaks.replace(/<[^>]+>/g, "");
+  return decodeHtmlEntities(withoutTags)
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+
 export default function CorrectEssays() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -207,6 +262,7 @@ export default function CorrectEssays() {
     const r = Number.isNaN(Number(rebuttalsScore)) ? 0 : Number(rebuttalsScore || 0);
     return c + g + r;
   }, [claimsScore, groundsScore, rebuttalsScore]);
+  const displayEssayContent = useMemo(() => normalizeEssayContentForDisplay(essayContent), [essayContent]);
 
   const showSnackbar = (message, severity = "info") => {
     setSnackbar({ open: true, message, severity });
@@ -333,7 +389,7 @@ export default function CorrectEssays() {
   }, [studentName, className, topicName]);
 
   const handleGenerateAiComment = () => {
-    if (!essayContent.trim()) {
+    if (!displayEssayContent.trim()) {
       showSnackbar("No essay content to grade.", "warning");
       return;
     }
@@ -372,18 +428,31 @@ export default function CorrectEssays() {
         totalScore,
       });
 
-      await apiAxios.patch("/api/update-note", {
+      await updateNoteToNotion({
         studentName: submitStudentName,
         className: submitClassName,
         theme: submitTheme,
         noteContent: notePayload,
         essayContent,
+        totalScore,
+        humanComment,
+        claimsScore,
+        groundsScore,
+        rebuttalsScore,
+        claimsComment,
+        groundsComment,
+        rebuttalsComment,
       });
 
       showSnackbar("Submitted successfully.", "success");
     } catch (error) {
       console.error("Submit failed:", error);
-      showSnackbar(`Submit failed: ${error?.message || "unknown error"}`, "error");
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.response?.data?.details ||
+        error?.message ||
+        "unknown error";
+      showSnackbar(`Submit failed: ${errorMessage}`, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -407,9 +476,9 @@ export default function CorrectEssays() {
             fontWeight: 500,
           }}
         >
-          <div>{`Class:${className} Student:${studentName}`}</div>
+          <div>{`Class:${className}`}</div>
           <div>{`Topic:${topicName}`}</div>
-          <div>{`Notion: Class:${matchedScope.className || "-"} Student:${matchedScope.studentName || "-"} Topic:${matchedScope.theme || "-"}`}</div>
+          <div>{`Student:${matchedScope.studentName || "-"}`}</div>
         </div>
 
         <div
@@ -429,7 +498,7 @@ export default function CorrectEssays() {
               <CircularProgress size={26} />
             </div>
           ) : (
-            essayContent || "No essay content found for this class/topic/student."
+            displayEssayContent || "No essay content found for this class/topic/student."
           )}
         </div>
 

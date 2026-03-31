@@ -38495,6 +38495,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar_Student';
 import RagflowMarkdown from './RagflowMarkdown';
+import WritingStageStepper from './WritingStageStepper';
 import HamburgerLineIcon from '../assets/橫線.png';
 import LeftArrowIcon from '../assets/左箭頭.png';
 import StudentFeature1Icon from '../assets/學生功能1.png';
@@ -38511,6 +38512,10 @@ import AboutIcon from '../assets/about.png';
 import ManualIcon from '../assets/manual.png';
 import LogoutIcon from '../assets/logout.png';
 import AvatarIcon from '../assets/頭像.png';
+import ChatbotModeIcon1 from '../assets/首頁1.png';
+import ChatbotModeIcon2 from '../assets/首頁2.png';
+import ChatbotModeIcon3 from '../assets/首頁3.png';
+import { readToolkitContentByScope, writeToolkitContentByScope } from '../utils/ragflowChatHistory';
 
 
 const buttonSx = {
@@ -38571,6 +38576,7 @@ const notionApiBases = [
   'http://localhost:4000',
   'http://140.115.126.27:4000',
 ].filter(Boolean);
+const WRITING_ANALYSIS_PREFILL_KEY = 'writingAnalysisPrefillPrompt';
 
 const upsertEssayToNotion = async (payload) => {
   const token = localStorage.getItem('jwtToken');
@@ -38633,6 +38639,11 @@ const buildEssayStorageKey = (studentName, className, theme) =>
   `essayData::${encodeURIComponent(studentName || '')}::${encodeURIComponent(className || '')}::${encodeURIComponent(theme || '')}`;
 const buildSubmitLockKey = (studentName, className, theme) =>
   `submitLocked::${encodeURIComponent(studentName || '')}::${encodeURIComponent(className || '')}::${encodeURIComponent(theme || '')}`;
+const buildToolkitScope = (studentName, className, theme) => ({
+  studentName: studentName || '',
+  className: className || '',
+  topicName: theme || '',
+});
 const countEnglishWords = (htmlContent) => {
   if (!htmlContent) return 0;
   const plainText = htmlContent
@@ -38643,6 +38654,25 @@ const countEnglishWords = (htmlContent) => {
   if (!plainText) return 0;
   const matches = plainText.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g);
   return matches ? matches.length : 0;
+};
+
+const convertEditorHtmlToPlainText = (htmlContent) => {
+  if (!htmlContent) return '';
+
+  const htmlWithLineBreaks = String(htmlContent)
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\s*\/(p|div|h[1-6]|li|tr)\s*>/gi, '\n')
+    .replace(/<\s*li\b[^>]*>/gi, '- ');
+
+  const tempElement = document.createElement('div');
+  tempElement.innerHTML = htmlWithLineBreaks;
+
+  return (tempElement.textContent || tempElement.innerText || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 };
 
 const WritingArea = () => {
@@ -38661,11 +38691,25 @@ const WritingArea = () => {
   const [notesContent, setNotesContent] = useState('');
   const [activeSidebarEditor, setActiveSidebarEditor] = useState('');
   const [expandedToolkitPanel, setExpandedToolkitPanel] = useState('');
+  const [expandedPrimaryPanel, setExpandedPrimaryPanel] = useState('');
 
   const quillRootRef = useRef(null);
   const quillInstanceRef = useRef(null);
   const englishWordCount = useMemo(() => countEnglishWords(editorContent), [editorContent]);
   const isReadOnly = isSubmitted || isCompletedEntry;
+
+  const resolveCurrentScopeValues = () => {
+    const currentStudentName =
+      localStorage.getItem('name') ||
+      localStorage.getItem('username') ||
+      localStorage.getItem('userName') ||
+      studentName ||
+      '';
+    const className = activityTitle || localStorage.getItem('activityTitle') || '';
+    const theme = groupName || localStorage.getItem('groupName') || '';
+    const toolkitScope = buildToolkitScope(currentStudentName, className, theme);
+    return { currentStudentName, className, theme, toolkitScope };
+  };
 
   const copyTextToClipboard = async (content) => {
     if (!content) return;
@@ -38700,9 +38744,10 @@ const WritingArea = () => {
       const scopedSavedEssay = localStorage.getItem(scopedEssayKey) || '';
       const scopedSubmitLockKey = buildSubmitLockKey(savedStudentName, savedActivityTitle, savedGroupName);
       const scopedSubmitLocked = localStorage.getItem(scopedSubmitLockKey) === 'true';
-      const savedKfSummary = localStorage.getItem('kfAnalysisData') || '';
-      const savedOutline = localStorage.getItem('outlineData') || '';
-      const savedNotes = localStorage.getItem('noteData') || '';
+      const toolkitScope = buildToolkitScope(savedStudentName, savedActivityTitle, savedGroupName);
+      const savedKfSummary = readToolkitContentByScope('kfAnalysisData', toolkitScope);
+      const savedOutline = readToolkitContentByScope('outlineData', toolkitScope);
+      const savedNotes = readToolkitContentByScope('noteData', toolkitScope);
 
       if (!mounted) return;
       setStudentName(savedStudentName);
@@ -38740,9 +38785,9 @@ const WritingArea = () => {
         localStorage.setItem(scopedEssayKey, fetchedEssay);
         localStorage.setItem('essayData', fetchedEssay);
         localStorage.setItem('editorData', fetchedEssay);
-        localStorage.setItem('kfAnalysisData', fetchedKfSummary);
-        localStorage.setItem('outlineData', fetchedOutline);
-        localStorage.setItem('noteData', fetchedNotes);
+        writeToolkitContentByScope('kfAnalysisData', fetchedKfSummary, toolkitScope);
+        writeToolkitContentByScope('outlineData', fetchedOutline, toolkitScope);
+        writeToolkitContentByScope('noteData', fetchedNotes, toolkitScope);
       } catch (error) {
         if (!mounted) return;
         if (error?.code === 'NOT_FOUND' || error?.response?.status === 404) {
@@ -38789,7 +38834,7 @@ const WritingArea = () => {
               ['clean'],
             ],
           },
-          placeholder: 'Start writing...',
+          placeholder: '',
         });
 
         quill.root.style.fontSize = '16px';
@@ -38823,21 +38868,15 @@ const WritingArea = () => {
   const handleSave = async () => {
     if (isReadOnly) return;
 
-    const currentStudentName =
-      localStorage.getItem('name') ||
-      localStorage.getItem('username') ||
-      localStorage.getItem('userName') ||
-      '';
-    const className = activityTitle || localStorage.getItem('activityTitle') || '';
-    const theme = groupName || localStorage.getItem('groupName') || '';
+    const { currentStudentName, className, theme, toolkitScope } = resolveCurrentScopeValues();
     const scopedEssayKey = buildEssayStorageKey(currentStudentName, className, theme);
 
     localStorage.setItem(scopedEssayKey, editorContent);
     localStorage.setItem('essayData', editorContent);
     localStorage.setItem('editorData', editorContent);
-    localStorage.setItem('kfAnalysisData', kfSummaryContent);
-    localStorage.setItem('outlineData', outlineContent);
-    localStorage.setItem('noteData', notesContent);
+    writeToolkitContentByScope('kfAnalysisData', kfSummaryContent, toolkitScope);
+    writeToolkitContentByScope('outlineData', outlineContent, toolkitScope);
+    writeToolkitContentByScope('noteData', notesContent, toolkitScope);
 
     if (!currentStudentName || !className || !theme) {
       alert('已先儲存到本機，但缺少姓名、班級或主題，無法同步到 Notion。');
@@ -38877,33 +38916,21 @@ const WritingArea = () => {
   const handleSubmit = () => {
     if (isReadOnly) return;
 
-    const currentStudentName =
-      localStorage.getItem('name') ||
-      localStorage.getItem('username') ||
-      localStorage.getItem('userName') ||
-      '';
-    const className = activityTitle || localStorage.getItem('activityTitle') || '';
-    const theme = groupName || localStorage.getItem('groupName') || '';
+    const { currentStudentName, className, theme, toolkitScope } = resolveCurrentScopeValues();
     const scopedEssayKey = buildEssayStorageKey(currentStudentName, className, theme);
 
     localStorage.setItem(scopedEssayKey, editorContent);
     localStorage.setItem('essayData', editorContent);
     localStorage.setItem('editorData', editorContent);
-    localStorage.setItem('kfAnalysisData', kfSummaryContent);
-    localStorage.setItem('outlineData', outlineContent);
-    localStorage.setItem('noteData', notesContent);
+    writeToolkitContentByScope('kfAnalysisData', kfSummaryContent, toolkitScope);
+    writeToolkitContentByScope('outlineData', outlineContent, toolkitScope);
+    writeToolkitContentByScope('noteData', notesContent, toolkitScope);
   };
 
   const handleConfirmSubmit = () => {
     if (isReadOnly) return;
 
-    const currentStudentName =
-      localStorage.getItem('name') ||
-      localStorage.getItem('username') ||
-      localStorage.getItem('userName') ||
-      '';
-    const className = activityTitle || localStorage.getItem('activityTitle') || '';
-    const theme = groupName || localStorage.getItem('groupName') || '';
+    const { currentStudentName, className, theme } = resolveCurrentScopeValues();
     const scopedSubmitLockKey = buildSubmitLockKey(currentStudentName, className, theme);
 
     handleSubmit();
@@ -38917,8 +38944,20 @@ const WritingArea = () => {
     window.open('https://kf6.nccu.edu.tw/', '_blank', 'noopener,noreferrer');
   };
 
-  const handleGoToChatbot = () => {
-    navigate('/Chatbot');
+  const handleGoToChatbotMode = (chatbotEntryMode) => {
+    if (chatbotEntryMode === 'writing_analysis') {
+      const essayPlainText = convertEditorHtmlToPlainText(editorContent);
+      if (essayPlainText) {
+        sessionStorage.setItem(WRITING_ANALYSIS_PREFILL_KEY, essayPlainText);
+      } else {
+        sessionStorage.removeItem(WRITING_ANALYSIS_PREFILL_KEY);
+      }
+    } else {
+      sessionStorage.removeItem(WRITING_ANALYSIS_PREFILL_KEY);
+    }
+
+    sessionStorage.setItem('chatbotEntryMode', chatbotEntryMode);
+    navigate('/Chatbotlogin', { state: { chatbotEntryMode } });
   };
 
   const handleGoToWritingArea = () => {
@@ -39006,7 +39045,31 @@ const WritingArea = () => {
 
   const sidebarPrimaryMenus = [
     { key: 'kf-argument', icon: StudentFeature1Icon, label: 'KF Argumentation', onClick: handleGoToKfArgumentation },
-    { key: 'chatbot', icon: StudentFeature2Icon, label: 'Chatbot', onClick: handleGoToChatbot },
+    {
+      key: 'chatbot',
+      icon: StudentFeature2Icon,
+      label: 'Chatbot',
+      children: [
+        {
+          key: 'chatbot-kf-analysis',
+          label: 'KF Analysis',
+          icon: ChatbotModeIcon1,
+          onClick: () => handleGoToChatbotMode('kf_analysis'),
+        },
+        {
+          key: 'chatbot-writing-assistant',
+          label: 'Writing Assistant',
+          icon: ChatbotModeIcon2,
+          onClick: () => handleGoToChatbotMode('writing_assistant'),
+        },
+        {
+          key: 'chatbot-writing-analysis',
+          label: 'Writing Analysis',
+          icon: ChatbotModeIcon3,
+          onClick: () => handleGoToChatbotMode('writing_analysis'),
+        },
+      ],
+    },
     { key: 'writing-area', icon: StudentFeature3Icon, label: 'Writing Area', onClick: handleGoToWritingArea },
     { key: 'scoring', icon: StudentFeature4Icon, label: 'Scoring', onClick: handleGoToScoring },
   ];
@@ -39019,8 +39082,9 @@ const WritingArea = () => {
       value: kfSummaryContent,
       placeholder: '',
       onUpdate: (nextValue) => {
+        const { toolkitScope } = resolveCurrentScopeValues();
         setKfSummaryContent(nextValue);
-        localStorage.setItem('kfAnalysisData', nextValue);
+        writeToolkitContentByScope('kfAnalysisData', nextValue, toolkitScope);
       },
     },
     {
@@ -39030,8 +39094,9 @@ const WritingArea = () => {
       value: outlineContent,
       placeholder: '',
       onUpdate: (nextValue) => {
+        const { toolkitScope } = resolveCurrentScopeValues();
         setOutlineContent(nextValue);
-        localStorage.setItem('outlineData', nextValue);
+        writeToolkitContentByScope('outlineData', nextValue, toolkitScope);
       },
     },
     {
@@ -39041,8 +39106,9 @@ const WritingArea = () => {
       value: notesContent,
       placeholder: '點擊即可編輯 Notes Area',
       onUpdate: (nextValue) => {
+        const { toolkitScope } = resolveCurrentScopeValues();
         setNotesContent(nextValue);
-        localStorage.setItem('noteData', nextValue);
+        writeToolkitContentByScope('noteData', nextValue, toolkitScope);
       },
     },
   ];
@@ -39090,6 +39156,7 @@ const WritingArea = () => {
                   setIsSidebarExpanded((prev) => !prev);
                   setActiveSidebarEditor('');
                   setExpandedToolkitPanel('');
+                  setExpandedPrimaryPanel('');
                 }}
                 sx={{
                   minWidth: 0,
@@ -39117,38 +39184,110 @@ const WritingArea = () => {
                   </Box>
 
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 0.5, pb: 1 }}>
-                    {sidebarPrimaryMenus.map((menu) => (
-                      <Button
-                        key={menu.key}
-                        variant="text"
-                        onClick={menu.onClick}
-                        sx={{
-                          minWidth: 0,
-                          width: '100%',
-                          p: 0.75,
-                          justifyContent: 'flex-start',
-                          textTransform: 'none',
-                          color: '#1a1a1a',
-                          borderRadius: '10px',
-                          '&:hover': {
-                            backgroundColor: 'rgba(105, 83, 83, 0.12)',
-                          },
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                          <img src={menu.icon} alt={menu.label} style={{ width: '24px', height: '24px' }} />
-                          <span style={{ fontSize: '14px' }}>{menu.label}</span>
+                    {sidebarPrimaryMenus.map((menu) => {
+                      const hasChildren = Array.isArray(menu.children) && menu.children.length > 0;
+                      const isExpandedPrimary = expandedPrimaryPanel === menu.key;
+
+                      if (!hasChildren) {
+                        return (
+                          <Button
+                            key={menu.key}
+                            variant="text"
+                            onClick={menu.onClick}
+                            sx={{
+                              minWidth: 0,
+                              width: '100%',
+                              p: 0.75,
+                              justifyContent: 'flex-start',
+                              textTransform: 'none',
+                              color: '#1a1a1a',
+                              borderRadius: '10px',
+                              '&:hover': {
+                                backgroundColor: 'rgba(105, 83, 83, 0.12)',
+                              },
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                              <img src={menu.icon} alt={menu.label} style={{ width: '24px', height: '24px' }} />
+                              <span style={{ fontSize: '14px' }}>{menu.label}</span>
+                            </Box>
+                          </Button>
+                        );
+                      }
+
+                      return (
+                        <Box key={menu.key} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          <Button
+                            variant="text"
+                            onClick={() => setExpandedPrimaryPanel((prev) => (prev === menu.key ? '' : menu.key))}
+                            sx={{
+                              minWidth: 0,
+                              width: '100%',
+                              p: 0.75,
+                              justifyContent: 'space-between',
+                              textTransform: 'none',
+                              color: '#1a1a1a',
+                              borderRadius: '10px',
+                              '&:hover': {
+                                backgroundColor: 'rgba(105, 83, 83, 0.12)',
+                              },
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <img src={menu.icon} alt={menu.label} style={{ width: '24px', height: '24px' }} />
+                              <span style={{ fontSize: '14px' }}>{menu.label}</span>
+                            </Box>
+                            <img
+                              src={ExpandIcon}
+                              alt={`${menu.label}-expand`}
+                              style={{
+                                width: '20px',
+                                height: '20px',
+                                transform: isExpandedPrimary ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.2s ease',
+                              }}
+                            />
+                          </Button>
+
+                          {isExpandedPrimary && (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, pl: '40px', pr: 1 }}>
+                              {menu.children.map((child) => (
+                                <Button
+                                  key={child.key}
+                                  variant="text"
+                                  onClick={child.onClick}
+                                  sx={{
+                                    minWidth: 0,
+                                    width: '100%',
+                                    p: '6px 8px',
+                                    justifyContent: 'flex-start',
+                                    textTransform: 'none',
+                                    color: '#334155',
+                                    borderRadius: '8px',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(105, 83, 83, 0.10)',
+                                    },
+                                  }}
+                                >
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <img src={child.icon} alt={child.label} style={{ width: '16px', height: '16px' }} />
+                                    <span style={{ fontSize: '13px' }}>{child.label}</span>
+                                  </Box>
+                                </Button>
+                              ))}
+                            </Box>
+                          )}
                         </Box>
-                      </Button>
-                    ))}
+                      );
+                    })}
                   </Box>
 
                   <Box sx={{ px: 1, pb: 0.5, fontSize: '16px', fontWeight: 700, color: '#222' }}>
                     Writing Toolkit
                   </Box>
 
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 0.5 }}>
-                    {toolkitMenus.map((toolkit) => {
+	                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 0.5 }}>
+	                    {toolkitMenus.map((toolkit) => {
                       const isExpandedPanel = expandedToolkitPanel === toolkit.fieldKey;
                       return (
                         <Box key={toolkit.fieldKey} sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
@@ -39215,11 +39354,13 @@ const WritingArea = () => {
                           )}
                         </Box>
                       );
-                    })}
-                  </Box>
+	                    })}
+	                  </Box>
 
-                  <Box
-                    sx={{
+	                  <WritingStageStepper initialStep={4} />
+	
+	                  <Box
+	                    sx={{
                       mt: 'auto',
                       pt: 1,
                       borderTop: '1px solid #d7d0c9',

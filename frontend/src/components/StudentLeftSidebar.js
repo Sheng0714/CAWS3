@@ -1,6 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import RagflowMarkdown from "./RagflowMarkdown";
+import WritingStageStepper from "./WritingStageStepper";
+import {
+  RAGFLOW_TOOLKIT_STORAGE_EVENT,
+  buildToolkitScopeFromStorage,
+  readToolkitContentByScope,
+  writeToolkitContentByScope,
+} from "../utils/ragflowChatHistory";
 
 import HamburgerLineIcon from "../assets/橫線.png";
 import LeftArrowIcon from "../assets/左箭頭.png";
@@ -17,7 +25,15 @@ import HomeIcon from "../assets/home.png";
 import AboutIcon from "../assets/about.png";
 import ManualIcon from "../assets/manual.png";
 import LogoutIcon from "../assets/logout.png";
+import ChatbotModeIcon1 from "../assets/首頁1.png";
+import ChatbotModeIcon2 from "../assets/首頁2.png";
+import ChatbotModeIcon3 from "../assets/首頁3.png";
 import AvatarIcon from "../assets/頭像.png";
+
+const createChatbotModeAction = (chatbotEntryMode) => (navigate) => {
+  sessionStorage.setItem("chatbotEntryMode", chatbotEntryMode);
+  navigate("/Chatbotlogin", { state: { chatbotEntryMode } });
+};
 
 const SIDEBAR_PRIMARY_MENUS = [
   {
@@ -30,7 +46,26 @@ const SIDEBAR_PRIMARY_MENUS = [
     key: "chatbot",
     icon: StudentFeature2Icon,
     label: "Chatbot",
-    action: (navigate) => navigate("/Chatbot"),
+    children: [
+      {
+        key: "chatbot-kf-analysis",
+        label: "KF Analysis",
+        icon: ChatbotModeIcon1,
+        action: createChatbotModeAction("kf_analysis"),
+      },
+      {
+        key: "chatbot-writing-assistant",
+        label: "Writing Assistant",
+        icon: ChatbotModeIcon2,
+        action: createChatbotModeAction("writing_assistant"),
+      },
+      {
+        key: "chatbot-writing-analysis",
+        label: "Writing Analysis",
+        icon: ChatbotModeIcon3,
+        action: createChatbotModeAction("writing_analysis"),
+      },
+    ],
   },
   {
     key: "writing-area",
@@ -58,6 +93,43 @@ const SIDEBAR_TOOLKIT_MENUS = [
   { key: "notes-area", icon: NotesAreaIcon, label: "Notes Area", action: (navigate) => navigate("/writing_area") },
 ];
 
+const notionApiBases = [
+  process.env.REACT_APP_NOTION_API_BASE_URL,
+  "/api/notion",
+  "/notion-api",
+  "http://localhost:4000",
+  "http://140.115.126.27:4000",
+].filter(Boolean);
+
+const fetchToolkitFromNotion = async ({ studentName, className, topicName }) => {
+  if (!studentName || !className || !topicName) return null;
+
+  const token = localStorage.getItem("jwtToken");
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  let lastError = null;
+
+  for (const base of notionApiBases) {
+    const normalizedBase = base.replace(/\/+$/, "");
+    const url = `${normalizedBase}/api/get-essay/${encodeURIComponent(studentName)}`;
+
+    try {
+      const response = await axios.get(url, {
+        timeout: 15000,
+        headers,
+        params: { className, theme: topicName },
+      });
+      return response?.data?.data || null;
+    } catch (error) {
+      if (error?.response?.status === 404) {
+        return null;
+      }
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("Fetch toolkit from Notion failed");
+};
+
 export default function StudentLeftSidebar() {
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
@@ -66,20 +138,84 @@ export default function StudentLeftSidebar() {
   const [notesContent, setNotesContent] = useState("");
   const [activeSidebarEditor, setActiveSidebarEditor] = useState("");
   const [expandedToolkitPanel, setExpandedToolkitPanel] = useState("");
+  const [expandedPrimaryPanel, setExpandedPrimaryPanel] = useState("");
+  const latestLoadRequestRef = useRef(0);
+  const latestScopeSignatureRef = useRef("");
 
   useEffect(() => {
-    const loadToolkitContent = () => {
-      setKfSummaryContent(localStorage.getItem("kfAnalysisData") || "");
-      setOutlineContent(localStorage.getItem("outlineData") || "");
-      setNotesContent(localStorage.getItem("noteData") || "");
+    let isUnmounted = false;
+
+    const loadToolkitContent = async ({ forceNotionFetch = false } = {}) => {
+      const requestId = latestLoadRequestRef.current + 1;
+      latestLoadRequestRef.current = requestId;
+      const toolkitScope = buildToolkitScopeFromStorage();
+      const scopeSignature = `${toolkitScope.studentName}::${toolkitScope.className}::${toolkitScope.topicName}`;
+      const isScopeChanged = latestScopeSignatureRef.current !== scopeSignature;
+      if (isScopeChanged) {
+        latestScopeSignatureRef.current = scopeSignature;
+      }
+
+      setKfSummaryContent(readToolkitContentByScope("kfAnalysisData", toolkitScope));
+      setOutlineContent(readToolkitContentByScope("outlineData", toolkitScope));
+      setNotesContent(readToolkitContentByScope("noteData", toolkitScope));
+
+      if (!toolkitScope.studentName || !toolkitScope.className || !toolkitScope.topicName) {
+        return;
+      }
+      if (!forceNotionFetch && !isScopeChanged) {
+        return;
+      }
+
+      try {
+        const notionData = await fetchToolkitFromNotion(toolkitScope);
+        if (
+          !notionData ||
+          isUnmounted ||
+          latestLoadRequestRef.current !== requestId
+        ) {
+          return;
+        }
+
+        const fetchedKfSummary =
+          typeof notionData?.kfAnalysisContent === "string" ? notionData.kfAnalysisContent : "";
+        const fetchedOutline =
+          typeof notionData?.outlineContent === "string" ? notionData.outlineContent : "";
+        const fetchedNotes =
+          typeof notionData?.noteContent === "string" ? notionData.noteContent : "";
+
+        setKfSummaryContent(fetchedKfSummary);
+        setOutlineContent(fetchedOutline);
+        setNotesContent(fetchedNotes);
+        writeToolkitContentByScope("kfAnalysisData", fetchedKfSummary, toolkitScope);
+        writeToolkitContentByScope("outlineData", fetchedOutline, toolkitScope);
+        writeToolkitContentByScope("noteData", fetchedNotes, toolkitScope);
+      } catch (error) {
+        if (isUnmounted) return;
+        console.error("Failed to fetch sidebar toolkit content from Notion:", error);
+      }
     };
 
-    loadToolkitContent();
-    window.addEventListener("focus", loadToolkitContent);
-    window.addEventListener("storage", loadToolkitContent);
+    const handleLoadToolkitContent = (forceNotionFetch = false) => {
+      void loadToolkitContent({ forceNotionFetch });
+    };
+
+    handleLoadToolkitContent(true);
+    const onWindowFocus = () => handleLoadToolkitContent(true);
+    const onWindowStorage = () => handleLoadToolkitContent(false);
+    const onToolkitStorageUpdated = () => handleLoadToolkitContent(false);
+    const scopeWatcherInterval = window.setInterval(() => {
+      handleLoadToolkitContent(false);
+    }, 1000);
+
+    window.addEventListener("focus", onWindowFocus);
+    window.addEventListener("storage", onWindowStorage);
+    window.addEventListener(RAGFLOW_TOOLKIT_STORAGE_EVENT, onToolkitStorageUpdated);
     return () => {
-      window.removeEventListener("focus", loadToolkitContent);
-      window.removeEventListener("storage", loadToolkitContent);
+      isUnmounted = true;
+      window.clearInterval(scopeWatcherInterval);
+      window.removeEventListener("focus", onWindowFocus);
+      window.removeEventListener("storage", onWindowStorage);
+      window.removeEventListener(RAGFLOW_TOOLKIT_STORAGE_EVENT, onToolkitStorageUpdated);
     };
   }, []);
 
@@ -213,6 +349,90 @@ export default function StudentLeftSidebar() {
     );
   };
 
+  const renderPrimaryMenuButton = (menu) => {
+    if (!menu.children?.length) {
+      return renderMenuButton(menu);
+    }
+
+    const isExpandedPanel = expandedPrimaryPanel === menu.key;
+    return (
+      <div key={menu.key} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        <button
+          type="button"
+          onClick={() => setExpandedPrimaryPanel((prev) => (prev === menu.key ? "" : menu.key))}
+          style={{
+            width: "100%",
+            border: "none",
+            background: "transparent",
+            borderRadius: "10px",
+            padding: "8px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "8px",
+            textAlign: "left",
+            color: "#1a1a1a",
+            cursor: "pointer",
+            fontSize: "14px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <img src={menu.icon} alt={menu.label} style={{ width: "24px", height: "24px" }} />
+            <span>{menu.label}</span>
+          </div>
+          <img
+            src={ExpandIcon}
+            alt={`${menu.label}-expand`}
+            style={{
+              width: "20px",
+              height: "20px",
+              transform: isExpandedPanel ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s ease",
+            }}
+          />
+        </button>
+        {isExpandedPanel && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "2px",
+              paddingLeft: "40px",
+              paddingRight: "8px",
+            }}
+          >
+            {menu.children.map((child) => (
+              <button
+                key={child.key}
+                type="button"
+                onClick={() => child.action(navigate)}
+                style={{
+                  width: "100%",
+                  border: "none",
+                  background: "transparent",
+                  borderRadius: "8px",
+                  padding: "6px 8px",
+                  textAlign: "left",
+                  color: "#334155",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                {child.icon ? (
+                  <img src={child.icon} alt={child.label} style={{ width: "16px", height: "16px" }} />
+                ) : null}
+                <span>{child.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const toolkitMenus = SIDEBAR_TOOLKIT_MENUS.map((menu) => ({
     ...menu,
     value:
@@ -223,18 +443,19 @@ export default function StudentLeftSidebar() {
           : notesContent,
     placeholder: menu.key === "notes-area" ? "點擊即可編輯 Notes Area" : "",
     onUpdate: (nextValue) => {
+      const toolkitScope = buildToolkitScopeFromStorage();
       if (menu.key === "kf-summary") {
         setKfSummaryContent(nextValue);
-        localStorage.setItem("kfAnalysisData", nextValue);
+        writeToolkitContentByScope("kfAnalysisData", nextValue, toolkitScope);
         return;
       }
       if (menu.key === "writing-outline") {
         setOutlineContent(nextValue);
-        localStorage.setItem("outlineData", nextValue);
+        writeToolkitContentByScope("outlineData", nextValue, toolkitScope);
         return;
       }
       setNotesContent(nextValue);
-      localStorage.setItem("noteData", nextValue);
+      writeToolkitContentByScope("noteData", nextValue, toolkitScope);
     },
   }));
 
@@ -281,7 +502,7 @@ export default function StudentLeftSidebar() {
             Main menu
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            {SIDEBAR_PRIMARY_MENUS.map((menu) => renderMenuButton(menu))}
+            {SIDEBAR_PRIMARY_MENUS.map((menu) => renderPrimaryMenuButton(menu))}
           </div>
           <div style={{ padding: "8px 8px 6px", fontSize: "16px", fontWeight: 700, color: "#222" }}>
             Writing Toolkit
@@ -358,6 +579,8 @@ export default function StudentLeftSidebar() {
               );
             })}
           </div>
+
+          <WritingStageStepper initialStep={4} />
 
           <div
             style={{

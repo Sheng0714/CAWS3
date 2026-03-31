@@ -10,6 +10,7 @@ import cawsOwl from "../assets/去背.png";
 
 const getIsCompletedEntry = () =>
   localStorage.getItem("isCompletedActivityEntry") === "true";
+const WRITING_ANALYSIS_PREFILL_KEY = "writingAnalysisPrefillPrompt";
 
 export default function Studentfuntion() {
   const navigate = useNavigate();
@@ -45,6 +46,18 @@ export default function Studentfuntion() {
     cursor: "pointer",
   };
   const startNewChatLocked = isCompletedEntry;
+
+  useEffect(() => {
+    const hasWritingAnalysisPrefill = Boolean(
+      sessionStorage.getItem(WRITING_ANALYSIS_PREFILL_KEY)?.trim()
+    );
+
+    if (chatbotEntryMode !== "writing_analysis") return;
+    if (!hasWritingAnalysisPrefill) return;
+    if (startNewChatLocked) return;
+
+    navigate("/Newchat", { state: { chatbotEntryMode }, replace: true });
+  }, [chatbotEntryMode, navigate, startNewChatLocked]);
 
   return (
     <div style={{ minHeight: "100vh", background: "#ffffff", display: "flex", flexDirection: "column" }}>

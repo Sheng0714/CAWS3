@@ -128,6 +128,9 @@ export default function Studentlist() {
           theme: item?.theme || selectedTopicName || "-",
           submissionTime: formatSubmissionTime(item?.submissionDate),
           grade:
+            item?.totalScore ??
+            item?.TotalScore ??
+            item?.["總分"] ??
             item?.grade ??
             item?.Grade ??
             item?.score ??

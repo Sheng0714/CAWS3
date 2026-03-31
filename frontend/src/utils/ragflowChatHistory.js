@@ -1,6 +1,20 @@
 const RAGFLOW_CHAT_HISTORY_KEY = "ragflow_chat_history_v1";
 const KF_SUMMARY_TRIGGER_TEXT = "\u5df2\u7d93\u8db3\u5920";
 const WRITING_OUTLINE_TRIGGER_TEXT = "\u81ea\u52d5\u532f\u5165";
+export const RAGFLOW_TOOLKIT_STORAGE_EVENT = "ragflow-toolkit-storage-updated";
+
+const notifyToolkitStorageUpdated = (key, value) => {
+  if (typeof window === "undefined") return;
+
+  window.dispatchEvent(
+    new CustomEvent(RAGFLOW_TOOLKIT_STORAGE_EVENT, {
+      detail: {
+        key,
+        value,
+      },
+    })
+  );
+};
 
 const safeParse = (rawValue) => {
   if (!rawValue) return [];
@@ -17,6 +31,15 @@ const normalizeScope = (scopeInput = {}) => ({
   groupId: scopeInput?.groupId ? String(scopeInput.groupId) : "",
   className: typeof scopeInput?.className === "string" ? scopeInput.className.trim() : "",
   topicName: typeof scopeInput?.topicName === "string" ? scopeInput.topicName.trim() : "",
+});
+
+const normalizeToolkitScope = (scopeInput = {}) => ({
+  studentName:
+    typeof scopeInput?.studentName === "string" ? scopeInput.studentName.trim() : "",
+  className:
+    typeof scopeInput?.className === "string" ? scopeInput.className.trim() : "",
+  topicName:
+    typeof scopeInput?.topicName === "string" ? scopeInput.topicName.trim() : "",
 });
 
 const getRagflowCurrentUserToken = () => {
@@ -66,6 +89,72 @@ export const buildRagflowScopeFromStorage = () => {
   const topicName = localStorage.getItem("groupName") || "";
 
   return normalizeScope({ activityId, groupId, className, topicName });
+};
+
+export const buildToolkitScopeFromStorage = () => {
+  if (typeof window === "undefined") {
+    return normalizeToolkitScope({});
+  }
+
+  const studentName =
+    localStorage.getItem("name") ||
+    localStorage.getItem("username") ||
+    localStorage.getItem("userName") ||
+    localStorage.getItem("selectedStudentName") ||
+    "";
+  const className =
+    localStorage.getItem("activityTitle") ||
+    localStorage.getItem("selectedClassName") ||
+    "";
+  const topicName =
+    localStorage.getItem("groupName") ||
+    localStorage.getItem("selectedTopicName") ||
+    localStorage.getItem("theme") ||
+    "";
+
+  return normalizeToolkitScope({ studentName, className, topicName });
+};
+
+export const buildToolkitStorageKey = (baseKey, scopeInput = {}) => {
+  const normalizedBaseKey = typeof baseKey === "string" ? baseKey.trim() : "";
+  if (!normalizedBaseKey) return "";
+
+  const scope = normalizeToolkitScope(scopeInput);
+  return `${normalizedBaseKey}::${encodeURIComponent(scope.studentName || "")}::${encodeURIComponent(
+    scope.className || ""
+  )}::${encodeURIComponent(scope.topicName || "")}`;
+};
+
+export const readToolkitContentByScope = (baseKey, scopeInput) => {
+  if (typeof window === "undefined") return "";
+
+  const normalizedBaseKey = typeof baseKey === "string" ? baseKey.trim() : "";
+  if (!normalizedBaseKey) return "";
+
+  const resolvedScope = scopeInput || buildToolkitScopeFromStorage();
+  const scopedKey = buildToolkitStorageKey(normalizedBaseKey, resolvedScope);
+  const scopedValue = localStorage.getItem(scopedKey);
+  if (scopedValue !== null) return scopedValue;
+  return localStorage.getItem(normalizedBaseKey) || "";
+};
+
+export const writeToolkitContentByScope = (baseKey, value, scopeInput) => {
+  if (typeof window === "undefined") return "";
+
+  const normalizedBaseKey = typeof baseKey === "string" ? baseKey.trim() : "";
+  if (!normalizedBaseKey) return "";
+
+  const normalizedValue = typeof value === "string" ? value : "";
+  const resolvedScope = scopeInput || buildToolkitScopeFromStorage();
+  const scopedKey = buildToolkitStorageKey(normalizedBaseKey, resolvedScope);
+
+  localStorage.setItem(scopedKey, normalizedValue);
+  localStorage.setItem(normalizedBaseKey, normalizedValue);
+
+  notifyToolkitStorageUpdated(scopedKey, normalizedValue);
+  notifyToolkitStorageUpdated(normalizedBaseKey, normalizedValue);
+
+  return scopedKey;
 };
 
 export const buildRagflowScopeUserId = (scopeInput) => {
@@ -164,28 +253,28 @@ export const formatRagflowDate = (value) => {
   });
 };
 
-export const syncKfSummaryFromAssistantReply = (chatbotEntryMode, assistantReply) => {
+export const syncKfSummaryFromAssistantReply = (chatbotEntryMode, assistantReply, scopeInput) => {
   if (chatbotEntryMode !== "kf_analysis") return false;
   if (typeof assistantReply !== "string") return false;
 
   const normalizedReply = assistantReply.trim();
   if (!normalizedReply.includes(KF_SUMMARY_TRIGGER_TEXT)) return false;
 
-  // Keep only the latest imported summary for Writing Area.
-  localStorage.removeItem("kfAnalysisData");
-  localStorage.setItem("kfAnalysisData", normalizedReply);
+  writeToolkitContentByScope("kfAnalysisData", normalizedReply, scopeInput);
   return true;
 };
 
-export const syncWritingOutlineFromAssistantReply = (chatbotEntryMode, assistantReply) => {
+export const syncWritingOutlineFromAssistantReply = (
+  chatbotEntryMode,
+  assistantReply,
+  scopeInput
+) => {
   if (chatbotEntryMode !== "writing_assistant") return false;
   if (typeof assistantReply !== "string") return false;
 
   const normalizedReply = assistantReply.trim();
   if (!normalizedReply.includes(WRITING_OUTLINE_TRIGGER_TEXT)) return false;
 
-  // Keep only the latest imported outline for Writing Area.
-  localStorage.removeItem("outlineData");
-  localStorage.setItem("outlineData", normalizedReply);
+  writeToolkitContentByScope("outlineData", normalizedReply, scopeInput);
   return true;
 };

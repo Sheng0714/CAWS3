@@ -75,10 +75,45 @@ export default function ClassManage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteActivityId, setDeleteActivityId] = useState(null);
 
-  const backendBaseUrl = useMemo(
-    () => (url.backendHost.endsWith("/") ? url.backendHost.slice(0, -1) : url.backendHost),
+  const apiBaseUrl = useMemo(
+    () => (url.backendHost.endsWith("/") ? url.backendHost : `${url.backendHost}/`),
     []
   );
+  const buildPathCandidates = (path) => {
+    const normalizedPath = String(path || "").replace(/^\/+/, "");
+    const withoutApiPrefix = normalizedPath.replace(/^api\/+/i, "");
+    const withApiPrefix = normalizedPath.toLowerCase().startsWith("api/") ? normalizedPath : `api/${normalizedPath}`;
+    const rawCandidates = [withApiPrefix, normalizedPath, withoutApiPrefix];
+    return [...new Set(rawCandidates.filter(Boolean).map((item) => `${apiBaseUrl}${item}`))];
+  };
+  const requestWithFallback = async ({ method, path, data, auth = true }) => {
+    const candidates = buildPathCandidates(path);
+    let lastError = null;
+
+    for (const endpoint of candidates) {
+      try {
+        const requestConfig = auth ? buildAuthConfig() : {};
+        return await axios({
+          method,
+          url: endpoint,
+          data,
+          ...requestConfig,
+        });
+      } catch (error) {
+        lastError = error;
+        const statusCode = error?.response?.status;
+        if (statusCode !== 404) {
+          throw error;
+        }
+      }
+    }
+
+    if (lastError) {
+      lastError.attemptedEndpoints = candidates;
+      throw lastError;
+    }
+    throw new Error(`No API endpoint candidates available for path: ${path}`);
+  };
 
   const classRows = useMemo(() => {
     return activities.map((activity) => {
@@ -106,10 +141,10 @@ export default function ClassManage() {
     setIsLoading(true);
     setLoadError("");
     try {
-      const response = await axios.get(
-        `${url.backendHost + config[13].MyCreatedActivity}/${userId}`,
-        buildAuthConfig()
-      );
+      const response = await requestWithFallback({
+        method: "get",
+        path: `${config[13].MyCreatedActivity}/${userId}`,
+      });
       setActivities(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to load class list:", error);
@@ -125,7 +160,10 @@ export default function ClassManage() {
 
   const renewJwtToken = async () => {
     try {
-      const response = await axios.get(url.backendHost + config[1].reNewTokenUrl, buildAuthConfig());
+      const response = await requestWithFallback({
+        method: "get",
+        path: config[1].reNewTokenUrl,
+      });
       const renewedToken = response?.data?.token || response?.data?.jwtToken;
       if (renewedToken) {
         localStorage.setItem("jwtToken", renewedToken);
@@ -164,16 +202,16 @@ export default function ClassManage() {
     }
 
     try {
-      await axios.post(
-        url.backendHost + config[2].createActivity,
-        {
+      await requestWithFallback({
+        method: "post",
+        path: config[2].createActivity,
+        data: {
           userId,
           title: trimmedClassName,
           startDate: new Date(`${createStartDate}T12:00:00`).toISOString(),
           endDate: new Date(`${createEndDate}T12:00:00`).toISOString(),
         },
-        buildAuthConfig()
-      );
+      });
 
       setNewClassName("");
       setIsCreateClassOpen(false);
@@ -210,23 +248,28 @@ export default function ClassManage() {
     }
 
     try {
-      const createGroupResponse = await axios.post(
-        url.backendHost + config[14].creatGroup,
-        {
+      const createGroupResponse = await requestWithFallback({
+        method: "post",
+        path: config[14].creatGroup,
+        data: {
           groupName: trimmedTopicName,
           activityId: topicActivityId,
           numGroups: 1,
           startDate: targetActivity.startDate,
           endDate: targetActivity.endDate,
         },
-        buildAuthConfig()
-      );
+      });
 
       const createdGroups = createGroupResponse?.data?.groups || [];
       if (userId && createdGroups.length > 0) {
         await Promise.all(
           createdGroups.map((group) =>
-            axios.put(`${backendBaseUrl}/api/groups/${group.joinCode}/join`, { userId })
+            requestWithFallback({
+              method: "put",
+              path: `groups/${group.joinCode}/join`,
+              data: { userId },
+              auth: false,
+            })
           )
         );
       }
@@ -238,7 +281,8 @@ export default function ClassManage() {
     } catch (error) {
       console.error("Failed to add topic:", error);
       const detail = error.response?.data?.message || error.response?.data || error.message;
-      alert(`Failed to add topic: ${detail}`);
+      const failedUrl = error?.config?.url ? `\nURL: ${error.config.url}` : "";
+      alert(`Failed to add topic: ${detail}${failedUrl}`);
     }
   };
 
@@ -260,11 +304,11 @@ export default function ClassManage() {
     }
 
     try {
-      await axios.put(
-        `${backendBaseUrl}/api/activities/${editActivityId}`,
-        { title: trimmedClassName },
-        buildAuthConfig()
-      );
+      await requestWithFallback({
+        method: "put",
+        path: `activities/${editActivityId}`,
+        data: { title: trimmedClassName },
+      });
       setIsEditClassOpen(false);
       setEditActivityId(null);
       await fetchActivities();
@@ -284,13 +328,18 @@ export default function ClassManage() {
       return;
     }
     try {
-      await axios.delete(`${backendBaseUrl}/api/activities/${deleteActivityId}`, buildAuthConfig());
+      await requestWithFallback({
+        method: "delete",
+        path: `activities/${deleteActivityId}`,
+      });
       setDeleteActivityId(null);
       setIsDeleteOpen(false);
       await fetchActivities();
     } catch (error) {
-      console.error("Failed to delete class:", error);
-      alert("Failed to delete class.");
+      console.error("Failed to delete class row:", error);
+      const detail = error.response?.data?.message || error.response?.data || error.message;
+      const failedUrl = error?.config?.url ? `\nURL: ${error.config.url}` : "";
+      alert(`Failed to delete class row: ${detail}${failedUrl}`);
     }
   };
 
@@ -458,41 +507,37 @@ export default function ClassManage() {
                       <span>{row.inviteCode || "-"}</span>
                       <span>{row.deadline || "-"}</span>
 
-                      {row.topicName ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                          <button
-                            type="button"
-                            onClick={() => openEditClassDialog(row)}
-                            style={{
-                              border: "none",
-                              background: "transparent",
-                              cursor: "pointer",
-                              padding: 0,
-                              lineHeight: 0,
-                            }}
-                            title="edit class name"
-                          >
-                            <img src={settingIcon} alt="setting" style={{ width: "20px", height: "20px" }} />
-                          </button>
+                      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                        <button
+                          type="button"
+                          onClick={() => openEditClassDialog(row)}
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            cursor: "pointer",
+                            padding: 0,
+                            lineHeight: 0,
+                          }}
+                          title="edit class name"
+                        >
+                          <img src={settingIcon} alt="setting" style={{ width: "20px", height: "20px" }} />
+                        </button>
 
-                          <button
-                            type="button"
-                            onClick={() => openDeleteDialog(row.activityId)}
-                            style={{
-                              border: "none",
-                              background: "transparent",
-                              cursor: "pointer",
-                              padding: 0,
-                              lineHeight: 0,
-                            }}
-                            title="delete row"
-                          >
-                            <img src={clearIcon} alt="delete row" style={{ width: "20px", height: "20px" }} />
-                          </button>
-                        </div>
-                      ) : (
-                        <span>-</span>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => openDeleteDialog(row.activityId)}
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            cursor: "pointer",
+                            padding: 0,
+                            lineHeight: 0,
+                          }}
+                          title="delete row"
+                        >
+                          <img src={clearIcon} alt="delete row" style={{ width: "20px", height: "20px" }} />
+                        </button>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -590,9 +635,9 @@ export default function ClassManage() {
       </Dialog>
 
       <Dialog open={isDeleteOpen} onClose={() => setIsDeleteOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Delete Class Topic</DialogTitle>
+        <DialogTitle>Delete Class Row</DialogTitle>
         <DialogContent style={{ paddingTop: "10px", fontSize: "16px" }}>
-          Delete this class topic row?
+          Delete this row (class and topic shown in this row)?
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
@@ -601,6 +646,7 @@ export default function ClassManage() {
           </Button>
         </DialogActions>
       </Dialog>
+
     </div>
   );
 }

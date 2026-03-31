@@ -1,14 +1,86 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { Box, Button, TextField } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import Navbar from '../components/Navbar_Student';
+
+const notionApiBases = [
+  process.env.REACT_APP_NOTION_API_BASE_URL,
+  '/api/notion',
+  '/notion-api',
+  'http://localhost:4000',
+  'http://140.115.126.27:4000',
+].filter(Boolean);
+
+const fetchEssayFromNotion = async ({ studentName, className, theme }) => {
+  const token = localStorage.getItem('jwtToken');
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  let lastError = null;
+
+  for (const base of notionApiBases) {
+    const normalizedBase = base.replace(/\/+$/, '');
+    const url = `${normalizedBase}/api/get-essay/${encodeURIComponent(studentName)}`;
+
+    try {
+      const response = await axios.get(url, {
+        timeout: 15000,
+        headers,
+        params: { className, theme },
+      });
+      return response?.data?.data || {};
+    } catch (error) {
+      const isBackendJson =
+        error?.response &&
+        typeof error.response.data === 'object' &&
+        error.response.data !== null &&
+        Object.prototype.hasOwnProperty.call(error.response.data, 'success');
+
+      if (error?.response?.status === 404 && isBackendJson) {
+        const notFoundError = new Error('NOT_FOUND');
+        notFoundError.code = 'NOT_FOUND';
+        throw notFoundError;
+      }
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('Fetch essay from Notion failed');
+};
+
+const normalizeFieldValue = (value) => (value === null || value === undefined ? '' : String(value));
+
+const normalizeEssayText = (content) => {
+  if (!content) return '';
+
+  const withBreaks = String(content)
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\s*\/(p|div|h[1-6]|li|tr)\s*>/gi, '\n')
+    .replace(/<\s*li\b[^>]*>/gi, '- ');
+
+  const temp = document.createElement('div');
+  temp.innerHTML = withBreaks;
+
+  return (temp.textContent || temp.innerText || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
+const buildEssayStorageKey = (studentName, className, theme) =>
+  `essayData::${encodeURIComponent(studentName || '')}::${encodeURIComponent(className || '')}::${encodeURIComponent(theme || '')}`;
 
 const WritingArea = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [editorContent, setEditorContent] = useState('');
+  const [studentName, setStudentName] = useState('');
   const [activityTitle, setActivityTitle] = useState('');
   const [groupName, setGroupName] = useState('');
+  const [isEssayLoading, setIsEssayLoading] = useState(false);
+  const [essayLoadError, setEssayLoadError] = useState('');
 
   const [teacherFeedback, setTeacherFeedback] = useState('');
   const [claimsCount, setClaimsCount] = useState('');
@@ -32,12 +104,87 @@ const WritingArea = () => {
   };
 
   useEffect(() => {
-    setActivityTitle(localStorage.getItem('activityTitle') || '');
-    setGroupName(localStorage.getItem('groupName') || '');
-  }, []);
+    let mounted = true;
+
+    const resolvedStudentName =
+      location.state?.studentName ||
+      localStorage.getItem('name') ||
+      localStorage.getItem('username') ||
+      localStorage.getItem('userName') ||
+      '';
+    const resolvedClassName =
+      location.state?.className || localStorage.getItem('activityTitle') || '';
+    const resolvedTheme =
+      location.state?.theme || location.state?.topicName || localStorage.getItem('groupName') || '';
+    const scopedEssayKey = buildEssayStorageKey(resolvedStudentName, resolvedClassName, resolvedTheme);
+    const fallbackLocalEssay =
+      localStorage.getItem(scopedEssayKey) ||
+      localStorage.getItem('essayData') ||
+      localStorage.getItem('editorData') ||
+      '';
+
+    setStudentName(resolvedStudentName);
+    setActivityTitle(resolvedClassName);
+    setGroupName(resolvedTheme);
+    setEditorContent(normalizeEssayText(fallbackLocalEssay));
+
+    const loadEssay = async () => {
+      if (!resolvedStudentName || !resolvedClassName || !resolvedTheme) {
+        return;
+      }
+
+      setIsEssayLoading(true);
+      setEssayLoadError('');
+      setTeacherFeedback('');
+      setClaimsCount('');
+      setClaimsText('');
+      setGroundsCount('');
+      setGroundsText('');
+      setRebuttalsCount('');
+      setRebuttalsText('');
+      setScore('');
+
+      try {
+        const notionData = await fetchEssayFromNotion({
+          studentName: resolvedStudentName,
+          className: resolvedClassName,
+          theme: resolvedTheme,
+        });
+
+        if (!mounted) return;
+        const fetchedEssay = notionData?.essayContent || '';
+        setEditorContent(normalizeEssayText(fetchedEssay || fallbackLocalEssay));
+        setTeacherFeedback(normalizeFieldValue(notionData?.teacherFeedback));
+        setClaimsCount(normalizeFieldValue(notionData?.claimsScore));
+        setClaimsText(normalizeFieldValue(notionData?.claimsComment));
+        setGroundsCount(normalizeFieldValue(notionData?.groundsScore));
+        setGroundsText(normalizeFieldValue(notionData?.groundsComment));
+        setRebuttalsCount(normalizeFieldValue(notionData?.rebuttalsScore));
+        setRebuttalsText(normalizeFieldValue(notionData?.rebuttalsComment));
+        setScore(normalizeFieldValue(notionData?.totalScore));
+      } catch (error) {
+        if (!mounted) return;
+        if (error?.code !== 'NOT_FOUND') {
+          const errorMessage = error?.response?.data?.error || error?.message || '未知錯誤';
+          setEssayLoadError(`載入 Notion 文章失敗：${errorMessage}`);
+        }
+        setEditorContent(normalizeEssayText(fallbackLocalEssay));
+      } finally {
+        if (mounted) {
+          setIsEssayLoading(false);
+        }
+      }
+    };
+
+    void loadEssay();
+
+    return () => {
+      mounted = false;
+    };
+  }, [location.state]);
 
   return (
-    <div>
+    <div style={{ backgroundColor: '#fff' }}>
       <Navbar />
 
       <Box
@@ -46,21 +193,24 @@ const WritingArea = () => {
           minHeight: 'calc(100vh - 120px)',
           padding: '10px',
           gap: '10px',
+          backgroundColor: '#fff',
         }}
       >
         <Box
           sx={{
             width: '100%',
-            borderLeft: 'none',
+            border: '1px solid #000',
+            borderRadius: '0',
+            backgroundColor: '#fff',
+            boxSizing: 'border-box',
             position: 'relative',
-            height: { md: '600px', sm: '800px', xs: 'auto' },
+            minHeight: { md: '600px', sm: '800px', xs: 'auto' },
             display: 'flex',
             flexDirection: 'row',
             '@media (max-width: 700px)': {
               width: '100%',
               padding: '10px',
-              height: '800px',
-              borderLeft: 'none',
+              border: '1px solid #000',
             },
           }}
         >
@@ -68,24 +218,41 @@ const WritingArea = () => {
             <Box
               sx={{
                 width: '100%',
-                height: '100px',
+                minHeight: '100px',
                 display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                backgroundColor: '#ada695',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                padding: '0 10px',
+                justifyContent: 'flex-start',
+                alignItems: 'flex-start',
+                backgroundColor: '#fff',
+                borderBottom: '1px solid #000',
+                fontSize: '22px',
+                fontWeight: 500,
+                padding: '10px',
               }}
             >
-              <Box>
-                <span style={{ fontSize: '20px' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Box sx={{ fontSize: '22px', fontWeight: 500, lineHeight: 1.2, fontFamily: 'inherit' }}>
+                  {`Student: ${studentName || '-'}`}
+                </Box>
+                <Box sx={{ fontSize: '22px', fontWeight: 500, lineHeight: 1.2, fontFamily: 'inherit' }}>
                   {`Class: ${activityTitle || '-'}`}
-                  {'  |  '}
+                </Box>
+                <Box sx={{ fontSize: '22px', fontWeight: 500, lineHeight: 1.2, fontFamily: 'inherit' }}>
                   {`Topic: ${groupName || '-'}`}
-                </span>
+                </Box>
               </Box>
             </Box>
+
+            {isEssayLoading && (
+              <Box sx={{ px: 1.5, py: 1, fontSize: '14px', color: '#334155' }}>
+                正在載入學生文章...
+              </Box>
+            )}
+
+            {!isEssayLoading && essayLoadError && (
+              <Box sx={{ px: 1.5, py: 1, fontSize: '14px', color: '#b91c1c' }}>
+                {essayLoadError}
+              </Box>
+            )}
 
             <Box sx={{ flex: 1, overflowY: 'auto', minHeight: '300px', backgroundColor: 'white', width: '100%' }}>
               <TextField
@@ -98,9 +265,18 @@ const WritingArea = () => {
                 sx={{
                   height: '100%',
                   width: '100%',
-                  '& .MuiInputBase-root': {
+                  '& .MuiOutlinedInput-root': {
                     height: '100%',
                     alignItems: 'flex-start',
+                    '& fieldset': {
+                      border: 'none',
+                    },
+                    '&:hover fieldset': {
+                      border: 'none',
+                    },
+                    '&.Mui-focused fieldset': {
+                      border: 'none',
+                    },
                   },
                 }}
               />
@@ -109,8 +285,8 @@ const WritingArea = () => {
             <Box sx={{ pt: 1, width: '100%' }}>
               <Box
                 sx={{
-                  border: '1px solid #ccc',
-                  borderRadius: '8px',
+                  borderTop: '1px solid #000',
+                  borderBottom: '1px solid #000',
                   backgroundColor: '#fff',
                   minHeight: '140px',
                   p: 2,
@@ -118,7 +294,21 @@ const WritingArea = () => {
                   boxSizing: 'border-box',
                 }}
               >
-                <Box sx={{ fontSize: '16px', fontWeight: 'bold', mb: 1 }}>Teacher feedback</Box>
+                <Box
+                  sx={{
+                    fontSize: '22px',
+                    fontWeight: 500,
+                    lineHeight: 1.2,
+                    fontFamily: 'inherit',
+                    pb: 1,
+                    mb: 1,
+                    mx: -2,
+                    px: 2,
+                    borderBottom: '1px solid #000',
+                  }}
+                >
+                  Teacher feedback
+                </Box>
                 <TextField
                   multiline
                   rows={4}
@@ -126,6 +316,19 @@ const WritingArea = () => {
                   value={teacherFeedback}
                   InputProps={{ readOnly: true }}
                   onChange={(e) => setTeacherFeedback(e.target.value)}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': {
+                        border: 'none',
+                      },
+                      '&:hover fieldset': {
+                        border: 'none',
+                      },
+                      '&.Mui-focused fieldset': {
+                        border: 'none',
+                      },
+                    },
+                  }}
                 />
               </Box>
 

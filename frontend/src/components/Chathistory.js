@@ -362,8 +362,17 @@ export default function Studentfuntion() {
       }
 
       const answer = parseCompletionAnswer(payload, optimisticSession.sourceType);
-      syncKfSummaryFromAssistantReply(chatbotEntryMode, answer);
-      syncWritingOutlineFromAssistantReply(chatbotEntryMode, answer);
+      const toolkitScope = {
+        studentName:
+          localStorage.getItem("name") ||
+          localStorage.getItem("username") ||
+          localStorage.getItem("userName") ||
+          "",
+        className: historyScope.className || className || "",
+        topicName: historyScope.topicName || topicName || "",
+      };
+      syncKfSummaryFromAssistantReply(chatbotEntryMode, answer, toolkitScope);
+      syncWritingOutlineFromAssistantReply(chatbotEntryMode, answer, toolkitScope);
       const assistantMessage = {
         id: payload?.data?.id || payload?.data?.message_id || `history-assistant-${Date.now()}`,
         role: "assistant",

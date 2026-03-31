@@ -321,8 +321,17 @@ export default function Studentfuntion() {
     try {
       const completion = await requestRagflowCompletion(question, ragflowSessionId);
       const answer = completion.answer || "";
-      syncKfSummaryFromAssistantReply(chatbotEntryMode, answer);
-      syncWritingOutlineFromAssistantReply(chatbotEntryMode, answer);
+      const toolkitScope = {
+        studentName:
+          localStorage.getItem("name") ||
+          localStorage.getItem("username") ||
+          localStorage.getItem("userName") ||
+          "",
+        className: historyScope.className || className || "",
+        topicName: historyScope.topicName || topicName || "",
+      };
+      syncKfSummaryFromAssistantReply(chatbotEntryMode, answer, toolkitScope);
+      syncWritingOutlineFromAssistantReply(chatbotEntryMode, answer, toolkitScope);
       setRagflowMessages((prev) => [
         ...prev,
         {
