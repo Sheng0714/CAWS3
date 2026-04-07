@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "./Navbar_Student";
 import StudentLeftSidebar from "./StudentLeftSidebar";
 import backIcon from "../assets/back.png";
+import { fetchEssayFromNotion } from "../services/essayNotificationService";
 
 import ICON1 from "../assets/新聊天.png";
 import ICON2 from "../assets/歷史紀錄2.png";
@@ -11,11 +12,54 @@ import cawsOwl from "../assets/去背.png";
 const getIsCompletedEntry = () =>
   localStorage.getItem("isCompletedActivityEntry") === "true";
 const WRITING_ANALYSIS_PREFILL_KEY = "writingAnalysisPrefillPrompt";
+const convertEditorHtmlToPlainText = (htmlContent) => {
+  if (!htmlContent) return "";
+
+  const htmlWithLineBreaks = String(htmlContent)
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\s*\/(p|div|h[1-6]|li|tr)\s*>/gi, "\n")
+    .replace(/<\s*li\b[^>]*>/gi, "- ");
+
+  const tempElement = document.createElement("div");
+  tempElement.innerHTML = htmlWithLineBreaks;
+
+  return (tempElement.textContent || tempElement.innerText || "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+const resolveWritingAnalysisPrefillPrompt = async () => {
+  const studentName =
+    localStorage.getItem("name") ||
+    localStorage.getItem("username") ||
+    localStorage.getItem("userName") ||
+    "";
+  const className = localStorage.getItem("activityTitle") || "";
+  const theme = localStorage.getItem("groupName") || "";
+
+  let essayHtmlFromDb = "";
+  if (studentName && className && theme) {
+    try {
+      const notionData = await fetchEssayFromNotion({ studentName, className, theme });
+      essayHtmlFromDb = notionData?.essayContent || "";
+    } catch (error) {
+      if (error?.code !== "NOT_FOUND") {
+        console.error("Failed to fetch essay from DB before writing analysis chat:", error);
+      }
+    }
+  }
+
+  const localEssayHtml = localStorage.getItem("editorData") || localStorage.getItem("essayData") || "";
+  return convertEditorHtmlToPlainText(essayHtmlFromDb || localEssayHtml);
+};
 
 export default function Studentfuntion() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isCompletedEntry, setIsCompletedEntry] = useState(getIsCompletedEntry);
+  const [isPreparingStartNewChat, setIsPreparingStartNewChat] = useState(false);
   const chatbotEntryMode =
     location.state?.chatbotEntryMode || sessionStorage.getItem("chatbotEntryMode") || "unknown";
 
@@ -46,6 +90,25 @@ export default function Studentfuntion() {
     cursor: "pointer",
   };
   const startNewChatLocked = isCompletedEntry;
+  const handleStartNewChat = async () => {
+    if (startNewChatLocked || isPreparingStartNewChat) return;
+
+    setIsPreparingStartNewChat(true);
+    try {
+      if (chatbotEntryMode === "writing_analysis") {
+        const prefillPrompt = await resolveWritingAnalysisPrefillPrompt();
+        if (prefillPrompt) {
+          sessionStorage.setItem(WRITING_ANALYSIS_PREFILL_KEY, prefillPrompt);
+        } else {
+          sessionStorage.removeItem(WRITING_ANALYSIS_PREFILL_KEY);
+        }
+      }
+
+      navigate("/Newchat", { state: { chatbotEntryMode } });
+    } finally {
+      setIsPreparingStartNewChat(false);
+    }
+  };
 
   useEffect(() => {
     const hasWritingAnalysisPrefill = Boolean(
@@ -159,19 +222,16 @@ export default function Studentfuntion() {
               />
               <button
                 type="button"
-                onClick={() => {
-                  if (startNewChatLocked) return;
-                  navigate("/Newchat", { state: { chatbotEntryMode } });
-                }}
-                disabled={startNewChatLocked}
+                onClick={handleStartNewChat}
+                disabled={startNewChatLocked || isPreparingStartNewChat}
                 style={{
                   ...actionButtonStyle,
-                  background: startNewChatLocked
+                  background: startNewChatLocked || isPreparingStartNewChat
                     ? "rgba(148, 163, 184, 0.35)"
                     : actionButtonStyle.background,
-                  color: startNewChatLocked ? "#64748b" : actionButtonStyle.color,
-                  cursor: startNewChatLocked ? "not-allowed" : "pointer",
-                  pointerEvents: startNewChatLocked ? "none" : "auto",
+                  color: startNewChatLocked || isPreparingStartNewChat ? "#64748b" : actionButtonStyle.color,
+                  cursor: startNewChatLocked || isPreparingStartNewChat ? "not-allowed" : "pointer",
+                  pointerEvents: startNewChatLocked || isPreparingStartNewChat ? "none" : "auto",
                 }}
               >
                 Start New Chat

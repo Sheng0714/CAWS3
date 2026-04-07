@@ -1685,7 +1685,33 @@ const GRADING_FIELD_CONFIGS = [
         aliases: ['Rebuttals評語', 'Rebuttals 評語', 'Rebuttals Comment', 'Rebuttals comment', 'RebuttalsFeedback', 'Rebuttals回饋'],
         allowedTypes: ['rich_text', 'title'],
     },
+    {
+        inputKey: 'submissionStatus',
+        aliases: ['是否繳交', '繳交狀態', '提交狀態', 'Submission Status', 'SubmissionStatus', 'Submitted'],
+        allowedTypes: ['rich_text', 'title', 'select', 'status', 'checkbox'],
+    },
 ];
+
+const SUBMITTED_STATUS_ALIASES = ['是', 'yes', 'true', '1', 'submitted', '已繳交'];
+const UNSUBMITTED_STATUS_ALIASES = ['否', 'no', 'false', '0', 'unsubmitted', '未繳交'];
+
+const normalizeSubmissionStatus = (value) => {
+    const raw = String(value ?? '').trim();
+    const normalized = raw.toLowerCase();
+
+    if (!raw) {
+        return '';
+    }
+    if (SUBMITTED_STATUS_ALIASES.includes(normalized) || raw === '是') {
+        return '是';
+    }
+    if (UNSUBMITTED_STATUS_ALIASES.includes(normalized) || raw === '否') {
+        return '否';
+    }
+    return raw;
+};
+
+const isSubmittedStatusYes = (value) => normalizeSubmissionStatus(value) === '是';
 
 const hasOwn = (target, key) => Object.prototype.hasOwnProperty.call(target, key);
 
@@ -1761,6 +1787,21 @@ const toNotionPropertyValueByType = (propertyType, rawValue) => {
             const normalizedValue = String(rawValue ?? '').trim();
             return { status: normalizedValue ? { name: normalizedValue } : null };
         }
+        case 'checkbox': {
+            if (typeof rawValue === 'boolean') {
+                return { checkbox: rawValue };
+            }
+            const normalizedValue = String(rawValue ?? '').trim().toLowerCase();
+            return {
+                checkbox:
+                    normalizedValue === 'true' ||
+                    normalizedValue === '1' ||
+                    normalizedValue === 'yes' ||
+                    normalizedValue === '是' ||
+                    normalizedValue === 'submitted' ||
+                    normalizedValue === '已繳交',
+            };
+        }
         default:
             return null;
     }
@@ -1804,6 +1845,8 @@ const readPropertyDisplayValue = (propertyValue) => {
             return propertyValue.select?.name || '';
         case 'status':
             return propertyValue.status?.name || '';
+        case 'checkbox':
+            return propertyValue.checkbox ? '是' : '否';
         case 'formula': {
             const formula = propertyValue.formula;
             if (!formula) {
@@ -1949,7 +1992,13 @@ app.post('/api/submit-to-notion', async (req, res) => {
             text: { content: chunk }
         }));
 
-        const gradingPayload = await buildGradingPropertiesPayloadFromRequest(req.body);
+        const submitRequestBody = hasOwn(req.body, 'submissionStatus')
+            ? req.body
+            : {
+                ...req.body,
+                submissionStatus: '是',
+            };
+        const gradingPayload = await buildGradingPropertiesPayloadFromRequest(submitRequestBody);
         if (gradingPayload.unresolved.length > 0) {
             console.warn('Notion grading fields unresolved in submit-to-notion:', gradingPayload.unresolved);
         }
@@ -2377,19 +2426,27 @@ app.get('/api/get-students-by-class/:className', async (req, res) => {
                 getDisplayValueByAliases(properties, ['總分']),
                 parsedNote?.totalScore
             );
+            const submissionStatus = normalizeSubmissionStatus(
+                pickFirstNonEmptyValue(
+                    getDisplayValueByAliases(properties, ['是否繳交', '繳交狀態', '提交狀態', 'Submission Status', 'SubmissionStatus', 'Submitted']),
+                    parsedNote?.submissionStatus
+                )
+            );
 
             return {
                 theme: getDisplayValueByAliases(properties, ['主題']) || '未知主題',
                 studentName: getDisplayValueByAliases(properties, ['學生姓名']) || '未知學生',
                 submissionDate: page.created_time || '尚未繳交',
+                submissionStatus,
                 totalScore: totalScore || '',
                 grade: totalScore || '-',
             };
         });
+        const submittedStudents = students.filter((student) => isSubmittedStatusYes(student.submissionStatus));
 
         res.json({
             success: true,
-            data: students,
+            data: submittedStudents,
         });
     } catch (error) {
         console.error('Notion API 錯誤詳情:', error);

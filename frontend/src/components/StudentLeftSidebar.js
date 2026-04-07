@@ -76,7 +76,7 @@ const SIDEBAR_PRIMARY_MENUS = [
   {
     key: "scoring",
     icon: StudentFeature4Icon,
-    label: "Scoring",
+    label: "Scoring & Feedback",
     action: (navigate) => navigate("/freebackstudent"),
   },
 ];
@@ -130,12 +130,33 @@ const fetchToolkitFromNotion = async ({ studentName, className, topicName }) => 
   throw lastError || new Error("Fetch toolkit from Notion failed");
 };
 
+const hasMeaningfulStageValue = (value) => {
+  if (typeof value !== "string") return false;
+  const plainText = value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return plainText.length > 0;
+};
+
+const buildWritingStageChecks = ({ summaryValue = "", outlineValue = "", finalWritingValue = "" } = {}) => ({
+  discussion: true,
+  summary: hasMeaningfulStageValue(summaryValue),
+  outline: hasMeaningfulStageValue(outlineValue),
+  finalWriting: hasMeaningfulStageValue(finalWritingValue),
+});
+
+const buildEssayStorageKey = (studentName, className, topicName) =>
+  `essayData::${encodeURIComponent(studentName || "")}::${encodeURIComponent(className || "")}::${encodeURIComponent(topicName || "")}`;
+
 export default function StudentLeftSidebar() {
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [kfSummaryContent, setKfSummaryContent] = useState("");
   const [outlineContent, setOutlineContent] = useState("");
   const [notesContent, setNotesContent] = useState("");
+  const [writingStageChecks, setWritingStageChecks] = useState(() => buildWritingStageChecks());
   const [activeSidebarEditor, setActiveSidebarEditor] = useState("");
   const [expandedToolkitPanel, setExpandedToolkitPanel] = useState("");
   const [expandedPrimaryPanel, setExpandedPrimaryPanel] = useState("");
@@ -153,13 +174,36 @@ export default function StudentLeftSidebar() {
       const isScopeChanged = latestScopeSignatureRef.current !== scopeSignature;
       if (isScopeChanged) {
         latestScopeSignatureRef.current = scopeSignature;
+        setWritingStageChecks(buildWritingStageChecks());
       }
 
-      setKfSummaryContent(readToolkitContentByScope("kfAnalysisData", toolkitScope));
-      setOutlineContent(readToolkitContentByScope("outlineData", toolkitScope));
-      setNotesContent(readToolkitContentByScope("noteData", toolkitScope));
+      const savedKfSummary = readToolkitContentByScope("kfAnalysisData", toolkitScope);
+      const savedOutline = readToolkitContentByScope("outlineData", toolkitScope);
+      const savedNotes = readToolkitContentByScope("noteData", toolkitScope);
+      const scopedEssayKey = buildEssayStorageKey(
+        toolkitScope.studentName,
+        toolkitScope.className,
+        toolkitScope.topicName
+      );
+      const savedEssay =
+        localStorage.getItem(scopedEssayKey) ||
+        localStorage.getItem("essayData") ||
+        localStorage.getItem("editorData") ||
+        "";
+
+      setKfSummaryContent(savedKfSummary);
+      setOutlineContent(savedOutline);
+      setNotesContent(savedNotes);
+      setWritingStageChecks(
+        buildWritingStageChecks({
+          summaryValue: savedKfSummary,
+          outlineValue: savedOutline,
+          finalWritingValue: savedEssay,
+        })
+      );
 
       if (!toolkitScope.studentName || !toolkitScope.className || !toolkitScope.topicName) {
+        setWritingStageChecks(buildWritingStageChecks());
         return;
       }
       if (!forceNotionFetch && !isScopeChanged) {
@@ -168,11 +212,11 @@ export default function StudentLeftSidebar() {
 
       try {
         const notionData = await fetchToolkitFromNotion(toolkitScope);
-        if (
-          !notionData ||
-          isUnmounted ||
-          latestLoadRequestRef.current !== requestId
-        ) {
+        if (isUnmounted || latestLoadRequestRef.current !== requestId) {
+          return;
+        }
+        if (!notionData) {
+          setWritingStageChecks(buildWritingStageChecks());
           return;
         }
 
@@ -180,12 +224,21 @@ export default function StudentLeftSidebar() {
           typeof notionData?.kfAnalysisContent === "string" ? notionData.kfAnalysisContent : "";
         const fetchedOutline =
           typeof notionData?.outlineContent === "string" ? notionData.outlineContent : "";
+        const fetchedEssay =
+          typeof notionData?.essayContent === "string" ? notionData.essayContent : "";
         const fetchedNotes =
           typeof notionData?.noteContent === "string" ? notionData.noteContent : "";
 
         setKfSummaryContent(fetchedKfSummary);
         setOutlineContent(fetchedOutline);
         setNotesContent(fetchedNotes);
+        setWritingStageChecks(
+          buildWritingStageChecks({
+            summaryValue: fetchedKfSummary,
+            outlineValue: fetchedOutline,
+            finalWritingValue: fetchedEssay,
+          })
+        );
         writeToolkitContentByScope("kfAnalysisData", fetchedKfSummary, toolkitScope);
         writeToolkitContentByScope("outlineData", fetchedOutline, toolkitScope);
         writeToolkitContentByScope("noteData", fetchedNotes, toolkitScope);
@@ -580,7 +633,7 @@ export default function StudentLeftSidebar() {
             })}
           </div>
 
-          <WritingStageStepper initialStep={4} />
+          <WritingStageStepper checkedStages={writingStageChecks} />
 
           <div
             style={{

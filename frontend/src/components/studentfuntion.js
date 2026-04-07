@@ -30,7 +30,7 @@ const cardData = [
     id: 2,
     numberImage: number2,
     featureImage: feature2,
-    title: "Chatbot",
+    title: "Chatbots",
     description: [
       "KF Analysis Mode",
       "Writing Assistant Mode",

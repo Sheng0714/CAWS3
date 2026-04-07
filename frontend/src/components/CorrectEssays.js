@@ -418,7 +418,6 @@ export default function CorrectEssays() {
 
       const notePayload = JSON.stringify({
         humanComment,
-        aiComment,
         claimsScore,
         groundsScore,
         rebuttalsScore,

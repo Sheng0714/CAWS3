@@ -49,6 +49,10 @@ const StyledButton = styled(Button)({
 const notionApiBases = ["/api/notion", "/notion-api", "http://140.115.126.27:4000", "http://localhost:4000"];
 
 const normalizeText = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
+const isSubmittedStatusYes = (value) => {
+  const normalized = normalizeText(value);
+  return normalized === "是" || normalized === "yes" || normalized === "true" || normalized === "1" || normalized === "submitted" || normalized === "已繳交";
+};
 
 const formatSubmissionTime = (value) => {
   if (!value) return "-";
@@ -118,9 +122,10 @@ export default function Studentlist() {
         const notionRows = await fetchNotionRowsByClass(selectedClassName);
 
         const shouldFilterByTopic = selectedTopicName && selectedTopicName !== "-";
-        const filteredRows = shouldFilterByTopic
+        const filteredRowsByTopic = shouldFilterByTopic
           ? notionRows.filter((item) => normalizeText(item?.theme) === normalizeText(selectedTopicName))
           : notionRows;
+        const filteredRows = filteredRowsByTopic.filter((item) => isSubmittedStatusYes(item?.submissionStatus));
 
         const mappedRows = filteredRows.map((item, index) => ({
           rowId: `${item?.studentName || "unknown"}-${item?.submissionDate || index}`,

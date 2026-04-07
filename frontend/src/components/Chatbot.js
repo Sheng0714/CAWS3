@@ -55,6 +55,9 @@ export default function Studentfuntion() {
     if (id === 1) chatbotEntryMode = "kf_analysis";
     if (id === 2) chatbotEntryMode = "writing_assistant";
     if (id === 3) chatbotEntryMode = "writing_analysis";
+    if (id === 3) {
+      sessionStorage.removeItem("writingAnalysisPrefillPrompt");
+    }
     sessionStorage.setItem("chatbotEntryMode", chatbotEntryMode);
 
     if (id === 1) {

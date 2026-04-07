@@ -38494,27 +38494,8 @@ import { Box, Button, Dialog, DialogTitle, DialogContent, DialogContentText, Dia
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar_Student';
-import RagflowMarkdown from './RagflowMarkdown';
-import WritingStageStepper from './WritingStageStepper';
-import HamburgerLineIcon from '../assets/橫線.png';
-import LeftArrowIcon from '../assets/左箭頭.png';
-import StudentFeature1Icon from '../assets/學生功能1.png';
-import StudentFeature2Icon from '../assets/學生功能2.png';
-import StudentFeature3Icon from '../assets/學生功能3.png';
-import StudentFeature4Icon from '../assets/學生功能4.png';
-import ExpandIcon from '../assets/展開.png';
-import KFSummaryIcon from '../assets/KFSummary.png';
-import WritingOutlineIcon from '../assets/WritingOutline.png';
-import NotesAreaIcon from '../assets/NotesArea.png';
-import CopyIcon from '../assets/複製.png';
-import HomeIcon from '../assets/home.png';
-import AboutIcon from '../assets/about.png';
-import ManualIcon from '../assets/manual.png';
-import LogoutIcon from '../assets/logout.png';
-import AvatarIcon from '../assets/頭像.png';
-import ChatbotModeIcon1 from '../assets/首頁1.png';
-import ChatbotModeIcon2 from '../assets/首頁2.png';
-import ChatbotModeIcon3 from '../assets/首頁3.png';
+import StudentLeftSidebar from './StudentLeftSidebar';
+import BackIcon from '../assets/back.png';
 import { readToolkitContentByScope, writeToolkitContentByScope } from '../utils/ragflowChatHistory';
 
 
@@ -38681,7 +38662,6 @@ const WritingArea = () => {
   const [studentName, setStudentName] = useState('');
   const [activityTitle, setActivityTitle] = useState('');
   const [groupName, setGroupName] = useState('');
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCompletedEntry, setIsCompletedEntry] = useState(false);
@@ -38689,9 +38669,6 @@ const WritingArea = () => {
   const [kfSummaryContent, setKfSummaryContent] = useState('');
   const [outlineContent, setOutlineContent] = useState('');
   const [notesContent, setNotesContent] = useState('');
-  const [activeSidebarEditor, setActiveSidebarEditor] = useState('');
-  const [expandedToolkitPanel, setExpandedToolkitPanel] = useState('');
-  const [expandedPrimaryPanel, setExpandedPrimaryPanel] = useState('');
 
   const quillRootRef = useRef(null);
   const quillInstanceRef = useRef(null);
@@ -38709,26 +38686,6 @@ const WritingArea = () => {
     const theme = groupName || localStorage.getItem('groupName') || '';
     const toolkitScope = buildToolkitScope(currentStudentName, className, theme);
     return { currentStudentName, className, theme, toolkitScope };
-  };
-
-  const copyTextToClipboard = async (content) => {
-    if (!content) return;
-
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(content);
-      return;
-    }
-
-    const textArea = document.createElement('textarea');
-    textArea.value = content;
-    textArea.setAttribute('readonly', '');
-    textArea.style.position = 'fixed';
-    textArea.style.top = '-9999px';
-    textArea.style.left = '-9999px';
-    document.body.appendChild(textArea);
-    textArea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textArea);
   };
 
   useEffect(() => {
@@ -38772,10 +38729,12 @@ const WritingArea = () => {
           theme: savedGroupName,
         });
 
-        const fetchedEssay = notionData?.essayContent || '';
-        const fetchedKfSummary = savedKfSummary || notionData?.kfAnalysisContent || '';
-        const fetchedOutline = savedOutline || notionData?.outlineContent || '';
-        const fetchedNotes = notionData?.noteContent || savedNotes;
+        const fetchedEssay = typeof notionData?.essayContent === 'string' ? notionData.essayContent : '';
+        const fetchedKfSummary =
+          typeof notionData?.kfAnalysisContent === 'string' ? notionData.kfAnalysisContent : '';
+        const fetchedOutline =
+          typeof notionData?.outlineContent === 'string' ? notionData.outlineContent : '';
+        const fetchedNotes = typeof notionData?.noteContent === 'string' ? notionData.noteContent : '';
         if (!mounted) return;
 
         setEditorContent(fetchedEssay);
@@ -38792,9 +38751,15 @@ const WritingArea = () => {
         if (!mounted) return;
         if (error?.code === 'NOT_FOUND' || error?.response?.status === 404) {
           setEditorContent('');
+          setKfSummaryContent('');
+          setOutlineContent('');
+          setNotesContent('');
           localStorage.removeItem(scopedEssayKey);
           localStorage.removeItem('essayData');
           localStorage.removeItem('editorData');
+          writeToolkitContentByScope('kfAnalysisData', '', toolkitScope);
+          writeToolkitContentByScope('outlineData', '', toolkitScope);
+          writeToolkitContentByScope('noteData', '', toolkitScope);
           return;
         }
         console.error('從 Notion 載入議論文失敗，改用該主題本機資料:', error);
@@ -38865,9 +38830,7 @@ const WritingArea = () => {
     quill.root.innerHTML = editorContent || '';
   }, [editorContent]);
 
-  const handleSave = async () => {
-    if (isReadOnly) return;
-
+  const syncEssayToNotion = async ({ submissionStatus } = {}) => {
     const { currentStudentName, className, theme, toolkitScope } = resolveCurrentScopeValues();
     const scopedEssayKey = buildEssayStorageKey(currentStudentName, className, theme);
 
@@ -38880,7 +38843,17 @@ const WritingArea = () => {
 
     if (!currentStudentName || !className || !theme) {
       alert('已先儲存到本機，但缺少姓名、班級或主題，無法同步到 Notion。');
-      return;
+      return false;
+    }
+
+    const rawChatHistory = localStorage.getItem('chatHistory');
+    let chatHistoryPayload = [];
+    if (rawChatHistory) {
+      try {
+        chatHistoryPayload = JSON.parse(rawChatHistory);
+      } catch {
+        chatHistoryPayload = [];
+      }
     }
 
     try {
@@ -38893,55 +38866,46 @@ const WritingArea = () => {
         noteContent: notesContent || '',
         kfAnalysisContent: kfSummaryContent || '',
         outlineContent: outlineContent || '',
-        chatHistory: (() => {
-          const raw = localStorage.getItem('chatHistory');
-          if (!raw) return [];
-          try {
-            return JSON.parse(raw);
-          } catch {
-            return [];
-          }
-        })(),
+        ...(submissionStatus ? { submissionStatus } : {}),
+        chatHistory: chatHistoryPayload,
       });
-      alert('Saved successfully. Before submitting, you can go to Writing Analysis mode to check the quality of your argumentative essay.');
+      return true;
     } catch (error) {
       console.error('同步到 Notion 失敗:', error);
       const errorMessage = error?.response?.data?.error || error?.message || '未知錯誤';
       alert(`已先儲存到本機，但同步 Notion 失敗：${errorMessage}`);
+      return false;
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleSubmit = () => {
+  const handleSave = async () => {
     if (isReadOnly) return;
-
-    const { currentStudentName, className, theme, toolkitScope } = resolveCurrentScopeValues();
-    const scopedEssayKey = buildEssayStorageKey(currentStudentName, className, theme);
-
-    localStorage.setItem(scopedEssayKey, editorContent);
-    localStorage.setItem('essayData', editorContent);
-    localStorage.setItem('editorData', editorContent);
-    writeToolkitContentByScope('kfAnalysisData', kfSummaryContent, toolkitScope);
-    writeToolkitContentByScope('outlineData', outlineContent, toolkitScope);
-    writeToolkitContentByScope('noteData', notesContent, toolkitScope);
+    const saveSucceeded = await syncEssayToNotion();
+    if (saveSucceeded) {
+      alert('Saved successfully. Before submitting, you can go to Writing Analysis mode to check the quality of your argumentative essay.');
+    }
   };
 
-  const handleConfirmSubmit = () => {
+  const handleSubmit = async () => {
+    if (isReadOnly) return false;
+    return syncEssayToNotion({ submissionStatus: '是' });
+  };
+
+  const handleConfirmSubmit = async () => {
     if (isReadOnly) return;
 
     const { currentStudentName, className, theme } = resolveCurrentScopeValues();
     const scopedSubmitLockKey = buildSubmitLockKey(currentStudentName, className, theme);
 
-    handleSubmit();
+    const submitSucceeded = await handleSubmit();
+    if (!submitSucceeded) return;
+
     localStorage.setItem(scopedSubmitLockKey, 'true');
     setIsSubmitted(true);
     setOpenConfirmSubmitDialog(false);
     alert('Submission successful!');
-  };
-
-  const handleGoToKfArgumentation = () => {
-    window.open('https://kf6.nccu.edu.tw/', '_blank', 'noopener,noreferrer');
   };
 
   const handleGoToChatbotMode = (chatbotEntryMode) => {
@@ -38959,159 +38923,6 @@ const WritingArea = () => {
     sessionStorage.setItem('chatbotEntryMode', chatbotEntryMode);
     navigate('/Chatbotlogin', { state: { chatbotEntryMode } });
   };
-
-  const handleGoToWritingArea = () => {
-    navigate('/writing_area');
-  };
-
-  const handleGoToScoring = () => {
-    navigate('/freebackstudent');
-  };
-
-  const handleSidebarLogout = () => {
-    localStorage.removeItem('jwtToken');
-    localStorage.removeItem('token');
-    navigate('/');
-  };
-
-  const handleToggleToolkitPanel = (panelKey) => {
-    setActiveSidebarEditor('');
-    setExpandedToolkitPanel((prev) => (prev === panelKey ? '' : panelKey));
-  };
-
-  const handleCopySidebarContent = async (content, label) => {
-    if (!content.trim()) {
-      alert(`${label} 目前是空的，沒有可複製內容。`);
-      return;
-    }
-
-    try {
-      await copyTextToClipboard(content);
-      alert(`${label} 已複製。`);
-    } catch (error) {
-      console.error(`Copy failed for ${label}:`, error);
-      alert(`${label} 複製失敗，請稍後再試。`);
-    }
-  };
-
-  const renderEditableMarkdownPanel = ({ fieldKey, value, onUpdate, placeholder }) => {
-    if (activeSidebarEditor === fieldKey) {
-      return (
-        <Box
-          component="textarea"
-          value={value}
-          autoFocus
-          onBlur={() => setActiveSidebarEditor('')}
-          onChange={(event) => onUpdate(event.target.value)}
-          sx={{
-            width: '100%',
-            height: '150px',
-            border: '1px solid #9e9e9e',
-            backgroundColor: '#ffffff',
-            p: 1,
-            boxSizing: 'border-box',
-            resize: 'none',
-            fontSize: '14px',
-            fontFamily: 'inherit',
-          }}
-        />
-      );
-    }
-
-    return (
-      <Box
-        onClick={() => setActiveSidebarEditor(fieldKey)}
-        sx={{
-          width: '100%',
-          height: '150px',
-          border: '1px solid #9e9e9e',
-          backgroundColor: '#ffffff',
-          p: 1,
-          boxSizing: 'border-box',
-          overflowY: 'auto',
-          cursor: 'text',
-          fontSize: '14px',
-          lineHeight: 1.4,
-        }}
-      >
-        {value.trim() ? (
-          <RagflowMarkdown content={value} />
-        ) : (
-          <span style={{ color: '#94a3b8' }}>{placeholder}</span>
-        )}
-      </Box>
-    );
-  };
-
-  const sidebarPrimaryMenus = [
-    { key: 'kf-argument', icon: StudentFeature1Icon, label: 'KF Argumentation', onClick: handleGoToKfArgumentation },
-    {
-      key: 'chatbot',
-      icon: StudentFeature2Icon,
-      label: 'Chatbot',
-      children: [
-        {
-          key: 'chatbot-kf-analysis',
-          label: 'KF Analysis',
-          icon: ChatbotModeIcon1,
-          onClick: () => handleGoToChatbotMode('kf_analysis'),
-        },
-        {
-          key: 'chatbot-writing-assistant',
-          label: 'Writing Assistant',
-          icon: ChatbotModeIcon2,
-          onClick: () => handleGoToChatbotMode('writing_assistant'),
-        },
-        {
-          key: 'chatbot-writing-analysis',
-          label: 'Writing Analysis',
-          icon: ChatbotModeIcon3,
-          onClick: () => handleGoToChatbotMode('writing_analysis'),
-        },
-      ],
-    },
-    { key: 'writing-area', icon: StudentFeature3Icon, label: 'Writing Area', onClick: handleGoToWritingArea },
-    { key: 'scoring', icon: StudentFeature4Icon, label: 'Scoring', onClick: handleGoToScoring },
-  ];
-
-  const toolkitMenus = [
-    {
-      fieldKey: 'kfSummary',
-      icon: KFSummaryIcon,
-      label: 'KF Summary',
-      value: kfSummaryContent,
-      placeholder: '',
-      onUpdate: (nextValue) => {
-        const { toolkitScope } = resolveCurrentScopeValues();
-        setKfSummaryContent(nextValue);
-        writeToolkitContentByScope('kfAnalysisData', nextValue, toolkitScope);
-      },
-    },
-    {
-      fieldKey: 'outline',
-      icon: WritingOutlineIcon,
-      label: 'Writing Outline',
-      value: outlineContent,
-      placeholder: '',
-      onUpdate: (nextValue) => {
-        const { toolkitScope } = resolveCurrentScopeValues();
-        setOutlineContent(nextValue);
-        writeToolkitContentByScope('outlineData', nextValue, toolkitScope);
-      },
-    },
-    {
-      fieldKey: 'notes',
-      icon: NotesAreaIcon,
-      label: 'Notes Area',
-      value: notesContent,
-      placeholder: '點擊即可編輯 Notes Area',
-      onUpdate: (nextValue) => {
-        const { toolkitScope } = resolveCurrentScopeValues();
-        setNotesContent(nextValue);
-        writeToolkitContentByScope('noteData', nextValue, toolkitScope);
-      },
-    },
-  ];
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -39136,321 +38947,7 @@ const WritingArea = () => {
             minHeight: '100%',
           }}
         >
-          <Box
-            sx={{
-              width: isSidebarExpanded ? '430px' : '70px',
-              minWidth: isSidebarExpanded ? '430px' : '70px',
-              alignSelf: 'stretch',
-              backgroundColor: 'rgba(105, 83, 83, 0.05)',
-              borderRight: '1px solid #d7d0c9',
-              borderRadius: 0,
-              transition: 'width 0.2s ease',
-              p: 0,
-              overflow: 'hidden',
-            }}
-          >
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: isSidebarExpanded ? 1 : 0 }}>
-              <Button
-                variant="text"
-                onClick={() => {
-                  setIsSidebarExpanded((prev) => !prev);
-                  setActiveSidebarEditor('');
-                  setExpandedToolkitPanel('');
-                  setExpandedPrimaryPanel('');
-                }}
-                sx={{
-                  minWidth: 0,
-                  width: '100%',
-                  mt: isSidebarExpanded ? 0 : 1,
-                  p: 0.5,
-                  justifyContent: isSidebarExpanded ? 'flex-start' : 'center',
-                  textTransform: 'none',
-                  color: '#000000',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: isSidebarExpanded ? 'flex-start' : 'center' }}>
-                  <img
-                    src={isSidebarExpanded ? LeftArrowIcon : HamburgerLineIcon}
-                    alt="menu-toggle"
-                    style={{ width: '24px', height: '24px' }}
-                  />
-                </Box>
-              </Button>
-
-              {isSidebarExpanded && (
-                <>
-                  <Box sx={{ px: 1, pb: 0.5, fontSize: '16px', fontWeight: 700, color: '#222' }}>
-                    Main menu
-                  </Box>
-
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 0.5, pb: 1 }}>
-                    {sidebarPrimaryMenus.map((menu) => {
-                      const hasChildren = Array.isArray(menu.children) && menu.children.length > 0;
-                      const isExpandedPrimary = expandedPrimaryPanel === menu.key;
-
-                      if (!hasChildren) {
-                        return (
-                          <Button
-                            key={menu.key}
-                            variant="text"
-                            onClick={menu.onClick}
-                            sx={{
-                              minWidth: 0,
-                              width: '100%',
-                              p: 0.75,
-                              justifyContent: 'flex-start',
-                              textTransform: 'none',
-                              color: '#1a1a1a',
-                              borderRadius: '10px',
-                              '&:hover': {
-                                backgroundColor: 'rgba(105, 83, 83, 0.12)',
-                              },
-                            }}
-                          >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                              <img src={menu.icon} alt={menu.label} style={{ width: '24px', height: '24px' }} />
-                              <span style={{ fontSize: '14px' }}>{menu.label}</span>
-                            </Box>
-                          </Button>
-                        );
-                      }
-
-                      return (
-                        <Box key={menu.key} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                          <Button
-                            variant="text"
-                            onClick={() => setExpandedPrimaryPanel((prev) => (prev === menu.key ? '' : menu.key))}
-                            sx={{
-                              minWidth: 0,
-                              width: '100%',
-                              p: 0.75,
-                              justifyContent: 'space-between',
-                              textTransform: 'none',
-                              color: '#1a1a1a',
-                              borderRadius: '10px',
-                              '&:hover': {
-                                backgroundColor: 'rgba(105, 83, 83, 0.12)',
-                              },
-                            }}
-                          >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <img src={menu.icon} alt={menu.label} style={{ width: '24px', height: '24px' }} />
-                              <span style={{ fontSize: '14px' }}>{menu.label}</span>
-                            </Box>
-                            <img
-                              src={ExpandIcon}
-                              alt={`${menu.label}-expand`}
-                              style={{
-                                width: '20px',
-                                height: '20px',
-                                transform: isExpandedPrimary ? 'rotate(180deg)' : 'rotate(0deg)',
-                                transition: 'transform 0.2s ease',
-                              }}
-                            />
-                          </Button>
-
-                          {isExpandedPrimary && (
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, pl: '40px', pr: 1 }}>
-                              {menu.children.map((child) => (
-                                <Button
-                                  key={child.key}
-                                  variant="text"
-                                  onClick={child.onClick}
-                                  sx={{
-                                    minWidth: 0,
-                                    width: '100%',
-                                    p: '6px 8px',
-                                    justifyContent: 'flex-start',
-                                    textTransform: 'none',
-                                    color: '#334155',
-                                    borderRadius: '8px',
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(105, 83, 83, 0.10)',
-                                    },
-                                  }}
-                                >
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <img src={child.icon} alt={child.label} style={{ width: '16px', height: '16px' }} />
-                                    <span style={{ fontSize: '13px' }}>{child.label}</span>
-                                  </Box>
-                                </Button>
-                              ))}
-                            </Box>
-                          )}
-                        </Box>
-                      );
-                    })}
-                  </Box>
-
-                  <Box sx={{ px: 1, pb: 0.5, fontSize: '16px', fontWeight: 700, color: '#222' }}>
-                    Writing Toolkit
-                  </Box>
-
-	                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 0.5 }}>
-	                    {toolkitMenus.map((toolkit) => {
-                      const isExpandedPanel = expandedToolkitPanel === toolkit.fieldKey;
-                      return (
-                        <Box key={toolkit.fieldKey} sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
-                          <Button
-                            variant="text"
-                            onClick={() => handleToggleToolkitPanel(toolkit.fieldKey)}
-                            sx={{
-                              minWidth: 0,
-                              width: '100%',
-                              p: 0.75,
-                              justifyContent: 'space-between',
-                              textTransform: 'none',
-                              color: '#1a1a1a',
-                              borderRadius: '10px',
-                              '&:hover': {
-                                backgroundColor: 'rgba(105, 83, 83, 0.12)',
-                              },
-                            }}
-                          >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <img src={toolkit.icon} alt={toolkit.label} style={{ width: '24px', height: '24px' }} />
-                              <span style={{ fontSize: '14px' }}>{toolkit.label}</span>
-                            </Box>
-                            <img
-                              src={ExpandIcon}
-                              alt={`${toolkit.label}-expand`}
-                              style={{
-                                width: '20px',
-                                height: '20px',
-                                transform: isExpandedPanel ? 'rotate(180deg)' : 'rotate(0deg)',
-                                transition: 'transform 0.2s ease',
-                              }}
-                            />
-                          </Button>
-
-                          {isExpandedPanel && (
-                            <Box sx={{ px: 0.6, pb: 0.8 }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 0.4 }}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCopySidebarContent(toolkit.value, toolkit.label)}
-                                  disabled={!toolkit.value.trim()}
-                                  style={{
-                                    border: 'none',
-                                    background: 'transparent',
-                                    padding: 0,
-                                    cursor: toolkit.value.trim() ? 'pointer' : 'not-allowed',
-                                    opacity: toolkit.value.trim() ? 1 : 0.4,
-                                    lineHeight: 0,
-                                  }}
-                                  title={`複製 ${toolkit.label}`}
-                                >
-                                  <img src={CopyIcon} alt={`copy-${toolkit.fieldKey}`} style={{ width: '22px', height: '22px' }} />
-                                </button>
-                              </Box>
-
-                              {renderEditableMarkdownPanel({
-                                fieldKey: toolkit.fieldKey,
-                                value: toolkit.value,
-                                onUpdate: toolkit.onUpdate,
-                                placeholder: toolkit.placeholder,
-                              })}
-                            </Box>
-                          )}
-                        </Box>
-                      );
-	                    })}
-	                  </Box>
-
-	                  <WritingStageStepper initialStep={4} />
-	
-	                  <Box
-	                    sx={{
-                      mt: 'auto',
-                      pt: 1,
-                      borderTop: '1px solid #d7d0c9',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 0.5,
-                      px: 0.5,
-                    }}
-                  >
-                    <Button
-                      variant="text"
-                      onClick={() => navigate('/home')}
-                      sx={{
-                        minWidth: 0,
-                        width: '100%',
-                        p: 0.75,
-                        justifyContent: 'flex-start',
-                        textTransform: 'none',
-                        color: '#1a1a1a',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <img src={HomeIcon} alt="home" style={{ width: '24px', height: '24px' }} />
-                        <span style={{ fontSize: '14px' }}>home</span>
-                      </Box>
-                    </Button>
-
-                    <Button
-                      variant="text"
-                      onClick={() => navigate('/About_student')}
-                      sx={{
-                        minWidth: 0,
-                        width: '100%',
-                        p: 0.75,
-                        justifyContent: 'flex-start',
-                        textTransform: 'none',
-                        color: '#1a1a1a',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <img src={AboutIcon} alt="about" style={{ width: '24px', height: '24px' }} />
-                        <span style={{ fontSize: '14px' }}>about</span>
-                      </Box>
-                    </Button>
-
-                    <Button
-                      variant="text"
-                      onClick={() => navigate('/manual')}
-                      sx={{
-                        minWidth: 0,
-                        width: '100%',
-                        p: 0.75,
-                        justifyContent: 'flex-start',
-                        textTransform: 'none',
-                        color: '#1a1a1a',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <img src={ManualIcon} alt="manual" style={{ width: '24px', height: '24px' }} />
-                        <span style={{ fontSize: '14px' }}>manual</span>
-                      </Box>
-                    </Button>
-
-                    <Button
-                      variant="text"
-                      onClick={handleSidebarLogout}
-                      sx={{
-                        minWidth: 0,
-                        width: '100%',
-                        p: 0.75,
-                        justifyContent: 'flex-start',
-                        textTransform: 'none',
-                        color: '#1a1a1a',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <img src={LogoutIcon} alt="logout" style={{ width: '24px', height: '24px' }} />
-                        <span style={{ fontSize: '14px' }}>logout</span>
-                      </Box>
-                    </Button>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.7 }}>
-                      <img src={AvatarIcon} alt="user-avatar" style={{ width: '24px', height: '24px' }} />
-                      <span style={{ fontSize: '14px' }}>{studentName || '-'}</span>
-                    </Box>
-                  </Box>
-                </>
-              )}
-            </Box>
-          </Box>
+          <StudentLeftSidebar />
 
           <Box
             sx={{
@@ -39466,72 +38963,99 @@ const WritingArea = () => {
               sx={{
                 width: '80%',
                 mx: 'auto',
-                border: '2px solid #000000',
-                borderRadius: '8px',
-                backgroundColor: '#ffffff',
-                overflow: 'hidden',
                 display: 'flex',
-                flexDirection: 'column',
-                '& .class-topic-text': {
-                  fontSize: '22px !important',
-                  lineHeight: 1.2,
-                },
-                '& .ql-toolbar.ql-snow': {
-                  border: 'none',
-                  borderTop: '1px solid #bdbdbd',
-                  borderBottom: '1px solid #ddd',
-                  backgroundColor: '#ffffff !important',
-                },
-                '& .ql-container.ql-snow': {
-                  border: 'none',
-                  minHeight: '500px',
-                  backgroundColor: '#ffffff !important',
-                },
-                '& .ql-editor': {
-                  minHeight: '500px',
-                  fontSize: '16px',
-                  paddingBottom: '44px',
-                  backgroundColor: '#ffffff !important',
-                },
+                alignItems: 'flex-start',
+                gap: 1.5,
               }}
             >
-              <Box
+              <Button
+                variant="text"
+                onClick={() => window.history.back()}
                 sx={{
-                  width: '100%',
-                  backgroundColor: '#ffffff',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  fontSize: '22px',
-                  fontWeight: 600,
+                  minWidth: 0,
+                  p: 0,
+                  mt: 1,
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '8px',
+                  '&:hover': {
+                    backgroundColor: 'rgba(105, 83, 83, 0.12)',
+                  },
                 }}
               >
-                <Box sx={{ px: 2, pt: 1.5, pb: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  <span className="class-topic-text">Student: {studentName || '-'}</span>
-                  <span className="class-topic-text">Class: {activityTitle || '-'}</span>
-                  <span className="class-topic-text">Topic: {groupName || '-'}</span>
-                </Box>
-              </Box>
-              <Box sx={{ position: 'relative', backgroundColor: '#ffffff' }}>
-                <div ref={quillRootRef} style={{ backgroundColor: '#ffffff' }} />
+                <img src={BackIcon} alt="Back" style={{ width: '32px', height: '32px' }} />
+              </Button>
+
+              <Box
+                sx={{
+                  flex: 1,
+                  border: '2px solid #000000',
+                  borderRadius: '8px',
+                  backgroundColor: '#ffffff',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  '& .class-topic-text': {
+                    fontSize: '22px !important',
+                    lineHeight: 1.2,
+                  },
+                  '& .ql-toolbar.ql-snow': {
+                    border: 'none',
+                    borderTop: '1px solid #bdbdbd',
+                    borderBottom: '1px solid #ddd',
+                    backgroundColor: '#ffffff !important',
+                  },
+                  '& .ql-container.ql-snow': {
+                    border: 'none',
+                    minHeight: '500px',
+                    backgroundColor: '#ffffff !important',
+                  },
+                  '& .ql-editor': {
+                    minHeight: '500px',
+                    fontSize: '16px',
+                    paddingBottom: '44px',
+                    backgroundColor: '#ffffff !important',
+                  },
+                }}
+              >
                 <Box
                   sx={{
-                    position: 'absolute',
-                    right: 14,
-                    bottom: 10,
-                    px: 1,
-                    py: 0.35,
-                    borderRadius: '999px',
-                    border: '1px solid #c9c9c9',
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    color: '#444',
-                    fontSize: '13px',
+                    width: '100%',
+                    backgroundColor: '#ffffff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    fontSize: '22px',
                     fontWeight: 600,
-                    lineHeight: 1,
-                    pointerEvents: 'none',
-                    zIndex: 1,
                   }}
                 >
-                  Words: {englishWordCount}
+                  <Box sx={{ px: 2, pt: 1.5, pb: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <span className="class-topic-text">Student: {studentName || '-'}</span>
+                    <span className="class-topic-text">Class: {activityTitle || '-'}</span>
+                    <span className="class-topic-text">Topic: {groupName || '-'}</span>
+                  </Box>
+                </Box>
+                <Box sx={{ position: 'relative', backgroundColor: '#ffffff' }}>
+                  <div ref={quillRootRef} style={{ backgroundColor: '#ffffff' }} />
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      right: 14,
+                      bottom: 10,
+                      px: 1,
+                      py: 0.35,
+                      borderRadius: '999px',
+                      border: '1px solid #c9c9c9',
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      color: '#444',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      lineHeight: 1,
+                      pointerEvents: 'none',
+                      zIndex: 1,
+                    }}
+                  >
+                    Words: {englishWordCount}
+                  </Box>
                 </Box>
               </Box>
             </Box>
@@ -39546,13 +39070,17 @@ const WritingArea = () => {
                 mt: 2,
               }}
             >
-              <Button variant="contained" onClick={() => window.history.back()} sx={buttonSx}>
-                Back
-              </Button>
               <Button variant="contained" onClick={handleSave} sx={buttonSx} disabled={isSaving || isReadOnly}>
                 {isSaving ? 'Saving...' : 'Save'}
               </Button>
-              <Button variant="contained" onClick={() => setOpenConfirmSubmitDialog(true)} sx={buttonSx} disabled={isReadOnly}>
+              <Button
+                variant="contained"
+                onClick={() => handleGoToChatbotMode('writing_analysis')}
+                sx={buttonSx}
+              >
+                Analysis
+              </Button>
+              <Button variant="contained" onClick={() => setOpenConfirmSubmitDialog(true)} sx={buttonSx} disabled={isSaving || isReadOnly}>
                 Submit
               </Button>
             </Box>
@@ -39571,7 +39099,7 @@ const WritingArea = () => {
           <Button onClick={() => setOpenConfirmSubmitDialog(false)} color="primary">
             Cancel
           </Button>
-          <Button onClick={handleConfirmSubmit} color="primary" autoFocus>
+          <Button onClick={handleConfirmSubmit} color="primary" autoFocus disabled={isSaving}>
             Submission
           </Button>
         </DialogActions>

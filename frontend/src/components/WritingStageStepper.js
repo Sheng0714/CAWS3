@@ -1,9 +1,51 @@
-import React, { useState } from "react";
+import React, { useMemo } from "react";
 
-const WORKFLOW_STEPS = ["Discussion", "Summary", "Outline", "Final Writing"];
+const WORKFLOW_STEPS = [
+  { key: "discussion", label: "Discussion" },
+  { key: "summary", label: "Summary" },
+  { key: "outline", label: "Outline" },
+  { key: "finalWriting", label: "Final Writing" },
+];
 
-export default function WritingStageStepper({ initialStep = 4 }) {
-  const [currentStep, setCurrentStep] = useState(initialStep);
+const buildCheckedStateFromInitialStep = (initialStep) => {
+  const step = Number.isFinite(Number(initialStep)) ? Number(initialStep) : 1;
+  return {
+    discussion: true,
+    summary: step > 2,
+    outline: step > 3,
+    finalWriting: step > 4,
+  };
+};
+
+const normalizeCheckedStages = (checkedStages, initialStep) => {
+  if (!checkedStages || typeof checkedStages !== "object") {
+    return buildCheckedStateFromInitialStep(initialStep);
+  }
+
+  return {
+    discussion: true,
+    summary: Boolean(checkedStages.summary),
+    outline: Boolean(checkedStages.outline),
+    finalWriting: Boolean(checkedStages.finalWriting),
+  };
+};
+
+const resolveCurrentStepKey = (checkedStages) => {
+  if (checkedStages.finalWriting) return "finalWriting";
+  if (checkedStages.outline) return "outline";
+  if (checkedStages.summary) return "summary";
+  return "discussion";
+};
+
+export default function WritingStageStepper({ initialStep = 4, checkedStages }) {
+  const normalizedCheckedStages = useMemo(
+    () => normalizeCheckedStages(checkedStages, initialStep),
+    [checkedStages, initialStep]
+  );
+  const currentStepKey = useMemo(
+    () => resolveCurrentStepKey(normalizedCheckedStages),
+    [normalizedCheckedStages]
+  );
 
   return (
     <div
@@ -28,26 +70,13 @@ export default function WritingStageStepper({ initialStep = 4 }) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column" }}>
-        {WORKFLOW_STEPS.map((label, index) => {
-          const stepNumber = index + 1;
-          const isDone = stepNumber < currentStep;
-          const isCurrent = stepNumber === currentStep;
+        {WORKFLOW_STEPS.map(({ key, label }, index) => {
+          const isDone = Boolean(normalizedCheckedStages[key]);
+          const isCurrent = key === currentStepKey;
           const isLast = index === WORKFLOW_STEPS.length - 1;
 
           return (
-            <button
-              key={label}
-              type="button"
-              onClick={() => setCurrentStep(stepNumber)}
-              style={{
-                border: "none",
-                background: "transparent",
-                padding: 0,
-                margin: 0,
-                textAlign: "left",
-                cursor: "pointer",
-              }}
-            >
+            <div key={label}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <div
@@ -92,7 +121,7 @@ export default function WritingStageStepper({ initialStep = 4 }) {
                   {label}
                 </div>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

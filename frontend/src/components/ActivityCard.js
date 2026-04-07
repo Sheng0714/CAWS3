@@ -260,7 +260,12 @@ const _getActivityInfo_ = async () => await axios.get(url.backendHost + 'api/act
     return response;
 });
 
-export default function ActivityCard({ activity, status = 'in-progress' }) {
+export default function ActivityCard({
+    activity,
+    status = 'in-progress',
+    hasNotification = false,
+    onNotificationClick,
+}) {
     const navigate = useNavigate();
     const formatTimestamp = (timestamp) => {
         return new Intl.DateTimeFormat('en-US', {
@@ -273,14 +278,14 @@ export default function ActivityCard({ activity, status = 'in-progress' }) {
         }).format(new Date(timestamp));
     };
 
-    const handleEnter = async () => {
+    const setActivityContext = () => {
         console.log(activity.ActivityGroup.Activity.id, activity.ActivityGroup.GroupId, activity.ActivityGroup.Group.joinCode);
 
         const { Activity, Group } = activity.ActivityGroup;
 
         localStorage.setItem('activityId', Activity.id);
-        localStorage.setItem('groupId', Group.groupId);
-        localStorage.setItem('joinCode', Group.joinCode);
+        localStorage.setItem('groupId', Group.groupId || Group.id || '');
+        localStorage.setItem('joinCode', Group.joinCode || '');
         localStorage.setItem('activityTitle', Activity.title);
         localStorage.setItem('groupName', Group.groupName || '');
         localStorage.setItem('activityEntryStatus', status);
@@ -291,6 +296,10 @@ export default function ActivityCard({ activity, status = 'in-progress' }) {
             const value = localStorage.getItem(key);
             sessionStorage.setItem(key, value);
         }
+    };
+
+    const handleEnter = async () => {
+        setActivityContext();
 
         _getActivityInfo_()
             .then((activityInfo) => {
@@ -300,6 +309,19 @@ export default function ActivityCard({ activity, status = 'in-progress' }) {
                 console.error(error);
                 navigate('/studentfuntion');
             });
+    };
+
+    const handleNotificationClick = (event) => {
+        event.stopPropagation();
+        setActivityContext();
+        if (typeof onNotificationClick === 'function') {
+            onNotificationClick({
+                activity,
+                className: activity?.ActivityGroup?.Activity?.title || '',
+                topicName: activity?.ActivityGroup?.Group?.groupName || '',
+                hasNotification,
+            });
+        }
     };
 
     return (
@@ -318,14 +340,16 @@ export default function ActivityCard({ activity, status = 'in-progress' }) {
                 sx={{ cursor: 'pointer' }}
             >
                 <img
-                    src={status === 'in-progress' ? hasNotificationIcon : noNotificationIcon}
-                    alt={status === 'in-progress' ? '有通知' : '沒通知'}
+                    src={hasNotification ? hasNotificationIcon : noNotificationIcon}
+                    alt={hasNotification ? '有通知' : '沒通知'}
+                    onClick={handleNotificationClick}
                     style={{
                         width: '35px',
                         height: '35px',
                         position: 'absolute',
                         top: '12px',
                         right: '12px',
+                        cursor: 'pointer',
                     }}
                 />
                 <CardHeader
