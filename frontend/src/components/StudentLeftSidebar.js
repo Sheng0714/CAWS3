@@ -45,7 +45,7 @@ const SIDEBAR_PRIMARY_MENUS = [
   {
     key: "chatbot",
     icon: StudentFeature2Icon,
-    label: "Chatbot",
+    label: "Chatbots",
     children: [
       {
         key: "chatbot-kf-analysis",
@@ -150,6 +150,25 @@ const buildWritingStageChecks = ({ summaryValue = "", outlineValue = "", finalWr
 const buildEssayStorageKey = (studentName, className, topicName) =>
   `essayData::${encodeURIComponent(studentName || "")}::${encodeURIComponent(className || "")}::${encodeURIComponent(topicName || "")}`;
 
+const buildSubmitLockKey = (studentName, className, theme) =>
+  `submitLocked::${encodeURIComponent(studentName || "")}::${encodeURIComponent(
+    className || ""
+  )}::${encodeURIComponent(theme || "")}`;
+
+const getScoringUnlocked = () => {
+  const studentName =
+    localStorage.getItem("name") ||
+    localStorage.getItem("username") ||
+    localStorage.getItem("userName") ||
+    "";
+  const className = localStorage.getItem("activityTitle") || "";
+  const theme = localStorage.getItem("groupName") || "";
+  if (!studentName || !className || !theme) return false;
+
+  const scopedSubmitLockKey = buildSubmitLockKey(studentName, className, theme);
+  return localStorage.getItem(scopedSubmitLockKey) === "true";
+};
+
 export default function StudentLeftSidebar() {
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
@@ -160,8 +179,12 @@ export default function StudentLeftSidebar() {
   const [activeSidebarEditor, setActiveSidebarEditor] = useState("");
   const [expandedToolkitPanel, setExpandedToolkitPanel] = useState("");
   const [expandedPrimaryPanel, setExpandedPrimaryPanel] = useState("");
+  const [isScoringUnlocked, setIsScoringUnlocked] = useState(getScoringUnlocked);
   const latestLoadRequestRef = useRef(0);
   const latestScopeSignatureRef = useRef("");
+  const triggerToolkitReloadRef = useRef(() => {});
+  const scoringLockedTooltip =
+    "Please submit your argumentative essay in the Writing Area first!!!";
 
   useEffect(() => {
     let isUnmounted = false;
@@ -185,11 +208,16 @@ export default function StudentLeftSidebar() {
         toolkitScope.className,
         toolkitScope.topicName
       );
-      const savedEssay =
-        localStorage.getItem(scopedEssayKey) ||
-        localStorage.getItem("essayData") ||
-        localStorage.getItem("editorData") ||
-        "";
+      const scopedEssay = localStorage.getItem(scopedEssayKey);
+      const hasExplicitScope = Boolean(
+        toolkitScope.studentName || toolkitScope.className || toolkitScope.topicName
+      );
+      const savedEssay = hasExplicitScope
+        ? (scopedEssay ?? "")
+        : (scopedEssay ||
+          localStorage.getItem("essayData") ||
+          localStorage.getItem("editorData") ||
+          "");
 
       setKfSummaryContent(savedKfSummary);
       setOutlineContent(savedOutline);
@@ -251,6 +279,7 @@ export default function StudentLeftSidebar() {
     const handleLoadToolkitContent = (forceNotionFetch = false) => {
       void loadToolkitContent({ forceNotionFetch });
     };
+    triggerToolkitReloadRef.current = handleLoadToolkitContent;
 
     handleLoadToolkitContent(true);
     const onWindowFocus = () => handleLoadToolkitContent(true);
@@ -269,6 +298,28 @@ export default function StudentLeftSidebar() {
       window.removeEventListener("focus", onWindowFocus);
       window.removeEventListener("storage", onWindowStorage);
       window.removeEventListener(RAGFLOW_TOOLKIT_STORAGE_EVENT, onToolkitStorageUpdated);
+      triggerToolkitReloadRef.current = () => {};
+    };
+  }, []);
+
+  useEffect(() => {
+    const refreshScoringUnlockState = () => {
+      setIsScoringUnlocked(getScoringUnlocked());
+    };
+
+    refreshScoringUnlockState();
+    const onWindowFocus = () => refreshScoringUnlockState();
+    const onWindowStorage = () => refreshScoringUnlockState();
+    const lockWatcherInterval = window.setInterval(() => {
+      refreshScoringUnlockState();
+    }, 1000);
+
+    window.addEventListener("focus", onWindowFocus);
+    window.addEventListener("storage", onWindowStorage);
+    return () => {
+      window.clearInterval(lockWatcherInterval);
+      window.removeEventListener("focus", onWindowFocus);
+      window.removeEventListener("storage", onWindowStorage);
     };
   }, []);
 
@@ -309,7 +360,11 @@ export default function StudentLeftSidebar() {
 
   const handleToggleToolkitPanel = (panelKey) => {
     setActiveSidebarEditor("");
-    setExpandedToolkitPanel((prev) => (prev === panelKey ? "" : panelKey));
+    const shouldExpand = expandedToolkitPanel !== panelKey;
+    setExpandedToolkitPanel(shouldExpand ? panelKey : "");
+    if (shouldExpand && panelKey === "kf-summary") {
+      triggerToolkitReloadRef.current(true);
+    }
   };
 
   const handleCopySidebarContent = async (content, label) => {
@@ -376,11 +431,19 @@ export default function StudentLeftSidebar() {
   };
 
   const renderMenuButton = (menu) => {
+    const isScoringMenu = menu.key === "scoring";
+    const isScoringLocked = isScoringMenu && !isScoringUnlocked;
+
     return (
       <button
         key={menu.key}
         type="button"
-        onClick={() => menu.action(navigate)}
+        onClick={() => {
+          if (isScoringLocked) return;
+          menu.action(navigate);
+        }}
+        title={isScoringLocked ? scoringLockedTooltip : undefined}
+        aria-disabled={isScoringLocked}
         style={{
           width: "100%",
           border: "none",
@@ -391,8 +454,9 @@ export default function StudentLeftSidebar() {
           alignItems: "center",
           gap: "8px",
           textAlign: "left",
-          color: "#1a1a1a",
-          cursor: "pointer",
+          color: isScoringLocked ? "#64748b" : "#1a1a1a",
+          cursor: isScoringLocked ? "not-allowed" : "pointer",
+          opacity: isScoringLocked ? 0.65 : 1,
           fontSize: "14px",
         }}
       >

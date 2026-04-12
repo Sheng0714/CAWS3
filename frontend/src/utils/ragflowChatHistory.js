@@ -131,10 +131,16 @@ export const readToolkitContentByScope = (baseKey, scopeInput) => {
   const normalizedBaseKey = typeof baseKey === "string" ? baseKey.trim() : "";
   if (!normalizedBaseKey) return "";
 
-  const resolvedScope = scopeInput || buildToolkitScopeFromStorage();
+  const resolvedScope = normalizeToolkitScope(scopeInput || buildToolkitScopeFromStorage());
   const scopedKey = buildToolkitStorageKey(normalizedBaseKey, resolvedScope);
   const scopedValue = localStorage.getItem(scopedKey);
   if (scopedValue !== null) return scopedValue;
+
+  const hasExplicitScope = Boolean(
+    resolvedScope.studentName || resolvedScope.className || resolvedScope.topicName
+  );
+  if (hasExplicitScope) return "";
+
   return localStorage.getItem(normalizedBaseKey) || "";
 };
 

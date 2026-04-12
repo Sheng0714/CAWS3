@@ -15,6 +15,7 @@ import {
 
 import cawsOwl from "../assets/去背.png";
 import replyIcon from "../assets/發送.png";
+import backIcon from "../assets/back.png";
 
 const RAGFLOW_API_KEY = "ragflow-E5MjJlMmFlMWMxMTExZjFiZjJkYTYxNz";
 const RAGFLOW_API_SERVER = "https://wu-ragflow.zeabur.app";
@@ -386,6 +387,14 @@ export default function Studentfuntion() {
             marginBottom: "32px",
           }}
         >
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            <img src={backIcon} alt="Back" width={35} height={35} />
+          </button>
+
           <img
             src={cawsOwl}
             alt="CAWS owl"
@@ -419,7 +428,6 @@ export default function Studentfuntion() {
 
         <div
           style={{
-            position: "relative",
             background: "#ffffff",
             border: "1px solid #dbe3ef",
             borderRadius: "20px",
@@ -428,34 +436,12 @@ export default function Studentfuntion() {
             boxShadow: "0 10px 25px rgba(30, 41, 59, 0.08)",
           }}
         >
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            style={{
-              position: "absolute",
-              top: "24px",
-              right: "24px",
-              width: "120px",
-              height: "42px",
-              background: "rgba(204, 149, 101, 0.3)",
-              border: "1.5px solid #000000",
-              borderRadius: "10px",
-              fontSize: "18px",
-              fontWeight: 700,
-              color: "#111111",
-              cursor: "pointer",
-            }}
-          >
-            BACK
-          </button>
-
           <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: "24px",
               flexWrap: "wrap",
-              paddingRight: "140px",
             }}
           >
             <p

@@ -60,6 +60,7 @@ export default function StudentWork() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const inProgressRowRef = useRef(null);
   const completedRowRef = useRef(null);
 
@@ -115,7 +116,7 @@ export default function StudentWork() {
 
   const scrollRow = (rowRef, direction) => {
     if (!rowRef.current) return;
-    const amount = isMobile ? 240 : 380;
+    const amount = isMobile ? 220 : isTablet ? 300 : 380;
     rowRef.current.scrollBy({
       left: direction === "right" ? amount : -amount,
       behavior: "smooth",
@@ -151,7 +152,7 @@ export default function StudentWork() {
           style={{
             margin: "0 0 10px 0",
             color: "#111111",
-            fontSize: "28px",
+            fontSize: isMobile ? "24px" : "28px",
             fontWeight: 800,
           }}
         >
@@ -160,14 +161,16 @@ export default function StudentWork() {
 
         {entries.length > 0 ? (
           <Box style={{ display: "flex", alignItems: "center" }}>
-            <IconButton aria-label={`scroll ${title} left`} onClick={() => scrollRow(rowRef, "left")}>
-              <ChevronLeft />
-            </IconButton>
+            {!isMobile && (
+              <IconButton aria-label={`scroll ${title} left`} onClick={() => scrollRow(rowRef, "left")}>
+                <ChevronLeft />
+              </IconButton>
+            )}
             <Box
               ref={rowRef}
               style={{
                 display: "flex",
-                gap: "24px",
+                gap: isMobile ? "12px" : "24px",
                 overflowX: "auto",
                 scrollBehavior: "smooth",
                 flex: 1,
@@ -175,7 +178,13 @@ export default function StudentWork() {
               }}
             >
               {entries.map((entry) => (
-                <Box key={entry.entryId} style={{ flex: "0 0 auto", width: isMobile ? "85%" : "360px" }}>
+                <Box
+                  key={entry.entryId}
+                  style={{
+                    flex: "0 0 auto",
+                    width: isMobile ? "min(85vw, 320px)" : isTablet ? "320px" : "360px",
+                  }}
+                >
                   <Card
                     onClick={() => handleCardClick(entry)}
                     onKeyDown={(event) => {
@@ -191,7 +200,7 @@ export default function StudentWork() {
                       borderRadius: "12px",
                       border: "none",
                       color: "#000000",
-                      minHeight: "210px",
+                      minHeight: isMobile ? "190px" : "210px",
                       boxSizing: "border-box",
                       cursor: "pointer",
                     }}
@@ -206,9 +215,11 @@ export default function StudentWork() {
                 </Box>
               ))}
             </Box>
-            <IconButton aria-label={`scroll ${title} right`} onClick={() => scrollRow(rowRef, "right")}>
-              <ChevronRight />
-            </IconButton>
+            {!isMobile && (
+              <IconButton aria-label={`scroll ${title} right`} onClick={() => scrollRow(rowRef, "right")}>
+                <ChevronRight />
+              </IconButton>
+            )}
           </Box>
         ) : (
           <div
@@ -222,7 +233,7 @@ export default function StudentWork() {
               alignItems: "center",
               justifyContent: "center",
               color: "#6b7280",
-              fontSize: "18px",
+              fontSize: isMobile ? "16px" : "18px",
               fontWeight: 600,
               textAlign: "center",
               padding: "0 16px",
@@ -271,13 +282,18 @@ export default function StudentWork() {
         <StudentLeftSidebar />
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={containerStyle}>
+          <div
+            style={{
+              ...containerStyle,
+              padding: isMobile ? "0 12px 24px" : isTablet ? "0 16px 28px" : containerStyle.padding,
+            }}
+          >
             <div
               style={{
                 display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                gap: "12px",
+                justifyContent: isMobile ? "flex-start" : "center",
+                alignItems: isMobile ? "stretch" : "center",
+                gap: isMobile ? "8px" : "12px",
                 flexWrap: "wrap",
                 marginBottom: "14px",
               }}
@@ -299,8 +315,8 @@ export default function StudentWork() {
                 src={owlWavingGif}
                 alt="CAWS assistant"
                 style={{
-                  width: "150px",
-                  height: "150px",
+                  width: isMobile ? "100px" : "150px",
+                  height: isMobile ? "100px" : "150px",
                   objectFit: "contain",
                 }}
               />
@@ -310,17 +326,17 @@ export default function StudentWork() {
                   background: "rgba(105, 83, 83, 0.1)",
                   border: "1.5px solid #000000",
                   borderRadius: "16px",
-                  width: "900px",
-                  maxWidth: "100%",
-                  minHeight: "84px",
+                  width: "100%",
+                  maxWidth: isMobile ? "100%" : "900px",
+                  minHeight: isMobile ? "72px" : "84px",
                   boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
                   color: "#1e293b",
-                  fontSize: "22px",
+                  fontSize: isMobile ? "16px" : isTablet ? "19px" : "22px",
                   lineHeight: 1.35,
-                  textAlign: "left",
+                  textAlign: isMobile ? "center" : "left",
                   display: "flex",
                   alignItems: "center",
-                  padding: "12px 18px",
+                  padding: isMobile ? "10px 14px" : "12px 18px",
                   boxSizing: "border-box",
                 }}
               >

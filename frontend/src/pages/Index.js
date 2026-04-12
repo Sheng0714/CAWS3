@@ -19,6 +19,9 @@ import io from 'socket.io-client';
 import ActivityCard from '../components/ActivityCard';
 import url from '../url.json';
 import { fetchGradedStatus } from '../services/essayNotificationService';
+import teacherAvatar from '../assets/teacher.png';
+
+const READ_NOTIFICATION_STORAGE_KEY = 'readNotificationMap_v1';
 
 const resolveStudentName = () =>
   localStorage.getItem('name') ||
@@ -32,9 +35,22 @@ const buildActivityKey = (activity) => {
   return `${activityId}::${groupId}`;
 };
 
+const readNotificationMapFromStorage = () => {
+  try {
+    const raw = localStorage.getItem(READ_NOTIFICATION_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    console.warn('Failed to parse read notification map from storage:', error);
+    return {};
+  }
+};
+
 export default function Index() {
   const [activities, setActivities] = useState([]);
   const [notificationMap, setNotificationMap] = useState({});
+  const [readNotificationMap, setReadNotificationMap] = useState(readNotificationMapFromStorage);
   const [notificationDialog, setNotificationDialog] = useState({
     open: false,
     loading: false,
@@ -48,8 +64,15 @@ export default function Index() {
   const studentName = resolveStudentName();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const inProgressRowRef = useRef(null);
   const completedRowRef = useRef(null);
+  const horizontalPadding = isMobile ? '16px' : isTablet ? '32px' : '120px';
+  const getReadNotificationKey = (activityKey) => `${studentName || 'anonymous'}::${activityKey}`;
+
+  useEffect(() => {
+    localStorage.setItem(READ_NOTIFICATION_STORAGE_KEY, JSON.stringify(readNotificationMap));
+  }, [readNotificationMap]);
 
   const connectWebSocket = () => {
     setWs(io(url.backendHost));
@@ -101,7 +124,8 @@ export default function Index() {
               className,
               theme: topicName,
             });
-            return [key, hasNotification];
+            const isRead = key ? Boolean(readNotificationMap[getReadNotificationKey(key)]) : false;
+            return [key, hasNotification && !isRead];
           } catch (error) {
             console.error('Failed to load notification status:', error);
             return [key, false];
@@ -125,7 +149,7 @@ export default function Index() {
     return () => {
       isMounted = false;
     };
-  }, [activities, studentName]);
+  }, [activities, studentName, readNotificationMap]);
 
   const initWebSocket = () => {
     ws.on('connect', () => {
@@ -155,7 +179,7 @@ export default function Index() {
 
   const scrollRow = (rowRef, direction) => {
     if (!rowRef.current) return;
-    const amount = isMobile ? 240 : 380;
+    const amount = isMobile ? 220 : isTablet ? 300 : 380;
     rowRef.current.scrollBy({
       left: direction === 'right' ? amount : -amount,
       behavior: 'smooth',
@@ -168,6 +192,7 @@ export default function Index() {
 
   const handleNotificationClick = async ({ activity, className, topicName }) => {
     const key = buildActivityKey(activity);
+    const readKey = getReadNotificationKey(key);
     const normalizedClassName = className || '';
     const normalizedTopicName = topicName || '';
 
@@ -200,7 +225,11 @@ export default function Index() {
         theme: normalizedTopicName,
       });
 
-      setNotificationMap((prev) => ({ ...prev, [key]: graded }));
+      if (graded && key) {
+        setReadNotificationMap((prev) => ({ ...prev, [readKey]: true }));
+      }
+
+      setNotificationMap((prev) => ({ ...prev, [key]: false }));
       setNotificationDialog({
         open: true,
         loading: false,
@@ -225,33 +254,46 @@ export default function Index() {
   };
 
   return (
-    <div className="home-container" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
+    <div className="home-container" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh', height: 'auto' }}>
       <IndexPage_Navbar callback_setActivities={setActivities} showJoinActivity={false} />
       <Box
         style={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: isMobile ? 'stretch' : 'center',
           justifyContent: 'space-between',
-          paddingLeft: '120px',
-          paddingRight: '120px',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '10px' : '0',
+          paddingLeft: horizontalPadding,
+          paddingRight: horizontalPadding,
+          paddingTop: isMobile ? '8px' : '0',
         }}
       >
-        <h1 style={{ textAlign: 'left' }}>{`Welcome back ${userName}!`}</h1>
-         <button className="join-activity-button">
+        <h1 style={{ textAlign: 'left', fontSize: isMobile ? '26px' : '32px' }}>{`Welcome back ${userName}!`}</h1>
+         <button
+          className="join-activity-button"
+          style={{
+            marginRight: 0,
+            width: isMobile ? '100%' : 'auto',
+            fontSize: isMobile ? '16px' : '20px',
+            padding: isMobile ? '0.75rem 1rem' : '0.9rem 1.75rem',
+          }}
+        >
           <JoinActivityForm callback_setActivities={setActivities} />
         </button>
       </Box>
 
-      <h2 style={{ textAlign: 'left', paddingLeft: '120px' }}>In Progress</h2>
-      <Box style={{ display: 'flex', alignItems: 'center', paddingRight: '120px', paddingLeft: '120px' }}>
-        <IconButton aria-label="scroll left" onClick={() => scrollRow(inProgressRowRef, 'left')}>
-          <ChevronLeft />
-        </IconButton>
+      <h2 style={{ textAlign: 'left', paddingLeft: horizontalPadding, paddingRight: horizontalPadding }}>In Progress</h2>
+      <Box style={{ display: 'flex', alignItems: 'center', paddingRight: horizontalPadding, paddingLeft: horizontalPadding }}>
+        {!isMobile && (
+          <IconButton aria-label="scroll left" onClick={() => scrollRow(inProgressRowRef, 'left')}>
+            <ChevronLeft />
+          </IconButton>
+        )}
         <Box
           ref={inProgressRowRef}
           style={{
             display: 'flex',
-            gap: '24px',
+            gap: isMobile ? '12px' : '24px',
             overflowX: 'auto',
             scrollBehavior: 'smooth',
             flex: 1,
@@ -259,7 +301,13 @@ export default function Index() {
           }}
         >
         {inProgressActivities.map((activity) => (
-          <Box key={activity.id} style={{ flex: '0 0 auto', width: isMobile ? '85%' : '360px' }}>
+          <Box
+            key={activity.id}
+            style={{
+              flex: '0 0 auto',
+              width: isMobile ? 'min(85vw, 320px)' : isTablet ? '320px' : '360px',
+            }}
+          >
             <ActivityCard
               activity={activity}
               status="in-progress"
@@ -269,21 +317,25 @@ export default function Index() {
           </Box>
         ))}
         </Box>
-        <IconButton aria-label="scroll right" onClick={() => scrollRow(inProgressRowRef, 'right')}>
-          <ChevronRight />
-        </IconButton>
+        {!isMobile && (
+          <IconButton aria-label="scroll right" onClick={() => scrollRow(inProgressRowRef, 'right')}>
+            <ChevronRight />
+          </IconButton>
+        )}
       </Box>
 
-      <h2 style={{ textAlign: 'left', paddingLeft: '120px', marginTop: '24px' }}>Completed</h2>
-      <Box style={{ display: 'flex', alignItems: 'center', paddingRight: '120px', paddingLeft: '120px' }}>
-        <IconButton aria-label="scroll left" onClick={() => scrollRow(completedRowRef, 'left')}>
-          <ChevronLeft />
-        </IconButton>
+      <h2 style={{ textAlign: 'left', paddingLeft: horizontalPadding, paddingRight: horizontalPadding, marginTop: '24px' }}>Completed</h2>
+      <Box style={{ display: 'flex', alignItems: 'center', paddingRight: horizontalPadding, paddingLeft: horizontalPadding }}>
+        {!isMobile && (
+          <IconButton aria-label="scroll left" onClick={() => scrollRow(completedRowRef, 'left')}>
+            <ChevronLeft />
+          </IconButton>
+        )}
         <Box
           ref={completedRowRef}
           style={{
             display: 'flex',
-            gap: '24px',
+            gap: isMobile ? '12px' : '24px',
             overflowX: 'auto',
             scrollBehavior: 'smooth',
             flex: 1,
@@ -291,7 +343,13 @@ export default function Index() {
           }}
         >
         {completedActivities.map((activity) => (
-          <Box key={activity.id} style={{ flex: '0 0 auto', width: isMobile ? '85%' : '360px' }}>
+          <Box
+            key={activity.id}
+            style={{
+              flex: '0 0 auto',
+              width: isMobile ? 'min(85vw, 320px)' : isTablet ? '320px' : '360px',
+            }}
+          >
             <ActivityCard
               activity={activity}
               status="completed"
@@ -301,9 +359,11 @@ export default function Index() {
           </Box>
         ))}
         </Box>
-        <IconButton aria-label="scroll right" onClick={() => scrollRow(completedRowRef, 'right')}>
-          <ChevronRight />
-        </IconButton>
+        {!isMobile && (
+          <IconButton aria-label="scroll right" onClick={() => scrollRow(completedRowRef, 'right')}>
+            <ChevronRight />
+          </IconButton>
+        )}
       </Box>
 
       <Dialog
@@ -351,6 +411,18 @@ export default function Index() {
                   height: '10px',
                   borderRadius: '50%',
                   backgroundColor: '#2563EB',
+                  flex: '0 0 auto',
+                }}
+              />
+              <Box
+                component="img"
+                src={teacherAvatar}
+                alt="Teacher avatar"
+                sx={{
+                  width: '45px',
+                  height: '45px',
+                  borderRadius: '50%',
+                  objectFit: 'cover',
                   flex: '0 0 auto',
                 }}
               />

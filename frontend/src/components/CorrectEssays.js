@@ -7,10 +7,12 @@ import {
   Select,
   Snackbar,
   TextField,
+  Tooltip,
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../components/Navbar_Student";
+import questionIcon from "../assets/question.png";
 
 const apiAxios = axios.create({
   baseURL: "http://140.115.126.27:4000",
@@ -184,6 +186,44 @@ const scoreFieldSx = {
     },
   },
 };
+
+const questionIconStyle = {
+  width: "18px",
+  height: "18px",
+  cursor: "help",
+  display: "block",
+};
+
+const scoreHelpTitleSx = {
+  fontSize: "18px",
+  fontWeight: 700,
+  marginBottom: "6px",
+};
+
+const scoreHelpTextSx = {
+  fontSize: "16px",
+  lineHeight: 1.45,
+};
+
+const claimsScoreHelp = [
+  "0: No clear position",
+  "1: A position is present but unclear or vague",
+  "2: Clear and specific position",
+];
+
+const groundsScoreHelp = [
+  "0: No reasons or evidence",
+  "1: Simple reason with little or no explanation",
+  "2: Some reasons, but not fully developed or unclear",
+  "3: Clear reasons with examples or explanation",
+  "4: Strong, well-developed reasons with specific and convincing evidence",
+];
+
+const rebuttalsScoreHelp = [
+  "0: No counterargument mentioned",
+  "1: Counterargument is mentioned but weakly addressed",
+  "2: Clear counterargument with an effective rebuttal",
+];
 
 const roundButtonStyle = {
   textTransform: "none",
@@ -580,7 +620,7 @@ export default function CorrectEssays() {
         >
           <div style={{ display: "grid", gridTemplateColumns: "1fr auto", columnGap: "14px", alignItems: "start" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "120px 110px minmax(260px, 520px)", gap: "8px", alignItems: "center" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "120px 110px 24px minmax(240px, 520px)", gap: "8px", alignItems: "center" }}>
                 <div style={{ fontSize: "20px", fontWeight: 700, lineHeight: 1 }}>Claims :</div>
                 <Select
                   size="small"
@@ -594,6 +634,20 @@ export default function CorrectEssays() {
                   <MenuItem sx={menuItemSx} value={1}>1</MenuItem>
                   <MenuItem sx={menuItemSx} value={2}>2</MenuItem>
                 </Select>
+                <Tooltip
+                  arrow
+                  placement="right"
+                  title={(
+                    <div>
+                      <div style={scoreHelpTitleSx}>Claims Scoring</div>
+                      {claimsScoreHelp.map((line) => (
+                        <div key={line} style={scoreHelpTextSx}>{line}</div>
+                      ))}
+                    </div>
+                  )}
+                >
+                  <img src={questionIcon} alt="Claims score help" style={questionIconStyle} />
+                </Tooltip>
                 <TextField
                   size="small"
                   placeholder="Please enter your comments......"
@@ -604,7 +658,7 @@ export default function CorrectEssays() {
                 />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "120px 110px minmax(260px, 520px)", gap: "8px", alignItems: "center" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "120px 110px 24px minmax(240px, 520px)", gap: "8px", alignItems: "center" }}>
                 <div style={{ fontSize: "20px", fontWeight: 700, lineHeight: 1 }}>Grounds:</div>
                 <Select
                   size="small"
@@ -620,6 +674,20 @@ export default function CorrectEssays() {
                   <MenuItem sx={menuItemSx} value={3}>3</MenuItem>
                   <MenuItem sx={menuItemSx} value={4}>4</MenuItem>
                 </Select>
+                <Tooltip
+                  arrow
+                  placement="right"
+                  title={(
+                    <div>
+                      <div style={scoreHelpTitleSx}>Grounds Scoring</div>
+                      {groundsScoreHelp.map((line) => (
+                        <div key={line} style={scoreHelpTextSx}>{line}</div>
+                      ))}
+                    </div>
+                  )}
+                >
+                  <img src={questionIcon} alt="Grounds score help" style={questionIconStyle} />
+                </Tooltip>
                 <TextField
                   size="small"
                   placeholder="Please enter your comments......"
@@ -630,7 +698,7 @@ export default function CorrectEssays() {
                 />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "120px 110px minmax(260px, 520px)", gap: "8px", alignItems: "center" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "120px 110px 24px minmax(240px, 520px)", gap: "8px", alignItems: "center" }}>
                 <div style={{ fontSize: "20px", fontWeight: 700, lineHeight: 1 }}>Rebuttals :</div>
                 <Select
                   size="small"
@@ -644,6 +712,20 @@ export default function CorrectEssays() {
                   <MenuItem sx={menuItemSx} value={1}>1</MenuItem>
                   <MenuItem sx={menuItemSx} value={2}>2</MenuItem>
                 </Select>
+                <Tooltip
+                  arrow
+                  placement="right"
+                  title={(
+                    <div>
+                      <div style={scoreHelpTitleSx}>Rebuttals Scoring</div>
+                      {rebuttalsScoreHelp.map((line) => (
+                        <div key={line} style={scoreHelpTextSx}>{line}</div>
+                      ))}
+                    </div>
+                  )}
+                >
+                  <img src={questionIcon} alt="Rebuttals score help" style={questionIconStyle} />
+                </Tooltip>
                 <TextField
                   size="small"
                   placeholder="Please enter your comments......"
