@@ -1688,6 +1688,19 @@ export default function Home() {
         </div>
       </div>
 
+      <div
+        style={{
+          width: "100%",
+          marginTop: "auto",
+          padding: "0.9rem 1rem 1.1rem",
+          textAlign: "center",
+          color: "#333333",
+          fontSize: "0.95rem",
+        }}
+      >
+        © 2026 THKLM team of Language Center, NCU, All rights reserved.
+      </div>
+
       <Login
         open={openLogin}
         setOpen={setOpenLogin}

@@ -18,7 +18,9 @@ export default function About() {
                 CAWS—Collaborative Argument Writing System (AI 合作論證寫作系統)
             </h1>
             <p className="primary-text" style={{ maxWidth: "780px", width: "100%" }}>
-                CAWS是一個突破性的協作寫作平台，專為激發學生的創意思維和批判性思考而設計。透過 AI 技術與互動學習模組的完美結合，CAWS 讓學生能夠輕鬆發揮他們的想法，進行討論並打造強而有力的論點。不論是在課堂中還是遠端學習，CAWS 都能讓學生快速提升寫作技巧，增強說服力，並建立自信。這不僅僅是一個寫作工具，而是一個幫助學生成為更出色溝通者的平台。<br/>CAWS is a groundbreaking collaborative writing platform designed to spark students' creativity and critical thinking. By seamlessly integrating AI technology with interactive learning modules, CAWS empowers students to effortlessly express their ideas, engage in discussions, and build compelling arguments. Whether in the classroom or through remote learning, CAWS helps students rapidly improve their writing skills, enhance their persuasive abilities, and boost their confidence. It’s not just a writing tool—it’s a platform that helps students become better communicators.
+                CAWS 是一個 AI 支援的協作寫作平台，幫助學生從協作論證逐步發展到個人英文議論文寫作。透過互動討論、結構化寫作支持與 AI 引導，CAWS 協助學生整理想法、發展論點，並將小組討論成果轉化為個人文章。同時，教師也可以透過平台指派寫作任務、掌握學生學習歷程，並參考 AI 協助批改與評分回饋，提升教學與評量效率。CAWS 不只是寫作工具，更是促進批判思考、協作學習與有效教學的整合平台。<br/>CAWS is an AI-supported collaborative writing platform that helps students move from collaborative argumentation to individual English argumentative essay writing. Through interactive discussion, structured writing support, and AI-guided scaffolding, CAWS helps students organize ideas, develop arguments, and transform group discussion outcomes into individual essays. At the same time, teachers can use the platform to assign writing tasks, monitor students’ learning progress, and refer to AI-assisted feedback and scoring for evaluation and revision. More than a writing tool, CAWS is an integrated platform that supports critical thinking, collaborative learning, and effective teaching.
+
+
             </p>
             <div className="about-buttons-container">
               {/* <button className="secondary-button">Learn More</button>

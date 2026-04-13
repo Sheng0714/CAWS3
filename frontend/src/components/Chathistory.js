@@ -78,6 +78,26 @@ const normalizeMessageContent = (message) => {
   return "";
 };
 
+const normalizeMessageRole = (rawRole) => {
+  const normalizedRole = typeof rawRole === "string" ? rawRole.trim().toLowerCase() : "";
+  if (!normalizedRole) return "assistant";
+  if (normalizedRole === "user" || normalizedRole === "human" || normalizedRole === "questioner") {
+    return "user";
+  }
+  if (
+    normalizedRole === "assistant" ||
+    normalizedRole === "ai" ||
+    normalizedRole === "bot" ||
+    normalizedRole === "model"
+  ) {
+    return "assistant";
+  }
+  if (normalizedRole.includes("user") || normalizedRole.includes("human")) {
+    return "user";
+  }
+  return "assistant";
+};
+
 const normalizeRagflowSession = (rawSession, defaults) => {
   const sessionId = rawSession?.id || rawSession?.session_id || "";
   const createdAt = normalizeTimestamp(rawSession?.create_time, rawSession?.create_date);
@@ -95,17 +115,44 @@ const normalizeRagflowSession = (rawSession, defaults) => {
       ? rawSession.message
       : [];
 
-  const messages = sourceMessages
-    .map((message, index) => ({
-      id:
-        message?.id ||
-        message?.message_id ||
-        `${sessionId || "session"}-msg-${index}-${normalizeTimestamp(message?.create_time)}`,
-      role: message?.role === "user" ? "user" : "assistant",
-      content: normalizeMessageContent(message),
-      createdAt: normalizeTimestamp(message?.create_time, message?.create_date, updatedAt),
-    }))
-    .filter((message) => message.content.trim());
+  const messages = sourceMessages.flatMap((message, index) => {
+    const baseId =
+      message?.id ||
+      message?.message_id ||
+      `${sessionId || "session"}-msg-${index}-${normalizeTimestamp(message?.create_time)}`;
+    const createdAt = normalizeTimestamp(message?.create_time, message?.create_date, updatedAt);
+    const nextMessages = [];
+
+    const question =
+      typeof message?.question === "string"
+        ? message.question.trim()
+        : typeof message?.data?.question === "string"
+          ? message.data.question.trim()
+          : "";
+    if (question) {
+      nextMessages.push({
+        id: `${baseId}-q`,
+        role: "user",
+        content: question,
+        createdAt,
+      });
+    }
+
+    const content = normalizeMessageContent(message).trim();
+    const role = normalizeMessageRole(message?.role);
+    const isDuplicateUserQuestion = role === "user" && question && question === content;
+
+    if (content && !isDuplicateUserQuestion) {
+      nextMessages.push({
+        id: `${baseId}-m`,
+        role,
+        content,
+        createdAt,
+      });
+    }
+
+    return nextMessages;
+  });
 
   return {
     sessionId,

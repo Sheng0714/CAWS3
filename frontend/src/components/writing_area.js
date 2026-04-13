@@ -38905,10 +38905,14 @@ const WritingArea = () => {
     localStorage.setItem(scopedSubmitLockKey, 'true');
     setIsSubmitted(true);
     setOpenConfirmSubmitDialog(false);
-    alert('Submission successful!');
+    alert('Submit successful!');
   };
 
-  const handleGoToChatbotMode = (chatbotEntryMode) => {
+  const handleGoToChatbotMode = async (chatbotEntryMode) => {
+    if (chatbotEntryMode === 'writing_analysis' && !isReadOnly) {
+      await syncEssayToNotion();
+    }
+
     if (chatbotEntryMode === 'writing_analysis') {
       const essayPlainText = convertEditorHtmlToPlainText(editorContent);
       if (essayPlainText) {
@@ -39054,7 +39058,7 @@ const WritingArea = () => {
                       zIndex: 1,
                     }}
                   >
-                    Words: {englishWordCount}
+                    Word count: {englishWordCount}
                   </Box>
                 </Box>
               </Box>
@@ -39077,6 +39081,7 @@ const WritingArea = () => {
                 variant="contained"
                 onClick={() => handleGoToChatbotMode('writing_analysis')}
                 sx={buttonSx}
+                disabled={isSaving}
               >
                 Analysis
               </Button>
@@ -39089,10 +39094,10 @@ const WritingArea = () => {
       </Box>
 
       <Dialog open={openConfirmSubmitDialog} onClose={() => setOpenConfirmSubmitDialog(false)}>
-        <DialogTitle sx={{ fontWeight: 700, fontSize: '22px' }}>Confirm Submission</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '22px' }}>Confirm Submit</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ fontWeight: 700, fontSize: '18px', color: 'text.primary' }}>
-            Are you sure you want to submit? Once submitted, you cannot resubmit.
+           Are you sure you want to submit? You cannot make changes after submitting.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -39100,7 +39105,7 @@ const WritingArea = () => {
             Cancel
           </Button>
           <Button onClick={handleConfirmSubmit} color="primary" autoFocus disabled={isSaving}>
-            Submission
+            Submit
           </Button>
         </DialogActions>
       </Dialog>

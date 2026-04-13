@@ -237,10 +237,38 @@ export const buildRagflowHistoryTitle = (session) => {
     return "New Chat";
   }
 
+  const extractFirstNumber = (content) => {
+    if (typeof content !== "string") return "";
+    const normalized = content;
+
+    // Prefer numbered-list markers like "1." / "2."
+    const numberedMarkerMatched = normalized.match(/(?:^|[\s\n])(\d+\.(?!\d))/);
+    if (numberedMarkerMatched) {
+      return numberedMarkerMatched[1];
+    }
+    return "";
+  };
+
+  let lastAssistantMessage = null;
+  for (let i = session.messages.length - 1; i >= 0; i -= 1) {
+    const message = session.messages[i];
+    if (message?.role === "assistant") {
+      lastAssistantMessage = message;
+      break;
+    }
+  }
+
+  if (lastAssistantMessage) {
+    const matchedNumber = extractFirstNumber(lastAssistantMessage?.content);
+    if (matchedNumber) {
+      return matchedNumber;
+    }
+  }
+
   for (let i = session.messages.length - 1; i >= 0; i -= 1) {
     const message = session.messages[i];
     if (message?.role === "user" && typeof message?.content === "string" && message.content.trim()) {
-      return message.content.trim();
+      return message.content.trim().substring(0, 10);
     }
   }
 
