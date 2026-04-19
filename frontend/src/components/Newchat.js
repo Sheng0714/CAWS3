@@ -61,7 +61,7 @@ export default function Studentfuntion() {
   const [ragflowInput, setRagflowInput] = useState("");
   const hasTriedCreateSessionRef = useRef(false);
   const hasAutoSentPrefillRef = useRef(false);
-  const chatBottomRef = useRef(null);
+  const chatScrollContainerRef = useRef(null);
 
   const chatbotEntryMode =
     location.state?.chatbotEntryMode || sessionStorage.getItem("chatbotEntryMode") || "unknown";
@@ -293,9 +293,12 @@ export default function Studentfuntion() {
   };
 
   useEffect(() => {
-    if (chatBottomRef.current) {
-      chatBottomRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
+    const chatScrollContainer = chatScrollContainerRef.current;
+    if (!chatScrollContainer) return;
+    chatScrollContainer.scrollTo({
+      top: chatScrollContainer.scrollHeight,
+      behavior: "smooth",
+    });
   }, [ragflowMessages, isRagflowSending]);
 
   const sendRagflowMessage = async (prefillQuestion) => {
@@ -518,6 +521,7 @@ export default function Studentfuntion() {
               }}
             >
               <div
+                ref={chatScrollContainerRef}
                 style={{
                   flex: 1,
                   minHeight: "420px",
@@ -558,7 +562,6 @@ export default function Studentfuntion() {
                     I am thinking...
                   </p>
                 )}
-                <div ref={chatBottomRef} />
               </div>
 
               <div
