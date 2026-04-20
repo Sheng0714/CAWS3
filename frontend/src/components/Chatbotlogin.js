@@ -183,7 +183,7 @@ export default function Studentfuntion() {
             }}
           >
             <p style={{ margin: 0, fontWeight: 700 }}>
-              This mode organizes the arguments and evidence from your KF discussion.
+              This chatbot organizes the arguments and evidence from your KF discussion.
             </p>
           </div>
         </div>

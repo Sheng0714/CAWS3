@@ -1494,11 +1494,11 @@ export default function Home() {
                     control={<Radio />}
                     label="Student"
                   />
-                  <FormControlLabel
+                  {/* <FormControlLabel
                     value="teacher"
                     control={<Radio />}
                     label="Teacher"
-                  />
+                  /> */}
                 </RadioGroup>
               </FormControl>
 

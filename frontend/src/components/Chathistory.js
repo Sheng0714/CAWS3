@@ -27,19 +27,19 @@ const WRITING_ANALYSIS_AGENT_ID = "8d9b9b861c1911f1a4fea61716fb138a";
 const CHATBOT_MODE_CONFIG = {
   kf_analysis: {
     title: "KF Analysis",
-    description: "This mode organizes the arguments and evidence from your KF discussion.",
+    description: "This chatbot organizes the arguments and evidence from your KF discussion.",
     sourceType: "chat",
     targetId: RAGFLOW_CHAT_ID,
   },
   writing_assistant: {
     title: "Writing Assistant",
-    description: "This mode helps you build a writing outline from your KF discussion.",
+    description: "This chatbot helps you build a writing outline from your KF discussion.",
     sourceType: "agent",
     targetId: WRITING_ASSISTANT_AGENT_ID,
   },
   writing_analysis: {
     title: "Writing Analysis",
-    description: "This mode provides feedback and suggestions to improve your writing.",
+    description: "This chatbot provides feedback and suggestions to improve your writing.",
     sourceType: "agent",
     targetId: WRITING_ANALYSIS_AGENT_ID,
   },

@@ -42,37 +42,37 @@ const SIDEBAR_PRIMARY_MENUS = [
     label: "KF Argumentation",
     action: () => window.open("https://kf6.nccu.edu.tw/", "_blank", "noopener,noreferrer"),
   },
-  {
-    key: "chatbot",
-    icon: StudentFeature2Icon,
-    label: "Chatbots",
-    children: [
-      {
-        key: "chatbot-kf-analysis",
-        label: "KF Analysis",
-        icon: ChatbotModeIcon1,
-        action: createChatbotModeAction("kf_analysis"),
-      },
-      {
-        key: "chatbot-writing-assistant",
-        label: "Writing Assistant",
-        icon: ChatbotModeIcon2,
-        action: createChatbotModeAction("writing_assistant"),
-      },
-      {
-        key: "chatbot-writing-analysis",
-        label: "Writing Analysis",
-        icon: ChatbotModeIcon3,
-        action: createChatbotModeAction("writing_analysis"),
-      },
-    ],
-  },
-  {
-    key: "writing-area",
-    icon: StudentFeature3Icon,
-    label: "Writing Area",
-    action: (navigate) => navigate("/writing_area"),
-  },
+  // {
+  //   key: "chatbot",
+  //   icon: StudentFeature2Icon,
+  //   label: "Chatbots",
+  //   children: [
+  //     {
+  //       key: "chatbot-kf-analysis",
+  //       label: "KF Analysis",
+  //       icon: ChatbotModeIcon1,
+  //       action: createChatbotModeAction("kf_analysis"),
+  //     },
+  //     {
+  //       key: "chatbot-writing-assistant",
+  //       label: "Writing Assistant",
+  //       icon: ChatbotModeIcon2,
+  //       action: createChatbotModeAction("writing_assistant"),
+  //     },
+  //     {
+  //       key: "chatbot-writing-analysis",
+  //       label: "Writing Analysis",
+  //       icon: ChatbotModeIcon3,
+  //       action: createChatbotModeAction("writing_analysis"),
+  //     },
+  //   ],
+  // },
+  // {
+  //   key: "writing-area",
+  //   icon: StudentFeature3Icon,
+  //   label: "Writing Area",
+  //   action: (navigate) => navigate("/writing_area"),
+  // },
   {
     key: "scoring",
     icon: StudentFeature4Icon,

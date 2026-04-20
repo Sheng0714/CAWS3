@@ -39083,7 +39083,7 @@ const WritingArea = () => {
                 sx={buttonSx}
                 disabled={isSaving}
               >
-                Analysis
+                Analyze
               </Button>
               <Button variant="contained" onClick={() => setOpenConfirmSubmitDialog(true)} sx={buttonSx} disabled={isSaving || isReadOnly}>
                 Submit

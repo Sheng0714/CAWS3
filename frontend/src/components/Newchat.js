@@ -28,21 +28,21 @@ const CHATBOT_MODE_CONFIG = {
   kf_analysis: {
     title: "KF Analysis",
     description:
-      "Hi! I'm the CAWS Bot. This mode organizes the arguments and evidence from your KF discussion.",
+      "Hi! I'm the CAWS Bot. This chatbot organizes the arguments and evidence from your KF discussion.",
     sourceType: "chat",
     targetId: RAGFLOW_CHAT_ID,
   },
   writing_assistant: {
     title: "Writing Assistant",
     description:
-      "Hi! I'm the CAWS Bot. This mode helps you build a writing outline from your KF discussion.",
+      "Hi! I'm the CAWS Bot. This chatbot helps you build a writing outline from your KF discussion.",
     sourceType: "agent",
     targetId: WRITING_ASSISTANT_AGENT_ID,
   },
   writing_analysis: {
     title: "Writing Analysis",
     description:
-      "Hi! I'm the CAWS Bot. This mode provides feedback and suggestions to improve your writing.",
+      "Hi! I'm the CAWS Bot. This chatbot provides feedback and suggestions to improve your writing.",
     sourceType: "agent",
     targetId: WRITING_ANALYSIS_AGENT_ID,
   },
