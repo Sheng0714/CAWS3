@@ -447,10 +447,15 @@ export default function Studentfuntion() {
     }
   };
 
+  const getSessionDisplayTitle = (session) => {
+    const explicitName = typeof session?.name === "string" ? session.name.trim() : "";
+    return explicitName || buildRagflowHistoryTitle(session);
+  };
+
   const historyCards = useMemo(() => {
     return sessions.map((session) => ({
       ...session,
-      displayTitle: buildRagflowHistoryTitle(session),
+      displayTitle: getSessionDisplayTitle(session),
       displayDate: formatRagflowDate(session.createdAt),
     }));
   }, [sessions]);
@@ -460,7 +465,7 @@ export default function Studentfuntion() {
       <Navbar />
       <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
         <StudentLeftSidebar activeMenuKey="chatbot" />
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
 
       <div
         style={{
@@ -647,15 +652,13 @@ export default function Studentfuntion() {
           )}
         </div>
       </div>
-        </div>
-      </div>
 
       {selectedSession && (
         <div
           role="dialog"
           aria-modal="true"
           style={{
-            position: "fixed",
+            position: "absolute",
             inset: 0,
             background: "rgba(15, 23, 42, 0.45)",
             display: "flex",
@@ -689,7 +692,7 @@ export default function Studentfuntion() {
             >
               <div>
                 <p style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#0f172a" }}>
-                  {buildRagflowHistoryTitle(selectedSession)}
+                  {getSessionDisplayTitle(selectedSession)}
                 </p>
                 <p style={{ margin: "4px 0 0", fontSize: "14px", color: "#475569" }}>
                   創建日期：{formatRagflowDate(selectedSession.createdAt)}
@@ -831,6 +834,8 @@ export default function Studentfuntion() {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }

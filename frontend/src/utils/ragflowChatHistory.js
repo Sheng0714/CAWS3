@@ -237,38 +237,33 @@ export const buildRagflowHistoryTitle = (session) => {
     return "New Chat";
   }
 
-  const extractFirstNumber = (content) => {
+  const extractFirstTwoWords = (content) => {
     if (typeof content !== "string") return "";
-    const normalized = content;
+    const normalized = content
+      .replace(/^[\s\d\-*.,:;()[\]{}"'`~!?]+/, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!normalized) return "";
 
-    // Prefer numbered-list markers like "1." / "2."
-    const numberedMarkerMatched = normalized.match(/(?:^|[\s\n])(\d+\.(?!\d))/);
-    if (numberedMarkerMatched) {
-      return numberedMarkerMatched[1];
-    }
-    return "";
+    const words = normalized.split(" ").filter(Boolean);
+    if (words.length === 0) return "";
+    if (words.length === 1) return words[0];
+    return `${words[0]} ${words[1]}`;
   };
-
-  let lastAssistantMessage = null;
-  for (let i = session.messages.length - 1; i >= 0; i -= 1) {
-    const message = session.messages[i];
-    if (message?.role === "assistant") {
-      lastAssistantMessage = message;
-      break;
-    }
-  }
-
-  if (lastAssistantMessage) {
-    const matchedNumber = extractFirstNumber(lastAssistantMessage?.content);
-    if (matchedNumber) {
-      return matchedNumber;
-    }
-  }
 
   for (let i = session.messages.length - 1; i >= 0; i -= 1) {
     const message = session.messages[i];
     if (message?.role === "user" && typeof message?.content === "string" && message.content.trim()) {
-      return message.content.trim().substring(0, 10);
+      const title = extractFirstTwoWords(message.content);
+      if (title) return title;
+    }
+  }
+
+  for (let i = session.messages.length - 1; i >= 0; i -= 1) {
+    const message = session.messages[i];
+    if (message?.role === "assistant" && typeof message?.content === "string" && message.content.trim()) {
+      const title = extractFirstTwoWords(message.content);
+      if (title) return title;
     }
   }
 

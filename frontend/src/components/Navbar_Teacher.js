@@ -27,6 +27,11 @@ export default function Navbar() {
       onClick: () => navigate('/About_teacher') // 跳轉到 About 頁面
     },
     {
+      text: "Manual",
+      icon: <InfoIcon />,
+      onClick: () => navigate('/manual')
+    },
+    {
       text: "Login",
       icon: <Login />,
       onClick: () => navigate('/login') // 跳轉到 Login 頁面
@@ -73,7 +78,7 @@ const handleLogoClick = () => {
          />
         {!isBelow1300 && (
           <p style={{ marginLeft: '150px', position: 'relative', top: '-75px', fontSize: '24px' }}>
-            Collaborative Argumentation and Writing System
+            Collaborative Argumentative Writing System (CAWS)
           </p>
         )}
       </div>
@@ -81,7 +86,7 @@ const handleLogoClick = () => {
       <div className="navbar-links-container">
         <a href="" onClick={() => navigate('/teacher/teacher_home')}>Home</a> {/* 使用 navigate 進行跳轉 */}
         <a href="" onClick={() => navigate('/About_teacher')}>About</a> {/* 使用 navigate 進行跳轉 */}
-        <a href="" style={{ marginRight: '15px' }}>Manual</a>
+        <a href="/manual" style={{ marginRight: '15px' }}>MANUAL</a>
         <a href="" onClick={() => navigate('/')}>logout</a> {/* 使用 navigate 進行跳轉 */}
       </div>
 

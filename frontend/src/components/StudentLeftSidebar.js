@@ -42,37 +42,37 @@ const SIDEBAR_PRIMARY_MENUS = [
     label: "KF Argumentation",
     action: () => window.open("https://kf6.nccu.edu.tw/", "_blank", "noopener,noreferrer"),
   },
-  // {
-  //   key: "chatbot",
-  //   icon: StudentFeature2Icon,
-  //   label: "Chatbots",
-  //   children: [
-  //     {
-  //       key: "chatbot-kf-analysis",
-  //       label: "KF Analysis",
-  //       icon: ChatbotModeIcon1,
-  //       action: createChatbotModeAction("kf_analysis"),
-  //     },
-  //     {
-  //       key: "chatbot-writing-assistant",
-  //       label: "Writing Assistant",
-  //       icon: ChatbotModeIcon2,
-  //       action: createChatbotModeAction("writing_assistant"),
-  //     },
-  //     {
-  //       key: "chatbot-writing-analysis",
-  //       label: "Writing Analysis",
-  //       icon: ChatbotModeIcon3,
-  //       action: createChatbotModeAction("writing_analysis"),
-  //     },
-  //   ],
-  // },
-  // {
-  //   key: "writing-area",
-  //   icon: StudentFeature3Icon,
-  //   label: "Writing Area",
-  //   action: (navigate) => navigate("/writing_area"),
-  // },
+  {
+    key: "chatbot",
+    icon: StudentFeature2Icon,
+    label: "Chatbots",
+    children: [
+      {
+        key: "chatbot-kf-analysis",
+        label: "KF Analysis",
+        icon: ChatbotModeIcon1,
+        action: createChatbotModeAction("kf_analysis"),
+      },
+      {
+        key: "chatbot-writing-assistant",
+        label: "Writing Assistant",
+        icon: ChatbotModeIcon2,
+        action: createChatbotModeAction("writing_assistant"),
+      },
+      {
+        key: "chatbot-writing-analysis",
+        label: "Writing Analysis",
+        icon: ChatbotModeIcon3,
+        action: createChatbotModeAction("writing_analysis"),
+      },
+    ],
+  },
+  {
+    key: "writing-area",
+    icon: StudentFeature3Icon,
+    label: "Writing Area",
+    action: (navigate) => navigate("/writing_area"),
+  },
   {
     key: "scoring",
     icon: StudentFeature4Icon,
@@ -84,7 +84,7 @@ const SIDEBAR_PRIMARY_MENUS = [
 const SIDEBAR_SECONDARY_MENUS = [
   { key: "home", icon: HomeIcon, label: "home", action: (navigate) => navigate("/home") },
   { key: "about", icon: AboutIcon, label: "about", action: (navigate) => navigate("/About_student") },
-  { key: "manual", icon: ManualIcon, label: "manual", action: (navigate) => navigate("/manual") },
+  { key: "manual", icon: ManualIcon, label: "MANUAL", action: (navigate) => navigate("/manual") },
 ];
 
 const SIDEBAR_TOOLKIT_MENUS = [
@@ -95,7 +95,6 @@ const SIDEBAR_TOOLKIT_MENUS = [
 
 const notionApiBases = [
   process.env.REACT_APP_NOTION_API_BASE_URL,
-  "/api/notion",
   "/notion-api",
   "http://localhost:4000",
   "http://140.115.126.27:4000",
@@ -128,6 +127,53 @@ const fetchToolkitFromNotion = async ({ studentName, className, topicName }) => 
   }
 
   throw lastError || new Error("Fetch toolkit from Notion failed");
+};
+
+const upsertToolkitToNotion = async ({
+  studentName,
+  className,
+  topicName,
+  essayContent,
+  kfSummaryContent,
+  outlineContent,
+  notesContent,
+  chatHistory,
+}) => {
+  if (!studentName || !className || !topicName) return;
+
+  const token = localStorage.getItem("jwtToken");
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  let lastError = null;
+
+  for (const base of notionApiBases) {
+    const normalizedBase = base.replace(/\/+$/, "");
+    const url = `${normalizedBase}/api/update-note`;
+
+    try {
+      await axios.patch(
+        url,
+        {
+          studentName,
+          className,
+          theme: topicName,
+          essayContent: essayContent || "",
+          noteContent: notesContent || "",
+          kfAnalysisContent: kfSummaryContent || "",
+          outlineContent: outlineContent || "",
+          chatHistory: Array.isArray(chatHistory) ? chatHistory : [],
+        },
+        {
+          timeout: 15000,
+          headers,
+        }
+      );
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("Upsert toolkit to Notion failed");
 };
 
 const hasMeaningfulStageValue = (value) => {
@@ -183,8 +229,98 @@ export default function StudentLeftSidebar() {
   const latestLoadRequestRef = useRef(0);
   const latestScopeSignatureRef = useRef("");
   const triggerToolkitReloadRef = useRef(() => {});
+  const latestEssayContentRef = useRef("");
+  const kfSummaryContentRef = useRef("");
+  const outlineContentRef = useRef("");
+  const notesContentRef = useRef("");
+  const toolkitAutosaveTimerRef = useRef(null);
+  const queuedToolkitSyncPayloadRef = useRef(null);
+  const isToolkitSyncingRef = useRef(false);
   const scoringLockedTooltip =
     "Please submit your argumentative essay in the Writing Area first!!!";
+
+  const flushQueuedToolkitSync = async () => {
+    if (isToolkitSyncingRef.current) return;
+    if (!queuedToolkitSyncPayloadRef.current) return;
+
+    const payload = queuedToolkitSyncPayloadRef.current;
+    queuedToolkitSyncPayloadRef.current = null;
+    isToolkitSyncingRef.current = true;
+    try {
+      await upsertToolkitToNotion(payload);
+    } catch (error) {
+      console.error("Failed to sync sidebar toolkit content to Notion:", error);
+    } finally {
+      isToolkitSyncingRef.current = false;
+      if (queuedToolkitSyncPayloadRef.current) {
+        void flushQueuedToolkitSync();
+      }
+    }
+  };
+
+  const queueToolkitSyncToNotion = ({ nextKfSummary, nextOutline, nextNotes }) => {
+    const toolkitScope = buildToolkitScopeFromStorage();
+    if (!toolkitScope.studentName || !toolkitScope.className || !toolkitScope.topicName) {
+      return;
+    }
+
+    const scopedEssayKey = buildEssayStorageKey(
+      toolkitScope.studentName,
+      toolkitScope.className,
+      toolkitScope.topicName
+    );
+    const scopedEssay = localStorage.getItem(scopedEssayKey);
+    const essayContent =
+      (typeof scopedEssay === "string" ? scopedEssay : "") ||
+      localStorage.getItem("essayData") ||
+      localStorage.getItem("editorData") ||
+      latestEssayContentRef.current ||
+      "";
+
+    latestEssayContentRef.current = essayContent;
+
+    const rawChatHistory = localStorage.getItem("chatHistory");
+    let chatHistoryPayload = [];
+    if (rawChatHistory) {
+      try {
+        chatHistoryPayload = JSON.parse(rawChatHistory);
+      } catch {
+        chatHistoryPayload = [];
+      }
+    }
+
+    queuedToolkitSyncPayloadRef.current = {
+      studentName: toolkitScope.studentName,
+      className: toolkitScope.className,
+      topicName: toolkitScope.topicName,
+      essayContent,
+      kfSummaryContent: nextKfSummary,
+      outlineContent: nextOutline,
+      notesContent: nextNotes,
+      chatHistory: chatHistoryPayload,
+    };
+
+    if (toolkitAutosaveTimerRef.current) {
+      window.clearTimeout(toolkitAutosaveTimerRef.current);
+    }
+
+    toolkitAutosaveTimerRef.current = window.setTimeout(() => {
+      toolkitAutosaveTimerRef.current = null;
+      void flushQueuedToolkitSync();
+    }, 700);
+  };
+
+  useEffect(() => {
+    kfSummaryContentRef.current = kfSummaryContent;
+  }, [kfSummaryContent]);
+
+  useEffect(() => {
+    outlineContentRef.current = outlineContent;
+  }, [outlineContent]);
+
+  useEffect(() => {
+    notesContentRef.current = notesContent;
+  }, [notesContent]);
 
   useEffect(() => {
     let isUnmounted = false;
@@ -222,6 +358,10 @@ export default function StudentLeftSidebar() {
       setKfSummaryContent(savedKfSummary);
       setOutlineContent(savedOutline);
       setNotesContent(savedNotes);
+      kfSummaryContentRef.current = savedKfSummary;
+      outlineContentRef.current = savedOutline;
+      notesContentRef.current = savedNotes;
+      latestEssayContentRef.current = savedEssay;
       setWritingStageChecks(
         buildWritingStageChecks({
           summaryValue: savedKfSummary,
@@ -260,6 +400,10 @@ export default function StudentLeftSidebar() {
         setKfSummaryContent(fetchedKfSummary);
         setOutlineContent(fetchedOutline);
         setNotesContent(fetchedNotes);
+        kfSummaryContentRef.current = fetchedKfSummary;
+        outlineContentRef.current = fetchedOutline;
+        notesContentRef.current = fetchedNotes;
+        latestEssayContentRef.current = fetchedEssay;
         setWritingStageChecks(
           buildWritingStageChecks({
             summaryValue: fetchedKfSummary,
@@ -294,6 +438,11 @@ export default function StudentLeftSidebar() {
     window.addEventListener(RAGFLOW_TOOLKIT_STORAGE_EVENT, onToolkitStorageUpdated);
     return () => {
       isUnmounted = true;
+      if (toolkitAutosaveTimerRef.current) {
+        window.clearTimeout(toolkitAutosaveTimerRef.current);
+        toolkitAutosaveTimerRef.current = null;
+      }
+      queuedToolkitSyncPayloadRef.current = null;
       window.clearInterval(scopeWatcherInterval);
       window.removeEventListener("focus", onWindowFocus);
       window.removeEventListener("storage", onWindowStorage);
@@ -561,18 +710,29 @@ export default function StudentLeftSidebar() {
     placeholder: menu.key === "notes-area" ? "點擊即可編輯 Notes Area" : "",
     onUpdate: (nextValue) => {
       const toolkitScope = buildToolkitScopeFromStorage();
+      const nextKfSummary =
+        menu.key === "kf-summary" ? nextValue : kfSummaryContentRef.current;
+      const nextOutline =
+        menu.key === "writing-outline" ? nextValue : outlineContentRef.current;
+      const nextNotes = menu.key === "notes-area" ? nextValue : notesContentRef.current;
       if (menu.key === "kf-summary") {
         setKfSummaryContent(nextValue);
+        kfSummaryContentRef.current = nextValue;
         writeToolkitContentByScope("kfAnalysisData", nextValue, toolkitScope);
-        return;
-      }
-      if (menu.key === "writing-outline") {
+      } else if (menu.key === "writing-outline") {
         setOutlineContent(nextValue);
+        outlineContentRef.current = nextValue;
         writeToolkitContentByScope("outlineData", nextValue, toolkitScope);
-        return;
+      } else {
+        setNotesContent(nextValue);
+        notesContentRef.current = nextValue;
+        writeToolkitContentByScope("noteData", nextValue, toolkitScope);
       }
-      setNotesContent(nextValue);
-      writeToolkitContentByScope("noteData", nextValue, toolkitScope);
+      queueToolkitSyncToNotion({
+        nextKfSummary,
+        nextOutline,
+        nextNotes,
+      });
     },
   }));
 
@@ -592,7 +752,13 @@ export default function StudentLeftSidebar() {
       <button
         type="button"
         onClick={() => {
-          setIsSidebarExpanded((prev) => !prev);
+          setIsSidebarExpanded((prev) => {
+            const nextExpanded = !prev;
+            if (nextExpanded) {
+              triggerToolkitReloadRef.current(true);
+            }
+            return nextExpanded;
+          });
           setActiveSidebarEditor("");
           setExpandedToolkitPanel("");
         }}

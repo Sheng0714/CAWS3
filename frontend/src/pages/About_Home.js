@@ -53,10 +53,10 @@ export default function About() {
                 CAWS is a groundbreaking collaborative writing platform designed to spark students' creativity and critical thinking. By seamlessly integrating AI technology with interactive learning modules, CAWS empowers students to effortlessly express their ideas, engage in discussions, and build compelling arguments. Whether in the classroom or through remote learning, CAWS helps students rapidly improve their writing skills, enhance their persuasive abilities, and boost their confidence. It’s not just a writing tool—it’s a platform that helps students become better communicators.
             </p>
             <div className="about-buttons-container">
-              {/* <button className="secondary-button">Learn More</button>
+              <button className="secondary-button">Learn More</button>
               <button className="watch-video-button">
                 <BsFillPlayCircleFill /> Watch Video
-              </button> */}
+              </button>
             </div>
         </div>
     </div>

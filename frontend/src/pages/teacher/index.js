@@ -31,7 +31,7 @@ export default function IndexOfTeacher() {
   };
 
   const connectWebSocket = () => {
-    setWs(io(url.backendHost));
+    setWs(io(url.socketioHost, { path: '/s/socket.io' }));
   };
 
   useEffect(() => {

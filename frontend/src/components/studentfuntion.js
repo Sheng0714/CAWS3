@@ -306,7 +306,6 @@ export default function Studentfuntion() {
                   ))}
                 </div>
 
-                {/* Original ENTER block for all cards (kept for future use):
                 <div
                   onMouseEnter={() => {
                     if (isScoringLocked) setShowScoringLockTooltip(true);
@@ -369,72 +368,6 @@ export default function Studentfuntion() {
                     ENTER
                   </button>
                 </div>
-                */}
-
-                {card.id === 1 && (
-                  <div
-                    onMouseEnter={() => {
-                      if (isScoringLocked) setShowScoringLockTooltip(true);
-                    }}
-                    onMouseLeave={() => setShowScoringLockTooltip(false)}
-                    onFocus={() => {
-                      if (isScoringLocked) setShowScoringLockTooltip(true);
-                    }}
-                    onBlur={() => setShowScoringLockTooltip(false)}
-                    style={{
-                      marginTop: "auto",
-                      display: "inline-flex",
-                      position: "relative",
-                      cursor: isEnterLocked ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    {isScoringLocked && showScoringLockTooltip && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: "50%",
-                          bottom: "calc(100% + 10px)",
-                          transform: "translateX(-50%)",
-                          maxWidth: "360px",
-                          minWidth: "300px",
-                          padding: "10px 12px",
-                          borderRadius: "8px",
-                          background: "rgba(15, 23, 42, 0.95)",
-                          color: "#ffffff",
-                          fontSize: "18px",
-                          lineHeight: 1.35,
-                          textAlign: "center",
-                          zIndex: 10,
-                          pointerEvents: "none",
-                          boxShadow: "0 8px 18px rgba(0, 0, 0, 0.25)",
-                        }}
-                      >
-                        {scoringLockedTooltip}
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleEnterClick(card.id)}
-                      disabled={isEnterLocked}
-                      style={{
-                        width: "140px",
-                        height: "44px",
-                        background: isEnterLocked
-                          ? "rgba(148, 163, 184, 0.35)"
-                          : "rgba(204, 149, 101, 0.3)",
-                        border: "1.5px solid #000000",
-                        borderRadius: "10px",
-                        fontSize: "18px",
-                        fontWeight: 700,
-                        color: isEnterLocked ? "#64748b" : "#111111",
-                        cursor: isEnterLocked ? "not-allowed" : "pointer",
-                        pointerEvents: isEnterLocked ? "none" : "auto",
-                      }}
-                    >
-                      ENTER
-                    </button>
-                  </div>
-                )}
               </div>
               );
             })}

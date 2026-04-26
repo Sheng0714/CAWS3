@@ -48,6 +48,17 @@ const CHATBOT_MODE_CONFIG = {
   },
 };
 
+const TITLE_PROMPT_BY_MODE = {
+  kf_analysis:
+    "Generate one short chat title that reflects the key arguments and evidence from the discussion. Return only the title text.",
+  writing_assistant:
+    "Generate one short chat title that reflects the writing-outline focus of the conversation. Return only the title text.",
+  writing_analysis:
+    "Generate one short chat title that reflects writing feedback and revision focus. Return only the title text.",
+  default:
+    "Generate one short and clear title for this conversation. Return only the title text.",
+};
+
 export default function Studentfuntion() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,6 +72,8 @@ export default function Studentfuntion() {
   const [ragflowInput, setRagflowInput] = useState("");
   const hasTriedCreateSessionRef = useRef(false);
   const hasAutoSentPrefillRef = useRef(false);
+  const hasGeneratedTitleRef = useRef(false);
+  const isGeneratingTitleRef = useRef(false);
   const chatScrollContainerRef = useRef(null);
 
   const chatbotEntryMode =
@@ -83,6 +96,13 @@ export default function Studentfuntion() {
     if (!activeModeConfig) return "";
     const resource = activeModeConfig.sourceType === "agent" ? "agents" : "chats";
     return `${RAGFLOW_API_SERVER}/api/v1/${resource}/${activeModeConfig.targetId}/${apiName}`;
+  };
+
+  const buildBackendApiUrl = (pathName) => {
+    const baseUrl = typeof url.backendHost === "string" ? url.backendHost : "";
+    const normalizedBaseUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+    const normalizedPathName = String(pathName || "").replace(/^\//, "");
+    return `${normalizedBaseUrl}${normalizedPathName}`;
   };
 
   const parseRagflowSessionMessages = (payload) => {
@@ -118,6 +138,81 @@ export default function Studentfuntion() {
       answer: typeof answer === "string" ? answer : "",
       createdAt: Date.now(),
     };
+  };
+
+  const requestGeneratedTitle = async (messages, prompt) => {
+    const response = await fetch(buildBackendApiUrl("chat-title/generate"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ messages, prompt }),
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload?.detail || payload?.message || `HTTP ${response.status}`);
+    }
+
+    const title = typeof payload?.title === "string" ? payload.title.trim() : "";
+    return title;
+  };
+
+  const updateRagflowSessionName = async (sessionId, title) => {
+    if (!sessionId || !title || !activeModeConfig) return;
+
+    const resource = activeModeConfig.sourceType === "agent" ? "agents" : "chats";
+    const updateUrl = `${RAGFLOW_API_SERVER}/api/v1/${resource}/${activeModeConfig.targetId}/sessions/${encodeURIComponent(sessionId)}`;
+    const payload =
+      activeModeConfig.sourceType === "chat"
+        ? { name: title, user_id: scopeUserId }
+        : { name: title };
+
+    const response = await fetch(updateUrl, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${RAGFLOW_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const body = await response.json();
+    if (!response.ok || body?.code !== 0) {
+      throw new Error(body?.message || `HTTP ${response.status}`);
+    }
+  };
+
+  const maybeGenerateTitleForSession = async (messages, sessionId) => {
+    if (hasGeneratedTitleRef.current || isGeneratingTitleRef.current) return;
+    if (!sessionId) return;
+
+    const normalizedMessages = Array.isArray(messages)
+      ? messages
+          .map((message) => ({
+            role: message?.role === "assistant" ? "assistant" : "user",
+            content: typeof message?.content === "string" ? message.content.trim() : "",
+          }))
+          .filter((message) => message.content)
+      : [];
+
+    const hasUser = normalizedMessages.some((message) => message.role === "user");
+    const hasAssistant = normalizedMessages.some((message) => message.role === "assistant");
+    if (!hasUser || !hasAssistant) return;
+
+    isGeneratingTitleRef.current = true;
+
+    try {
+      const titlePrompt = TITLE_PROMPT_BY_MODE[chatbotEntryMode] || TITLE_PROMPT_BY_MODE.default;
+      const title = await requestGeneratedTitle(normalizedMessages.slice(-6), titlePrompt);
+      if (!title) return;
+      await updateRagflowSessionName(sessionId, title);
+      hasGeneratedTitleRef.current = true;
+    } catch (error) {
+      console.error("Failed to generate session title:", error);
+    } finally {
+      isGeneratingTitleRef.current = false;
+    }
   };
 
   useEffect(() => {
@@ -164,6 +259,8 @@ export default function Studentfuntion() {
   useEffect(() => {
     hasTriedCreateSessionRef.current = false;
     hasAutoSentPrefillRef.current = false;
+    hasGeneratedTitleRef.current = false;
+    isGeneratingTitleRef.current = false;
     setRagflowSessionId("");
     setRagflowMessages([]);
     setRagflowInput("");
@@ -319,7 +416,8 @@ export default function Studentfuntion() {
       setRagflowInput("");
     }
     setRagflowError("");
-    setRagflowMessages((prev) => [...prev, userMessage]);
+    const optimisticMessages = [...ragflowMessages, userMessage];
+    setRagflowMessages(optimisticMessages);
     setIsRagflowSending(true);
 
     try {
@@ -336,15 +434,15 @@ export default function Studentfuntion() {
       };
       syncKfSummaryFromAssistantReply(chatbotEntryMode, answer, toolkitScope);
       syncWritingOutlineFromAssistantReply(chatbotEntryMode, answer, toolkitScope);
-      setRagflowMessages((prev) => [
-        ...prev,
-        {
-          id: completion.id || `assistant-${Date.now()}`,
-          role: "assistant",
-          content: answer,
-          createdAt: completion.createdAt || Date.now(),
-        },
-      ]);
+      const assistantMessage = {
+        id: completion.id || `assistant-${Date.now()}`,
+        role: "assistant",
+        content: answer,
+        createdAt: completion.createdAt || Date.now(),
+      };
+      const completedMessages = [...optimisticMessages, assistantMessage];
+      setRagflowMessages(completedMessages);
+      void maybeGenerateTitleForSession(completedMessages, ragflowSessionId);
     } catch (error) {
       console.error("Failed to send RAGFLOW message:", error);
       setRagflowError(`RAGFLOW reply failed: ${error?.message || "unknown error"}`);

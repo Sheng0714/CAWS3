@@ -46,7 +46,7 @@ const StyledButton = styled(Button)({
   },
 });
 
-const notionApiBases = ["/api/notion", "/notion-api", "http://140.115.126.27:4000", "http://localhost:4000"];
+const notionApiBases = ["/notion-api", "http://140.115.126.27:4000", "http://localhost:4000"];
 
 const normalizeText = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
 const isSubmittedStatusYes = (value) => {

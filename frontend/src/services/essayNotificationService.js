@@ -2,7 +2,6 @@ import axios from 'axios';
 
 const notionApiBases = [
   process.env.REACT_APP_NOTION_API_BASE_URL,
-  '/api/notion',
   '/notion-api',
   'http://localhost:4000',
   'http://140.115.126.27:4000',

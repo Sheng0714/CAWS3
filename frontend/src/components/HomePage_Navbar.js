@@ -688,7 +688,7 @@ export default function Navbar() {
           />
           {!isBelow1300 && (
             <p style={navTitleStyle}>
-              Collaborative Argumentation and Writing System
+              Collaborative Argumentative Writing System (CAWS)
             </p>
           )}
         </div>

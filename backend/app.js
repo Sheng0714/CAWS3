@@ -348,6 +348,7 @@ require("./routes/edge.routes")(app);
 require("./routes/chatRoomMessage.routes")(app);
 require("./routes/activityInfo.routes")(app);
 require("./routes/essay.routes")(app);
+require("./routes/chatTitle.routes")(app);
 
 // 修正重複掛載 essay 路由
 

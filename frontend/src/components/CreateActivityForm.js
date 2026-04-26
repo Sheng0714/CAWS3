@@ -172,6 +172,7 @@ axios.interceptors.request.use(config => {
 
 // 初始化 Socket.IO
 const socket = io(url.socketioHost, {
+    path: '/s/socket.io',
     withCredentials: true,
     auth: { token: localStorage.getItem('jwtToken') }
 });
