@@ -15,7 +15,9 @@ import {
   buildRagflowScopeUserId,
   formatRagflowDate,
   syncKfSummaryFromAssistantReply,
+  syncToolkitSnapshotToNotion,
   syncWritingOutlineFromAssistantReply,
+  upsertRagflowChatSession,
 } from "../utils/ragflowChatHistory";
 
 const RAGFLOW_API_KEY = "ragflow-E5MjJlMmFlMWMxMTExZjFiZjJkYTYxNz";
@@ -289,6 +291,17 @@ export default function Studentfuntion() {
       try {
         const nextSessions = await fetchHistorySessionsFromApi();
         setSessions(nextSessions);
+        const scopedClassName = historyScope.className || className || "";
+        const scopedTopicName = historyScope.topicName || topicName || "";
+        nextSessions.forEach((session) => {
+          upsertRagflowChatSession({
+            ...session,
+            scope: {
+              className: scopedClassName,
+              topicName: scopedTopicName,
+            },
+          });
+        });
 
         if (focusSessionId) {
           const focused = nextSessions.find((session) => session.sessionId === focusSessionId);
@@ -307,7 +320,7 @@ export default function Studentfuntion() {
         setIsHistoryLoading(false);
       }
     },
-    [fetchHistorySessionsFromApi, isSupportedEntry]
+    [fetchHistorySessionsFromApi, isSupportedEntry, historyScope, className, topicName]
   );
 
   useEffect(() => {
@@ -419,8 +432,6 @@ export default function Studentfuntion() {
         className: historyScope.className || className || "",
         topicName: historyScope.topicName || topicName || "",
       };
-      syncKfSummaryFromAssistantReply(chatbotEntryMode, answer, toolkitScope);
-      syncWritingOutlineFromAssistantReply(chatbotEntryMode, answer, toolkitScope);
       const assistantMessage = {
         id: payload?.data?.id || payload?.data?.message_id || `history-assistant-${Date.now()}`,
         role: "assistant",
@@ -435,6 +446,38 @@ export default function Studentfuntion() {
       };
 
       setSelectedSession(completedSession);
+      upsertRagflowChatSession({
+        sessionId: completedSession.sessionId,
+        chatbotEntryMode: completedSession.chatbotEntryMode || chatbotEntryMode,
+        modeTitle: activeModeConfig?.title || "",
+        sourceType: completedSession.sourceType || activeModeConfig?.sourceType || "",
+        targetId: completedSession.targetId || activeModeConfig?.targetId || "",
+        scope: {
+          className: toolkitScope.className || "",
+          topicName: toolkitScope.topicName || "",
+        },
+        updatedAt: completedSession.updatedAt || Date.now(),
+        messages: completedSession.messages || [],
+      });
+      const didSyncKfSummary = syncKfSummaryFromAssistantReply(
+        chatbotEntryMode,
+        answer,
+        toolkitScope
+      );
+      const didSyncWritingOutline = syncWritingOutlineFromAssistantReply(
+        chatbotEntryMode,
+        answer,
+        toolkitScope
+      );
+      if (didSyncKfSummary || didSyncWritingOutline) {
+        void syncToolkitSnapshotToNotion({
+          scopeInput: toolkitScope,
+          ...(didSyncKfSummary ? { kfSummaryContent: answer } : {}),
+          ...(didSyncWritingOutline ? { outlineContent: answer } : {}),
+        }).catch((error) => {
+          console.error("Failed to sync toolkit content to Notion after chat:", error);
+        });
+      }
       await loadHistory({
         focusSessionId: completedSession.sessionId,
         fallbackSession: completedSession,

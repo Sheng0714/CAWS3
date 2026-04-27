@@ -6,6 +6,7 @@ import WritingStageStepper from "./WritingStageStepper";
 import {
   RAGFLOW_TOOLKIT_STORAGE_EVENT,
   buildToolkitScopeFromStorage,
+  getScopedRagflowChatHistoryPayload,
   readToolkitContentByScope,
   writeToolkitContentByScope,
 } from "../utils/ragflowChatHistory";
@@ -279,15 +280,10 @@ export default function StudentLeftSidebar() {
 
     latestEssayContentRef.current = essayContent;
 
-    const rawChatHistory = localStorage.getItem("chatHistory");
-    let chatHistoryPayload = [];
-    if (rawChatHistory) {
-      try {
-        chatHistoryPayload = JSON.parse(rawChatHistory);
-      } catch {
-        chatHistoryPayload = [];
-      }
-    }
+    const chatHistoryPayload = getScopedRagflowChatHistoryPayload({
+      className: toolkitScope.className,
+      topicName: toolkitScope.topicName,
+    });
 
     queuedToolkitSyncPayloadRef.current = {
       studentName: toolkitScope.studentName,

@@ -10,7 +10,9 @@ import {
   buildRagflowScopeFromStorage,
   buildRagflowScopeUserId,
   syncKfSummaryFromAssistantReply,
+  syncToolkitSnapshotToNotion,
   syncWritingOutlineFromAssistantReply,
+  upsertRagflowChatSession,
 } from "../utils/ragflowChatHistory";
 
 import cawsOwl from "../assets/去背.png";
@@ -432,8 +434,6 @@ export default function Studentfuntion() {
         className: historyScope.className || className || "",
         topicName: historyScope.topicName || topicName || "",
       };
-      syncKfSummaryFromAssistantReply(chatbotEntryMode, answer, toolkitScope);
-      syncWritingOutlineFromAssistantReply(chatbotEntryMode, answer, toolkitScope);
       const assistantMessage = {
         id: completion.id || `assistant-${Date.now()}`,
         role: "assistant",
@@ -442,6 +442,38 @@ export default function Studentfuntion() {
       };
       const completedMessages = [...optimisticMessages, assistantMessage];
       setRagflowMessages(completedMessages);
+      upsertRagflowChatSession({
+        sessionId: ragflowSessionId,
+        chatbotEntryMode,
+        modeTitle: activeModeConfig?.title || "",
+        sourceType: activeModeConfig?.sourceType || "",
+        targetId: activeModeConfig?.targetId || "",
+        scope: {
+          className: toolkitScope.className || "",
+          topicName: toolkitScope.topicName || "",
+        },
+        updatedAt: Date.now(),
+        messages: completedMessages,
+      });
+      const didSyncKfSummary = syncKfSummaryFromAssistantReply(
+        chatbotEntryMode,
+        answer,
+        toolkitScope
+      );
+      const didSyncWritingOutline = syncWritingOutlineFromAssistantReply(
+        chatbotEntryMode,
+        answer,
+        toolkitScope
+      );
+      if (didSyncKfSummary || didSyncWritingOutline) {
+        void syncToolkitSnapshotToNotion({
+          scopeInput: toolkitScope,
+          ...(didSyncKfSummary ? { kfSummaryContent: answer } : {}),
+          ...(didSyncWritingOutline ? { outlineContent: answer } : {}),
+        }).catch((error) => {
+          console.error("Failed to sync toolkit content to Notion after chat:", error);
+        });
+      }
       void maybeGenerateTitleForSession(completedMessages, ragflowSessionId);
     } catch (error) {
       console.error("Failed to send RAGFLOW message:", error);

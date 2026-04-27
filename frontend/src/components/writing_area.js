@@ -38496,7 +38496,11 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar_Student';
 import StudentLeftSidebar from './StudentLeftSidebar';
 import BackIcon from '../assets/back.png';
-import { readToolkitContentByScope, writeToolkitContentByScope } from '../utils/ragflowChatHistory';
+import {
+  getScopedRagflowChatHistoryPayload,
+  readToolkitContentByScope,
+  writeToolkitContentByScope,
+} from '../utils/ragflowChatHistory';
 
 
 const buttonSx = {
@@ -38845,15 +38849,10 @@ const WritingArea = () => {
       return false;
     }
 
-    const rawChatHistory = localStorage.getItem('chatHistory');
-    let chatHistoryPayload = [];
-    if (rawChatHistory) {
-      try {
-        chatHistoryPayload = JSON.parse(rawChatHistory);
-      } catch {
-        chatHistoryPayload = [];
-      }
-    }
+    const chatHistoryPayload = getScopedRagflowChatHistoryPayload({
+      className,
+      topicName: theme,
+    });
 
     try {
       setIsSaving(true);

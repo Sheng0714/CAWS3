@@ -1,7 +1,15 @@
+import axios from "axios";
+
 const RAGFLOW_CHAT_HISTORY_KEY = "ragflow_chat_history_v1";
 const KF_SUMMARY_TRIGGER_TEXT = "\u5df2\u7d93\u8db3\u5920";
 const WRITING_OUTLINE_TRIGGER_TEXT = "\u81ea\u52d5\u532f\u5165";
 export const RAGFLOW_TOOLKIT_STORAGE_EVENT = "ragflow-toolkit-storage-updated";
+const notionApiBases = [
+  process.env.REACT_APP_NOTION_API_BASE_URL,
+  "/notion-api",
+  "http://localhost:4000",
+  "http://140.115.126.27:4000",
+].filter(Boolean);
 
 const notifyToolkitStorageUpdated = (key, value) => {
   if (typeof window === "undefined") return;
@@ -125,6 +133,11 @@ export const buildToolkitStorageKey = (baseKey, scopeInput = {}) => {
   )}::${encodeURIComponent(scope.topicName || "")}`;
 };
 
+const buildEssayStorageKey = (studentName, className, topicName) =>
+  `essayData::${encodeURIComponent(studentName || "")}::${encodeURIComponent(
+    className || ""
+  )}::${encodeURIComponent(topicName || "")}`;
+
 export const readToolkitContentByScope = (baseKey, scopeInput) => {
   if (typeof window === "undefined") return "";
 
@@ -190,6 +203,35 @@ export const getRagflowChatSessionsByModeAndScope = (chatbotEntryMode, scopeInpu
     (session) =>
       session?.chatbotEntryMode === chatbotEntryMode && isSameScope(session?.scope, scopeInput)
   );
+};
+
+export const getScopedRagflowChatHistoryPayload = (
+  scopeInput,
+  { maxSessions = 10, maxMessagesPerSession = 30 } = {}
+) => {
+  const targetScope = normalizeScope(scopeInput || {});
+  const sessionLimit = Number.isFinite(maxSessions) ? Math.max(1, maxSessions) : 10;
+  const messageLimit = Number.isFinite(maxMessagesPerSession)
+    ? Math.max(1, maxMessagesPerSession)
+    : 30;
+
+  return getAllRagflowChatSessions()
+    .filter((session) => isSameScope(session?.scope, targetScope))
+    .slice(0, sessionLimit)
+    .map((session) => {
+      const normalizedMessages = Array.isArray(session?.messages) ? session.messages : [];
+      return {
+        sessionId: session?.sessionId || "",
+        messages: normalizedMessages.slice(-messageLimit).map((message) => ({
+          role: message?.role === "assistant" ? "assistant" : "user",
+          content: typeof message?.content === "string" ? message.content : "",
+          created_at:
+            Number.isFinite(Number(message?.createdAt)) && Number(message?.createdAt) > 0
+              ? new Date(Number(message.createdAt)).toISOString()
+              : "",
+        })),
+      };
+    });
 };
 
 export const upsertRagflowChatSession = (sessionInput) => {
@@ -306,4 +348,76 @@ export const syncWritingOutlineFromAssistantReply = (
 
   writeToolkitContentByScope("outlineData", normalizedReply, scopeInput);
   return true;
+};
+
+export const syncToolkitSnapshotToNotion = async ({
+  scopeInput,
+  kfSummaryContent,
+  outlineContent,
+  notesContent,
+} = {}) => {
+  if (typeof window === "undefined") return false;
+
+  const scope = normalizeToolkitScope(scopeInput || buildToolkitScopeFromStorage());
+  if (!scope.studentName || !scope.className || !scope.topicName) {
+    return false;
+  }
+
+  const essayStorageKey = buildEssayStorageKey(scope.studentName, scope.className, scope.topicName);
+  const essayContent =
+    localStorage.getItem(essayStorageKey) ||
+    localStorage.getItem("essayData") ||
+    localStorage.getItem("editorData") ||
+    "";
+
+  const summaryValue =
+    typeof kfSummaryContent === "string"
+      ? kfSummaryContent
+      : readToolkitContentByScope("kfAnalysisData", scope);
+  const outlineValue =
+    typeof outlineContent === "string"
+      ? outlineContent
+      : readToolkitContentByScope("outlineData", scope);
+  const notesValue =
+    typeof notesContent === "string"
+      ? notesContent
+      : readToolkitContentByScope("noteData", scope);
+  const chatHistoryPayload = getScopedRagflowChatHistoryPayload({
+    className: scope.className,
+    topicName: scope.topicName,
+  });
+
+  const token = localStorage.getItem("jwtToken");
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  let lastError = null;
+
+  for (const base of notionApiBases) {
+    const normalizedBase = base.replace(/\/+$/, "");
+    const requestUrl = `${normalizedBase}/api/update-note`;
+
+    try {
+      await axios.patch(
+        requestUrl,
+        {
+          studentName: scope.studentName,
+          className: scope.className,
+          theme: scope.topicName,
+          essayContent,
+          noteContent: notesValue || "",
+          kfAnalysisContent: summaryValue || "",
+          outlineContent: outlineValue || "",
+          chatHistory: Array.isArray(chatHistoryPayload) ? chatHistoryPayload : [],
+        },
+        {
+          timeout: 15000,
+          headers,
+        }
+      );
+      return true;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("Sync toolkit snapshot to Notion failed");
 };
