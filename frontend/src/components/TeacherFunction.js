@@ -51,7 +51,7 @@ const cardData = [
     featureImage: feature4,
     title: "Dashboard",
     description: ["Check your teacher's feedback and scores."],
-    enterPath: "",
+    enterPath: "/Dashboard",
   },
 ];
 

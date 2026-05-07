@@ -9,6 +9,50 @@ const Profile = db.Profile;
 const UserProfile = db.UserProfile;
 const Activity = db.Activity;
 const UserActivityGroup = db.UserActivityGroup;
+const LoginHistory = db.LoginHistory;
+const { Op } = db.Sequelize;
+
+const STUDENT_TZ = "Asia/Taipei";
+const DATE_KEY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+  timeZone: STUDENT_TZ,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const DAY_LABEL_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: STUDENT_TZ,
+  weekday: "short",
+});
+
+const normalizeNameKey = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+
+const toDateKey = (value) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return DATE_KEY_FORMATTER.format(date);
+};
+
+const buildDateKeys = (days) => {
+  const safeDays = Math.min(30, Math.max(1, Number(days) || 7));
+  const list = [];
+  const now = new Date();
+
+  for (let index = safeDays - 1; index >= 0; index -= 1) {
+    const date = new Date(now);
+    date.setDate(now.getDate() - index);
+    list.push({
+      dateKey: toDateKey(date),
+      dayLabel: DAY_LABEL_FORMATTER.format(date),
+    });
+  }
+
+  return list;
+};
 
 
 // signing a user up
@@ -230,6 +274,17 @@ exports.login = async (req, res) => {
     if (!isSame) {
       return res.status(401).send("Authentication failed");
     }
+
+    try {
+      await LoginHistory.create({
+        userId: user.id,
+        userName: user.name || "",
+        loginAt: new Date(),
+        source: "web",
+      });
+    } catch (loginHistoryError) {
+      console.error("Failed to write login history:", loginHistoryError?.message || loginHistoryError);
+    }
     
     delete user.password;
     //got user's activity haved
@@ -268,6 +323,116 @@ exports.login = async (req, res) => {
     });
   }
 }
+
+exports.getLoginTrendByStudents = async (req, res) => {
+  try {
+    const studentNamesRaw = Array.isArray(req.body?.studentNames) ? req.body.studentNames : [];
+    const studentNames = [...new Set(studentNamesRaw.map((item) => String(item || "").trim()).filter(Boolean))];
+    const dayWindow = Math.min(30, Math.max(1, Number(req.body?.days) || 7));
+
+    if (studentNames.length === 0) {
+      return res.status(200).send({
+        success: true,
+        data: {
+          days: dayWindow,
+          trend: buildDateKeys(dayWindow).map((item) => ({ date: item.dateKey, day: item.dayLabel, logins: 0, students: 0 })),
+          matchedStudents: [],
+          missingStudents: [],
+          totalStudents: 0,
+        },
+      });
+    }
+
+    const users = await User.findAll({
+      attributes: ["id", "name"],
+      raw: true,
+    });
+
+    const usersByNormalizedName = new Map();
+    users.forEach((user) => {
+      const key = normalizeNameKey(user?.name);
+      if (!key) return;
+      if (!usersByNormalizedName.has(key)) {
+        usersByNormalizedName.set(key, []);
+      }
+      usersByNormalizedName.get(key).push(user);
+    });
+
+    const matchedUsers = [];
+    const missingStudents = [];
+
+    studentNames.forEach((studentName) => {
+      const matches = usersByNormalizedName.get(normalizeNameKey(studentName)) || [];
+      if (matches.length === 0) {
+        missingStudents.push(studentName);
+        return;
+      }
+      matches.forEach((user) => matchedUsers.push(user));
+    });
+
+    const uniqueMatchedUsers = Array.from(new Map(matchedUsers.map((user) => [user.id, user])).values());
+    const dateKeys = buildDateKeys(dayWindow);
+    const zeroMap = Object.fromEntries(dateKeys.map((item) => [item.dateKey, 0]));
+
+    if (uniqueMatchedUsers.length === 0) {
+      return res.status(200).send({
+        success: true,
+        data: {
+          days: dayWindow,
+          trend: dateKeys.map((item) => ({ date: item.dateKey, day: item.dayLabel, logins: 0, students: 0 })),
+          matchedStudents: [],
+          missingStudents,
+          totalStudents: studentNames.length,
+        },
+      });
+    }
+
+    const startAt = new Date();
+    startAt.setHours(0, 0, 0, 0);
+    startAt.setDate(startAt.getDate() - (dayWindow - 1));
+
+    const loginRows = await LoginHistory.findAll({
+      attributes: ["userId", "loginAt"],
+      where: {
+        userId: { [Op.in]: uniqueMatchedUsers.map((user) => user.id) },
+        loginAt: { [Op.gte]: startAt },
+      },
+      raw: true,
+    });
+
+    const countByDay = { ...zeroMap };
+    const uniqueUserIdsByDay = Object.fromEntries(dateKeys.map((item) => [item.dateKey, new Set()]));
+    loginRows.forEach((row) => {
+      const dateKey = toDateKey(row?.loginAt);
+      if (!dateKey || !Object.prototype.hasOwnProperty.call(countByDay, dateKey)) return;
+      countByDay[dateKey] += 1;
+      uniqueUserIdsByDay[dateKey].add(Number(row.userId));
+    });
+
+    return res.status(200).send({
+      success: true,
+      data: {
+        days: dayWindow,
+        trend: dateKeys.map((item) => ({
+          date: item.dateKey,
+          day: item.dayLabel,
+          logins: countByDay[item.dateKey] || 0,
+          students: uniqueUserIdsByDay[item.dateKey]?.size || 0,
+        })),
+        matchedStudents: uniqueMatchedUsers.map((user) => user.name),
+        missingStudents,
+        totalStudents: studentNames.length,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch login trend by students:", error);
+    return res.status(500).send({
+      success: false,
+      error: "Failed to fetch login trend.",
+      details: error?.message || String(error),
+    });
+  }
+};
 
 // Retrieve all Users from the database.
 exports.findAll = (req, res) => {

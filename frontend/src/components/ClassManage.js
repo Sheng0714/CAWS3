@@ -10,6 +10,7 @@ import addTopicIcon from "../assets/addtopic.png";
 import createClassIcon from "../assets/addgroup.svg";
 import settingIcon from "../assets/setting.png";
 import clearIcon from "../assets/XX.png";
+import copyIcon from "../assets/複製.png";
 import config from "../config.json";
 import url from "../url.json";
 
@@ -343,6 +344,32 @@ export default function ClassManage() {
     }
   };
 
+  const handleCopyInviteCode = async (inviteCode) => {
+    if (!inviteCode) {
+      return;
+    }
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(inviteCode);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = inviteCode;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      alert("Invite Code copied!");
+    } catch (error) {
+      console.error("Failed to copy invite code:", error);
+      alert("Copy failed. Please try again.");
+    }
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "#ffffff", display: "flex", flexDirection: "column" }}>
       <Navbar />
@@ -504,7 +531,27 @@ export default function ClassManage() {
                         )}
                       </div>
 
-                      <span>{row.inviteCode || "-"}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span>{row.inviteCode || "-"}</span>
+                        {row.inviteCode ? (
+                          <button
+                            type="button"
+                            onClick={() => handleCopyInviteCode(row.inviteCode)}
+                            style={{
+                              border: "none",
+                              background: "transparent",
+                              cursor: "pointer",
+                              padding: 0,
+                              lineHeight: 0,
+                              display: "inline-flex",
+                              alignItems: "center",
+                            }}
+                            title="copy invite code"
+                          >
+                            <img src={copyIcon} alt="copy invite code" style={{ width: "18px", height: "18px" }} />
+                          </button>
+                        ) : null}
+                      </div>
                       <span>{row.deadline || "-"}</span>
 
                       <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>

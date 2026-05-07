@@ -38496,6 +38496,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar_Student';
 import StudentLeftSidebar from './StudentLeftSidebar';
 import BackIcon from '../assets/back.png';
+import CheckIcon from '../assets/check.png';
 import {
   getScopedRagflowChatHistoryPayload,
   readToolkitContentByScope,
@@ -38669,6 +38670,7 @@ const WritingArea = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCompletedEntry, setIsCompletedEntry] = useState(false);
   const [openConfirmSubmitDialog, setOpenConfirmSubmitDialog] = useState(false);
+  const [openSaveSuccessDialog, setOpenSaveSuccessDialog] = useState(false);
   const [kfSummaryContent, setKfSummaryContent] = useState('');
   const [outlineContent, setOutlineContent] = useState('');
   const [notesContent, setNotesContent] = useState('');
@@ -38882,7 +38884,7 @@ const WritingArea = () => {
     if (isReadOnly) return;
     const saveSucceeded = await syncEssayToNotion();
     if (saveSucceeded) {
-      alert('Saved successfully. Before submitting, you can go to Writing Analysis mode to check the quality of your argumentative essay.');
+      setOpenSaveSuccessDialog(true);
     }
   };
 
@@ -38924,6 +38926,11 @@ const WritingArea = () => {
 
     sessionStorage.setItem('chatbotEntryMode', chatbotEntryMode);
     navigate('/Chatbotlogin', { state: { chatbotEntryMode } });
+  };
+
+  const handleGoToWritingAnalysisFromSaveDialog = async () => {
+    setOpenSaveSuccessDialog(false);
+    await handleGoToChatbotMode('writing_analysis');
   };
 
   return (
@@ -39104,6 +39111,80 @@ const WritingArea = () => {
           </Button>
           <Button onClick={handleConfirmSubmit} color="primary" autoFocus disabled={isSaving}>
             Submit
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={openSaveSuccessDialog}
+        onClose={() => setOpenSaveSuccessDialog(false)}
+        sx={{
+          '& .MuiDialog-paper': {
+            width: { xs: '88vw', sm: '360px' },
+            maxWidth: '360px',
+            minHeight: { xs: '280px', sm: '300px' },
+            borderRadius: '20px',
+            p: 1.5,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+          },
+        }}
+      >
+        <DialogContent
+          sx={{
+            pt: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flex: 1,
+            gap: 1.5,
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+            <Box
+              component="img"
+              src={CheckIcon}
+              alt="check"
+              sx={{ width: '24px', height: '24px', objectFit: 'contain' }}
+            />
+            <Box sx={{ fontSize: '24px', fontWeight: 800, lineHeight: 1.2, color: 'text.primary' }}>
+              Saved successfully
+            </Box>
+          </Box>
+          <DialogContentText
+            sx={{ width: '100%', fontSize: '18px', lineHeight: 1.65, color: 'text.primary', textAlign: 'left' }}
+          >
+            Before submitting, you can go to{' '}
+            <Button
+              variant="text"
+              onClick={handleGoToWritingAnalysisFromSaveDialog}
+              sx={{
+                minWidth: 0,
+                p: 0,
+                m: 0,
+                verticalAlign: 'baseline',
+                textTransform: 'none',
+                color: '#1565c0',
+                textDecoration: 'underline',
+                fontSize: '18px',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              WRITING ANALYSIS
+            </Button>{' '}
+            to check the quality of your argumentative essay.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 1 }}>
+          <Button
+            onClick={() => setOpenSaveSuccessDialog(false)}
+            color="primary"
+            sx={{ textTransform: 'none', fontSize: '20px', fontWeight: 800 }}
+          >
+            Close
           </Button>
         </DialogActions>
       </Dialog>

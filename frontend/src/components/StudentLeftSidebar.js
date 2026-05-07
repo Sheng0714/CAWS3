@@ -216,6 +216,8 @@ const getScoringUnlocked = () => {
   return localStorage.getItem(scopedSubmitLockKey) === "true";
 };
 
+const isWritingAreaEntryTemporarilyDisabled = false;
+
 export default function StudentLeftSidebar() {
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
@@ -577,18 +579,23 @@ export default function StudentLeftSidebar() {
 
   const renderMenuButton = (menu) => {
     const isScoringMenu = menu.key === "scoring";
+    const isWritingAreaMenu = menu.key === "writing-area";
     const isScoringLocked = isScoringMenu && !isScoringUnlocked;
+    const isWritingAreaLocked = isWritingAreaMenu && isWritingAreaEntryTemporarilyDisabled;
+    const isMenuLocked = isScoringLocked || isWritingAreaLocked;
+    const lockedTooltip = isScoringLocked ? scoringLockedTooltip : undefined;
 
     return (
       <button
         key={menu.key}
         type="button"
         onClick={() => {
-          if (isScoringLocked) return;
+          if (isMenuLocked) return;
           menu.action(navigate);
         }}
-        title={isScoringLocked ? scoringLockedTooltip : undefined}
-        aria-disabled={isScoringLocked}
+        title={lockedTooltip}
+        aria-disabled={isMenuLocked}
+        disabled={isMenuLocked}
         style={{
           width: "100%",
           border: "none",
@@ -599,9 +606,9 @@ export default function StudentLeftSidebar() {
           alignItems: "center",
           gap: "8px",
           textAlign: "left",
-          color: isScoringLocked ? "#64748b" : "#1a1a1a",
-          cursor: isScoringLocked ? "not-allowed" : "pointer",
-          opacity: isScoringLocked ? 0.65 : 1,
+          color: isMenuLocked ? "#64748b" : "#1a1a1a",
+          cursor: isMenuLocked ? "not-allowed" : "pointer",
+          opacity: isMenuLocked ? 0.65 : 1,
           fontSize: "14px",
         }}
       >

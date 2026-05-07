@@ -42,6 +42,7 @@ import TeacherFunction from './components/TeacherFunction.js';
 import JoinStudents from './components/JoinStudents.js';
 import ClassManage from './components/ClassManage.js';
 import StudentWork from './components/StudentWork.js';
+import AssistantWidget from './components/AssistantWidget.js';
 
 
 export default function App() {
@@ -84,6 +85,7 @@ export default function App() {
               <Route path='/ClassManage' element={<RequireAuth loginPath='/'><ClassManage/></RequireAuth>}></Route>
               <Route path='/StudentWork' element={<RequireAuth loginPath='/'><StudentWork/></RequireAuth>}></Route>
           </Routes>
+          <AssistantWidget />
       </Router>
     </ModeProvider>
   );

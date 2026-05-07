@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from "react";
 import {
+  Box,
   Button,
   CircularProgress,
   Paper,
@@ -46,12 +47,27 @@ const StyledButton = styled(Button)({
   },
 });
 
-const notionApiBases = ["/notion-api", "http://140.115.126.27:4000", "http://localhost:4000"];
+const notionApiBases = ["/notion-api", "/api/notion", "http://140.115.126.27:4000", "http://localhost:4000"];
+const PROGRESS_STEPS = [
+  { key: "discussion", label: "KF Discussion" },
+  { key: "summary", label: "Summary" },
+  { key: "outline", label: "Writing Outline" },
+  { key: "finalWriting", label: "Final Writing" },
+];
 
 const normalizeText = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
 const isSubmittedStatusYes = (value) => {
   const normalized = normalizeText(value);
   return normalized === "是" || normalized === "yes" || normalized === "true" || normalized === "1" || normalized === "submitted" || normalized === "已繳交";
+};
+const hasMeaningfulText = (value) => {
+  if (typeof value !== "string") return false;
+  const normalized = value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return normalized.length > 0;
 };
 
 const formatSubmissionTime = (value) => {
@@ -66,8 +82,18 @@ const formatSubmissionTime = (value) => {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
 };
 
+const formatGradeOutOfEight = (value) => {
+  if (value === null || value === undefined) return "Not graded";
+  const raw = String(value).trim();
+  if (!raw || raw === "-") return "Not graded";
+  if (raw.includes("/")) return raw;
+  return `${raw}/8`;
+};
+
 const fetchNotionRowsByClass = async (className) => {
   let lastError = null;
+  const token = localStorage.getItem("jwtToken");
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
   for (const base of notionApiBases) {
     const normalizedBase = String(base || "").replace(/\/+$/, "");
@@ -78,6 +104,7 @@ const fetchNotionRowsByClass = async (className) => {
         `${normalizedBase}/api/get-students-by-class/${encodeURIComponent(className)}`,
         {
           timeout: 12000,
+          headers,
           withCredentials: false,
         }
       );
@@ -92,6 +119,116 @@ const fetchNotionRowsByClass = async (className) => {
   }
 
   throw lastError || new Error("Failed to fetch students from Notion");
+};
+
+const fetchEssayByScope = async ({ studentName, className, theme }) => {
+  if (!studentName || !className || !theme) return {};
+
+  let lastError = null;
+  const token = localStorage.getItem("jwtToken");
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+  for (const base of notionApiBases) {
+    const normalizedBase = String(base || "").replace(/\/+$/, "");
+    if (!normalizedBase) continue;
+
+    try {
+      const response = await axios.get(`${normalizedBase}/api/get-essay/${encodeURIComponent(studentName)}`, {
+        timeout: 12000,
+        headers,
+        params: { className, theme },
+        withCredentials: false,
+      });
+      if (response?.data?.success) return response?.data?.data || {};
+    } catch (error) {
+      if (error?.response?.status === 404) return {};
+      lastError = error;
+    }
+  }
+
+  if (lastError) {
+    console.warn(`Failed to fetch essay scope for ${studentName}:`, lastError?.message || lastError);
+  }
+  return {};
+};
+
+const getProgressData = ({ kfAnalysisContent = "", outlineContent = "", essayContent = "", submissionStatus = "" } = {}) => {
+  const completedByStep = [
+    true,
+    hasMeaningfulText(kfAnalysisContent),
+    hasMeaningfulText(outlineContent),
+    hasMeaningfulText(essayContent) || isSubmittedStatusYes(submissionStatus),
+  ];
+  const completedCount = completedByStep.filter(Boolean).length;
+  return {
+    completedByStep,
+    percent: completedCount * 25,
+  };
+};
+
+const ProgressBarCell = ({ completedByStep = [] }) => {
+  const doneColor = "#42b41a";
+  const todoColor = "#c9c9c9";
+
+  return (
+    <Box sx={{ minWidth: 420, maxWidth: 600, margin: "0 auto" }}>
+      <Box sx={{ display: "flex", alignItems: "center", minWidth: 0 }}>
+        {PROGRESS_STEPS.map((step, index) => {
+          const isDone = Boolean(completedByStep[index]);
+          const connectorDone = index > 0 && Boolean(completedByStep[index - 1] && completedByStep[index]);
+          return (
+            <React.Fragment key={step.key}>
+              {index > 0 ? (
+                <Box
+                  sx={{
+                    flex: 1,
+                    height: "5px",
+                    borderRadius: "999px",
+                    backgroundColor: connectorDone ? doneColor : "#e0e0e0",
+                  }}
+                />
+              ) : null}
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "50%",
+                  backgroundColor: isDone ? doneColor : "#fff",
+                  border: isDone ? `2px solid ${doneColor}` : `2px solid ${todoColor}`,
+                  color: isDone ? "#fff" : "#666",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                {isDone ? "✓" : index + 1}
+              </Box>
+            </React.Fragment>
+          );
+        })}
+      </Box>
+      <Box sx={{ display: "flex", marginTop: "10px", justifyContent: "space-between", gap: 0.5 }}>
+        {PROGRESS_STEPS.map((step) => (
+          <Typography
+            key={`${step.key}-label`}
+            sx={{
+              width: "25%",
+              textAlign: "center",
+              fontSize: "12px",
+              color: "#555",
+              lineHeight: 1.25,
+              wordBreak: "break-word",
+            }}
+          >
+            {step.label}
+          </Typography>
+        ))}
+      </Box>
+    </Box>
+  );
 };
 
 export default function Studentlist() {
@@ -120,30 +257,48 @@ export default function Studentlist() {
 
       try {
         const notionRows = await fetchNotionRowsByClass(selectedClassName);
-
         const shouldFilterByTopic = selectedTopicName && selectedTopicName !== "-";
         const filteredRowsByTopic = shouldFilterByTopic
           ? notionRows.filter((item) => normalizeText(item?.theme) === normalizeText(selectedTopicName))
           : notionRows;
-        const filteredRows = filteredRowsByTopic.filter((item) => isSubmittedStatusYes(item?.submissionStatus));
 
-        const mappedRows = filteredRows.map((item, index) => ({
-          rowId: `${item?.studentName || "unknown"}-${item?.submissionDate || index}`,
-          name: item?.studentName || "-",
-          theme: item?.theme || selectedTopicName || "-",
-          submissionTime: formatSubmissionTime(item?.submissionDate),
-          grade:
-            item?.totalScore ??
-            item?.TotalScore ??
-            item?.["總分"] ??
-            item?.grade ??
-            item?.Grade ??
-            item?.score ??
-            item?.Score ??
-            item?.grading ??
-            item?.Grading ??
-            "-",
-        }));
+        const mappedRows = await Promise.all(
+          filteredRowsByTopic.map(async (item, index) => {
+            const theme = item?.theme || selectedTopicName || "-";
+            const studentName = item?.studentName || "-";
+            const essayData = await fetchEssayByScope({
+              studentName,
+              className: selectedClassName,
+              theme,
+            });
+            const progress = getProgressData({
+              kfAnalysisContent: essayData?.kfAnalysisContent || "",
+              outlineContent: essayData?.outlineContent || "",
+              essayContent: essayData?.essayContent || "",
+              submissionStatus: item?.submissionStatus || "",
+            });
+
+            return {
+              rowId: `${item?.studentName || "unknown"}-${item?.submissionDate || index}`,
+              name: studentName,
+              theme,
+              submissionTime: formatSubmissionTime(item?.submissionDate),
+              progressPercent: progress.percent,
+              progressCompletedByStep: progress.completedByStep,
+              gradeRaw:
+                item?.totalScore ??
+                item?.TotalScore ??
+                item?.["總分"] ??
+                item?.grade ??
+                item?.Grade ??
+                item?.score ??
+                item?.Score ??
+                item?.grading ??
+                item?.Grading ??
+                "",
+            };
+          })
+        );
 
         setRows(mappedRows);
       } catch (error) {
@@ -165,15 +320,26 @@ export default function Studentlist() {
       <Navbar />
 
       <div style={{ padding: "20px" }}>
-        <Typography variant="h5" style={{ marginBottom: "20px", fontWeight: 700 }}>
-          Class: {selectedClassName} | Topic: {selectedTopicName}
-        </Typography>
+        <div style={{ margin: "0 auto 20px", maxWidth: "92%", display: "flex", justifyContent: "space-between", gap: "12px" }}>
+          <div>
+            <Typography variant="h5" style={{ fontWeight: 700 }}>
+              Class: {selectedClassName}
+            </Typography>
+            <Typography variant="h5" style={{ fontWeight: 700, marginTop: "8px" }}>
+              Topic: {selectedTopicName}
+            </Typography>
+          </div>
+          <Typography variant="h6" style={{ fontWeight: 700, whiteSpace: "nowrap", alignSelf: "flex-start", marginTop: "40px" }}>
+            Total: {tableRows.length}
+          </Typography>
+        </div>
 
         <StyledTableContainer component={Paper}>
           <Table>
             <TableHead>
               <TableRow>
                 <StyledTableHeadCell>Name</StyledTableHeadCell>
+                <StyledTableHeadCell>Progress</StyledTableHeadCell>
                 <StyledTableHeadCell>Submission Time</StyledTableHeadCell>
                 <StyledTableHeadCell>Grading</StyledTableHeadCell>
                 <StyledTableHeadCell>Message</StyledTableHeadCell>
@@ -184,7 +350,7 @@ export default function Studentlist() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <StyledTableCell colSpan={5}>
+                  <StyledTableCell colSpan={6}>
                     <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px" }}>
                       <CircularProgress size={20} />
                       <span>Loading...</span>
@@ -195,12 +361,15 @@ export default function Studentlist() {
                 tableRows.map((student) => (
                   <TableRow key={student.rowId}>
                     <StyledTableCell>{student.name}</StyledTableCell>
+                    <StyledTableCell>
+                      <ProgressBarCell completedByStep={student.progressCompletedByStep} />
+                    </StyledTableCell>
                     <StyledTableCell>{student.submissionTime}</StyledTableCell>
                     <StyledTableCell>
                       <img
                         src={gradingIcon}
                         alt="grading"
-                        style={{ width: "28px", height: "28px", cursor: "pointer" }}
+                        style={{ width: "40px", height: "40px", cursor: "pointer" }}
                         onClick={() =>
                           navigate("/CorrectEssays", {
                             state: {
@@ -228,12 +397,22 @@ export default function Studentlist() {
                         }
                       />
                     </StyledTableCell>
-                    <StyledTableCell>{student.grade}</StyledTableCell>
+                    <StyledTableCell>
+                      {(() => {
+                        const gradeText = formatGradeOutOfEight(student.gradeRaw);
+                        const isNotGraded = gradeText === "Not graded";
+                        return (
+                          <span style={{ color: isNotGraded ? "#d32f2f" : "inherit", fontWeight: isNotGraded ? 700 : 400 }}>
+                            {gradeText}
+                          </span>
+                        );
+                      })()}
+                    </StyledTableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <StyledTableCell colSpan={5}>{loadError || "No records found for this class/topic."}</StyledTableCell>
+                  <StyledTableCell colSpan={6}>{loadError || "No records found for this class/topic."}</StyledTableCell>
                 </TableRow>
               )}
             </TableBody>

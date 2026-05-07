@@ -10,14 +10,22 @@ import owlWavingGif from "../assets/揮手.gif";
 import config from "../config.json";
 import url from "../url.json";
 
+const notionApiBases = [
+  process.env.REACT_APP_NOTION_API_BASE_URL,
+  "/notion-api",
+  "/api/notion",
+  "http://localhost:4000",
+  "http://140.115.126.27:4000",
+].filter(Boolean);
+
 const containerStyle = {
   maxWidth: "1200px",
   margin: "0 auto",
   padding: "0 20px 30px",
 };
 
-const IN_PROGRESS_COLOR = "rgb(209, 231, 251)";
-const COMPLETED_COLOR = "rgb(223, 237, 215)";
+const IN_PROGRESS_COLOR = "rgb(237, 237, 237)";
+const COMPLETED_COLOR = "rgb(163, 163, 163)";
 
 const buildAuthConfig = () => {
   const jwtToken = localStorage.getItem("jwtToken");
@@ -54,6 +62,40 @@ const isCompletedByEndDate = (endDate) => {
     return false;
   }
   return parsedEndDate < new Date();
+};
+
+const incrementNotionLoginCount = async ({ studentName, className, theme }) => {
+  const normalizedStudentName = String(studentName || "").trim();
+  const normalizedClassName = String(className || "").trim();
+  const normalizedTheme = String(theme || "").trim();
+  if (!normalizedStudentName || !normalizedClassName || !normalizedTheme) return;
+
+  let lastError = null;
+  for (const base of notionApiBases) {
+    const normalizedBase = String(base || "").replace(/\/+$/, "");
+    if (!normalizedBase) continue;
+
+    try {
+      await axios.post(
+        `${normalizedBase}/api/increment-login-count`,
+        {
+          studentName: normalizedStudentName,
+          className: normalizedClassName,
+          theme: normalizedTheme,
+        },
+        {
+          timeout: 12000,
+        }
+      );
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
 };
 
 export default function StudentWork() {
@@ -124,6 +166,12 @@ export default function StudentWork() {
   };
 
   const handleCardClick = (entry) => {
+    const currentStudentName =
+      localStorage.getItem("name") ||
+      localStorage.getItem("username") ||
+      localStorage.getItem("userName") ||
+      "";
+
     localStorage.setItem("selectedClassName", entry.className || "");
     localStorage.setItem("selectedTopicName", entry.topicName || "");
     if (entry.activityId) {
@@ -134,6 +182,14 @@ export default function StudentWork() {
     }
     localStorage.setItem("activityTitle", entry.className || "");
     localStorage.setItem("groupName", entry.topicName || "");
+
+    void incrementNotionLoginCount({
+      studentName: currentStudentName,
+      className: entry.className || "",
+      theme: entry.topicName || "",
+    }).catch((error) => {
+      console.error("Failed to increment Notion login count:", error);
+    });
 
     navigate("/Studentlist", {
       state: {

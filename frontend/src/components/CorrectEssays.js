@@ -13,6 +13,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../components/Navbar_Student";
 import questionIcon from "../assets/question.png";
+import "./CorrectEssays.css";
 
 const apiAxios = axios.create({
   baseURL: "http://140.115.126.27:4000",
@@ -36,6 +37,10 @@ const notionApiBases = [
   "http://140.115.126.27:4000",
   "http://localhost:4000",
 ].filter((base) => typeof base === "string" && base.trim() !== "");
+
+const RAGFLOW_API_SERVER = String(process.env.REACT_APP_RAGFLOW_API_SERVER || "https://wu-ragflow.zeabur.app").replace(/\/+$/, "");
+const RAGFLOW_API_KEY = String(process.env.REACT_APP_RAGFLOW_API_KEY || "ragflow-E5MjJlMmFlMWMxMTExZjFiZjJkYTYxNz").trim();
+const RAGFLOW_AI_GRADING_AGENT_ID = "63c9cda0496e11f180c3a61716fb138a";
 
 const normalizeScopeValue = (value) => String(value ?? "").replace(/\u3000/g, " ").trim().toLowerCase();
 
@@ -128,79 +133,53 @@ const updateNoteToNotion = async (payload) => {
   throw lastError || new Error("Failed to update note to Notion");
 };
 
-const containerStyle = {
-  width: "min(1160px, 100%)",
-  margin: "0 auto",
-  padding: "0 10px 16px",
-  boxSizing: "border-box",
-  fontSize: "20px",
-};
-
-const sectionBorder = "1px solid #000000";
-
 const selectStyle = {
-  width: "96px",
-  height: "40px",
+  width: "300px",
+  height: "42px",
   background: "#ffffff",
-  borderRadius: "0",
-  fontSize: "20px",
+  borderRadius: "8px",
+  fontSize: "15px",
   "& .MuiSelect-select": {
-    padding: "8px 10px",
+    padding: "9px 12px",
   },
   "& .MuiOutlinedInput-notchedOutline": {
-    borderColor: "#000000",
-  },
-};
-
-const commentFieldSx = {
-  maxWidth: "520px",
-  "& .MuiOutlinedInput-root": {
-    borderRadius: 0,
-    backgroundColor: "#ffffff",
-    fontSize: "20px",
-    height: "40px",
-    "& input": {
-      padding: "8px 10px",
-    },
-    "& .MuiOutlinedInput-notchedOutline": {
-      borderColor: "#000000",
-    },
+    borderColor: "#d4dbe4",
   },
 };
 
 const scoreFieldSx = {
-  width: "84px",
+  width: "88px",
   "& .MuiOutlinedInput-root": {
-    borderRadius: 0,
+    borderRadius: "8px",
     backgroundColor: "#ffffff",
-    height: "40px",
-    fontSize: "20px",
+    height: "42px",
+    fontSize: "17px",
     "& input": {
       textAlign: "center",
-      padding: "8px 6px",
+      padding: "9px 6px",
       fontWeight: 600,
     },
     "& .MuiOutlinedInput-notchedOutline": {
-      borderColor: "#000000",
+      borderColor: "#d4dbe4",
     },
   },
 };
 
 const questionIconStyle = {
-  width: "18px",
-  height: "18px",
+  width: "16px",
+  height: "16px",
   cursor: "help",
   display: "block",
 };
 
 const scoreHelpTitleSx = {
-  fontSize: "18px",
+  fontSize: "15px",
   fontWeight: 700,
   marginBottom: "6px",
 };
 
 const scoreHelpTextSx = {
-  fontSize: "16px",
+  fontSize: "13px",
   lineHeight: 1.45,
 };
 
@@ -226,15 +205,15 @@ const rebuttalsScoreHelp = [
 
 const roundButtonStyle = {
   textTransform: "none",
-  borderRadius: "18px",
-  borderColor: "#000000",
-  color: "#222222",
-  background: "#e6d5bf",
-  padding: "4px 16px",
-  minWidth: "112px",
-  fontSize: "20px",
+  borderRadius: "8px",
+  borderColor: "#a6b5c7",
+  color: "#26425d",
+  background: "#ffffff",
+  padding: "8px 16px",
+  minWidth: "108px",
+  fontSize: "15px",
   fontWeight: 600,
-  lineHeight: 1.1,
+  lineHeight: 1.2,
 };
 
 const decodeHtmlEntities = (text) => {
@@ -265,6 +244,315 @@ const normalizeEssayContentForDisplay = (value) => {
     .trim();
 };
 
+const extractJsonText = (rawText) => {
+  const text = String(rawText || "").trim();
+  if (!text) return "";
+
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) return fenced[1].trim();
+
+  const objectLike = text.match(/\{[\s\S]*\}/);
+  if (objectLike?.[0]) return objectLike[0];
+
+  return "";
+};
+
+const normalizeFeedbackBlock = (value) => String(value || "").replace(/\r\n/g, "\n").trim();
+
+const clampScore = (value, min, max) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "";
+  return String(Math.min(max, Math.max(min, Math.round(num))));
+};
+
+const parseScoreObject = (scoreInput) => {
+  const score = scoreInput && typeof scoreInput === "object" ? scoreInput : {};
+  return {
+    claimsScore: clampScore(score.claims ?? score.Claims ?? score.claim ?? score.Claim, 0, 2),
+    groundsScore: clampScore(score.grounds ?? score.Grounds ?? score.ground ?? score.Ground, 0, 4),
+    rebuttalsScore: clampScore(score.rebuttals ?? score.Rebuttals ?? score.rebuttal ?? score.Rebuttal, 0, 2),
+  };
+};
+
+const parseScoresFromText = (text) => {
+  const sourceText = String(text || "");
+  const claimsMatch = sourceText.match(/(?:Claims?|主張|立場)\s*[：:]\s*(-?\d+(?:\.\d+)?)/i);
+  const groundsMatch = sourceText.match(/(?:Grounds?|Ground|理由|論據)\s*[：:]\s*(-?\d+(?:\.\d+)?)/i);
+  const rebuttalMatch = sourceText.match(/(?:Rebuttals?|Rebuttal|反駁)\s*[：:]\s*(-?\d+(?:\.\d+)?)/i);
+  return {
+    claimsScore: clampScore(claimsMatch?.[1], 0, 2),
+    groundsScore: clampScore(groundsMatch?.[1], 0, 4),
+    rebuttalsScore: clampScore(rebuttalMatch?.[1], 0, 2),
+  };
+};
+
+const extractLabeledBlock = (text, label, nextLabels = []) => {
+  const sourceText = String(text || "");
+  const nextSectionPart =
+    Array.isArray(nextLabels) && nextLabels.length > 0
+      ? `(?=\\n\\s*(?:${nextLabels.join("|")})\\s*[：:]|$)`
+      : "$";
+  const pattern = new RegExp(`${label}\\s*[：:]\\s*([\\s\\S]*?)${nextSectionPart}`, "i");
+  const match = sourceText.match(pattern);
+  return normalizeFeedbackBlock(match?.[1] || "");
+};
+
+const extractByLabels = (text, labels = [], nextLabels = []) => {
+  for (const label of labels) {
+    const found = extractLabeledBlock(text, label, nextLabels);
+    if (found) return found;
+  }
+  return "";
+};
+
+const buildFeedbackTextFromParsed = ({ overall, keyPoints, details, suggestions }) => {
+  const sections = [];
+  if (overall) sections.push(`Overall Feedback:\n${overall}`);
+  if (keyPoints) sections.push(`Key Improvement Focus:\n${keyPoints}`);
+  if (details) sections.push(`Detailed Feedback:\n${details}`);
+  if (suggestions) sections.push(`Suggested Improvements:\n${suggestions}`);
+  return sections.join("\n\n").trim();
+};
+
+const formatDetailedFeedback = (detailsInput) => {
+  if (!detailsInput) return "";
+
+  let claims = "";
+  let grounds = "";
+  let rebuttals = "";
+
+  if (typeof detailsInput === "object" && detailsInput !== null) {
+    claims = normalizeFeedbackBlock(
+      detailsInput.claims ?? detailsInput.Claims ?? detailsInput["主張"] ?? detailsInput["立場"]
+    );
+    grounds = normalizeFeedbackBlock(
+      detailsInput.grounds ?? detailsInput.Grounds ?? detailsInput["理由"] ?? detailsInput["證據"]
+    );
+    rebuttals = normalizeFeedbackBlock(
+      detailsInput.rebuttals ?? detailsInput.Rebuttals ?? detailsInput["反駁"]
+    );
+  } else {
+    const text = String(detailsInput || "");
+    const sanitizeDetail = (value) => {
+      return normalizeFeedbackBlock(value)
+        .replace(/^\s*(?:\d+\.)?\s*(?:Claims?|Grounds?|Rebuttals?)\s*[:：]?\s*/i, "")
+        .replace(/\n\s*(?:\d+\.)?\s*(?:Claims?|Grounds?|Rebuttals?)\s*$/gi, "")
+        .replace(/\n\s*(?:\d+\.)?\s*(?:Claims?|Grounds?|Rebuttals?)\s*\n?/gi, "\n")
+        .trim();
+    };
+
+    const numberedPattern = /(?:^|\n)\s*1\.\s*Claims?\s*:?\s*([\s\S]*?)(?=\n\s*2\.\s*Grounds?\s*:?\s*|$)/i;
+    const groundsPattern = /(?:^|\n)\s*2\.\s*Grounds?\s*:?\s*([\s\S]*?)(?=\n\s*3\.\s*Rebuttals?\s*:?\s*|$)/i;
+    const rebuttalsPattern = /(?:^|\n)\s*3\.\s*Rebuttals?\s*:?\s*([\s\S]*?)$/i;
+
+    const numberedClaims = text.match(numberedPattern)?.[1];
+    const numberedGrounds = text.match(groundsPattern)?.[1];
+    const numberedRebuttals = text.match(rebuttalsPattern)?.[1];
+
+    const extractDetailItem = (sourceText, labelPattern) => {
+      const pattern = new RegExp(
+        `(?:^|\\n)\\s*(?:\\d+\\.)?\\s*(?:${labelPattern})\\s*[：:]\\s*([\\s\\S]*?)(?=\\n\\s*(?:\\d+\\.)?\\s*(?:Claims?|Grounds?|Ground|Rebuttals?|Rebuttal|主張|立場|理由|證據|論據|反駁)\\s*[：:]|$)`,
+        "i"
+      );
+      return sourceText.match(pattern)?.[1] || "";
+    };
+
+    claims = sanitizeDetail(
+      numberedClaims || extractDetailItem(text, "Claims?|主張|立場")
+    );
+    grounds = sanitizeDetail(
+      numberedGrounds || extractDetailItem(text, "Grounds?|Ground|理由|證據|論據")
+    );
+    rebuttals = sanitizeDetail(
+      numberedRebuttals || extractDetailItem(text, "Rebuttals?|Rebuttal|反駁")
+    );
+  }
+
+  return [
+    `1. Claims${claims ? `: ${claims}` : ""}`,
+    `2. Grounds${grounds ? `: ${grounds}` : ""}`,
+    `3. Rebuttals${rebuttals ? `: ${rebuttals}` : ""}`,
+  ].join("\n");
+};
+
+const parseAiReply = (rawReplyText) => {
+  const rawText = String(rawReplyText || "").trim();
+  if (!rawText) {
+    return {
+      feedbackText: "",
+      claimsScore: "",
+      groundsScore: "",
+      rebuttalsScore: "",
+      sections: { overall: "", keyPoints: "", details: "", suggestions: "" },
+    };
+  }
+
+  let feedbackText = "";
+  let claimsScore = "";
+  let groundsScore = "";
+  let rebuttalsScore = "";
+
+  const jsonText = extractJsonText(rawText);
+  if (jsonText) {
+    try {
+      const parsed = JSON.parse(jsonText);
+      const overall = normalizeFeedbackBlock(parsed?.整體回饋 ?? parsed?.overall_feedback ?? parsed?.overallFeedback);
+      const keyPointsRaw =
+        parsed?.主要改進重點 ??
+        parsed?.main_improvements ??
+        parsed?.key_improvements ??
+        parsed?.key_improvement_focus ??
+        parsed?.mainImprovementPoints;
+      const keyPoints = Array.isArray(keyPointsRaw)
+        ? keyPointsRaw
+            .map((item) => String(item || "").trim())
+            .filter(Boolean)
+            .map((item, index) => `${index + 1}. ${item}`)
+            .join("\n")
+        : normalizeFeedbackBlock(keyPointsRaw);
+      const detailsRaw = parsed?.細部回饋 ?? parsed?.detailed_feedback ?? parsed?.detailedFeedback;
+      const details = formatDetailedFeedback(detailsRaw);
+      const suggestionsRaw =
+        parsed?.修改建議 ??
+        parsed?.revision_suggestions ??
+        parsed?.revisionSuggestions ??
+        parsed?.suggested_improvements;
+      const suggestions = Array.isArray(suggestionsRaw)
+        ? suggestionsRaw
+            .map((item) => String(item || "").trim())
+            .filter(Boolean)
+            .map((item, index) => `${index + 1}. ${item}`)
+            .join("\n")
+        : normalizeFeedbackBlock(suggestionsRaw);
+      feedbackText = buildFeedbackTextFromParsed({ overall, keyPoints, details, suggestions });
+
+      const parsedScores = parseScoreObject(parsed?.評分 ?? parsed?.scores ?? parsed?.score);
+      claimsScore = parsedScores.claimsScore;
+      groundsScore = parsedScores.groundsScore;
+      rebuttalsScore = parsedScores.rebuttalsScore;
+    } catch {
+      // Fallback to text label parser below.
+    }
+  }
+
+  if (!feedbackText) {
+    const sectionLabels = [
+      "整體回饋",
+      "Overall Feedback",
+      "主要改進重點",
+      "Key Improvement Focus",
+      "細部回饋",
+      "Detailed Feedback",
+      "修改建議",
+      "Suggested Improvements",
+      "評分",
+      "Score",
+      "Scores",
+    ];
+    const overall = extractByLabels(rawText, ["整體回饋", "Overall Feedback"], sectionLabels.slice(2));
+    const keyPoints = extractByLabels(rawText, ["主要改進重點", "Key Improvement Focus"], sectionLabels.slice(4));
+    const details = formatDetailedFeedback(
+      extractByLabels(rawText, ["細部回饋", "Detailed Feedback"], sectionLabels.slice(6))
+    );
+    const suggestions = extractByLabels(rawText, ["修改建議", "Suggested Improvements"], sectionLabels.slice(8));
+    feedbackText = buildFeedbackTextFromParsed({ overall, keyPoints, details, suggestions });
+  }
+
+  if (!claimsScore || !groundsScore || !rebuttalsScore) {
+    const scoreSection = extractLabeledBlock(rawText, "評分");
+    const parsedFromText = parseScoresFromText(scoreSection || rawText);
+    claimsScore = claimsScore || parsedFromText.claimsScore;
+    groundsScore = groundsScore || parsedFromText.groundsScore;
+    rebuttalsScore = rebuttalsScore || parsedFromText.rebuttalsScore;
+  }
+
+  return {
+    feedbackText: feedbackText || rawText,
+    claimsScore,
+    groundsScore,
+    rebuttalsScore,
+    sections: {
+      overall: extractByLabels(
+        feedbackText || rawText,
+        ["整體回饋", "Overall Feedback"],
+        ["主要改進重點", "Key Improvement Focus", "細部回饋", "Detailed Feedback", "修改建議", "Suggested Improvements", "評分", "Score", "Scores"]
+      ),
+      keyPoints: extractByLabels(
+        feedbackText || rawText,
+        ["主要改進重點", "Key Improvement Focus"],
+        ["細部回饋", "Detailed Feedback", "修改建議", "Suggested Improvements", "評分", "Score", "Scores"]
+      ),
+      details: formatDetailedFeedback(
+        extractByLabels(
+          feedbackText || rawText,
+          ["細部回饋", "Detailed Feedback"],
+          ["修改建議", "Suggested Improvements", "評分", "Score", "Scores"]
+        )
+      ),
+      suggestions: extractByLabels(
+        feedbackText || rawText,
+        ["修改建議", "Suggested Improvements"],
+        ["評分", "Score", "Scores"]
+      ),
+    },
+  };
+};
+
+const buildAiGradingPrompt = ({ className, topicName, studentName, essayContent }) => {
+  return [
+    "You are an English argumentative essay evaluator.",
+    "Return ALL feedback in English only.",
+    `Class: ${className || "-"}`,
+    `Topic: ${topicName || "-"}`,
+    `Student: ${studentName || "-"}`,
+    "",
+    "Scoring rules:",
+    "- Claims: 0~2",
+    "- Ground: 0~4",
+    "- Rebuttal: 0~2",
+    "",
+    "Output STRICT JSON only. No markdown fence. No extra text.",
+    "Use this exact schema and key names:",
+    '{"overall_feedback":"...", "key_improvement_focus":["...", "..."], "detailed_feedback":{"Claims":"...", "Grounds":"...", "Rebuttals":"..."}, "suggested_improvements":["...", "..."], "scores":{"Claims":0, "Ground":0, "Rebuttal":0}}',
+    "Do not repeat items. Each detailed_feedback field must appear exactly once.",
+    "",
+    "Essay:",
+    essayContent,
+  ].join("\n");
+};
+
+const buildEnglishFeedbackFromSections = (sections) => {
+  const overall = normalizeFeedbackBlock(sections?.overall);
+  const keyPoints = normalizeFeedbackBlock(sections?.keyPoints);
+  const details = normalizeFeedbackBlock(sections?.details);
+  const suggestions = normalizeFeedbackBlock(sections?.suggestions);
+
+  const lines = [];
+  if (overall) lines.push(`Overall Feedback:\n${overall}`);
+  if (keyPoints) lines.push(`Key Improvement Focus:\n${keyPoints}`);
+  if (details) lines.push(`Detailed Feedback:\n${details}`);
+  if (suggestions) lines.push(`Suggested Improvements:\n${suggestions}`);
+  return lines.join("\n\n").trim();
+};
+
+const extractDetailedCommentItems = (detailsText) => {
+  const text = String(detailsText || "");
+  const extractItem = (labelPattern) => {
+    const pattern = new RegExp(
+      `(?:^|\\n)\\s*(?:\\d+\\.)?\\s*(?:${labelPattern})\\s*(?:\\([^\\n)]*\\))?\\s*:?[ \\t]*([\\s\\S]*?)(?=\\n\\s*(?:\\d+\\.)?\\s*(?:Claims?|Grounds?|Rebuttals?)\\b|$)`,
+      "i"
+    );
+    const match = text.match(pattern);
+    return normalizeFeedbackBlock(match?.[1] || "");
+  };
+
+  return {
+    claimsComment: extractItem("Claims?"),
+    groundsComment: extractItem("Grounds?|Ground"),
+    rebuttalsComment: extractItem("Rebuttals?|Rebuttal"),
+  };
+};
+
 export default function CorrectEssays() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -282,18 +570,17 @@ export default function CorrectEssays() {
   });
   const [humanComment, setHumanComment] = useState("");
   const [aiComment, setAiComment] = useState("");
+  const [aiFeedbackSections, setAiFeedbackSections] = useState(null);
 
   const [claimsScore, setClaimsScore] = useState("");
   const [groundsScore, setGroundsScore] = useState("");
   const [rebuttalsScore, setRebuttalsScore] = useState("");
 
-  const [claimsComment, setClaimsComment] = useState("");
-  const [groundsComment, setGroundsComment] = useState("");
-  const [rebuttalsComment, setRebuttalsComment] = useState("");
-
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
+  const [gradingView, setGradingView] = useState("teacher");
 
   const totalScore = useMemo(() => {
     const c = Number.isNaN(Number(claimsScore)) ? 0 : Number(claimsScore || 0);
@@ -307,15 +594,29 @@ export default function CorrectEssays() {
     setSnackbar({ open: true, message, severity });
   };
 
+  const activeOverallComment = gradingView === "teacher" ? humanComment : aiComment;
+  const renderedAiSections = useMemo(() => {
+    if (aiFeedbackSections) return aiFeedbackSections;
+    if (!aiComment) return null;
+    return parseAiReply(aiComment).sections;
+  }, [aiFeedbackSections, aiComment]);
+
+  const handleOverallCommentChange = (value) => {
+    if (gradingView === "teacher") {
+      setHumanComment(value);
+      return;
+    }
+    setAiComment(value);
+    setAiFeedbackSections(null);
+  };
+
   const resetGradingFields = () => {
     setHumanComment("");
     setAiComment("");
+    setAiFeedbackSections(null);
     setClaimsScore("");
     setGroundsScore("");
     setRebuttalsScore("");
-    setClaimsComment("");
-    setGroundsComment("");
-    setRebuttalsComment("");
   };
 
   useEffect(() => {
@@ -406,14 +707,13 @@ export default function CorrectEssays() {
             const parsed = JSON.parse(rawNote);
             setHumanComment(parsed.humanComment || "");
             setAiComment(parsed.aiComment || "");
+            setAiFeedbackSections(null);
             setClaimsScore(parsed.claimsScore ?? "");
             setGroundsScore(parsed.groundsScore ?? "");
             setRebuttalsScore(parsed.rebuttalsScore ?? "");
-            setClaimsComment(parsed.claimsComment || "");
-            setGroundsComment(parsed.groundsComment || "");
-            setRebuttalsComment(parsed.rebuttalsComment || "");
           } catch {
             setAiComment(rawNote);
+            setAiFeedbackSections(null);
           }
         }
       } catch (error) {
@@ -427,20 +727,110 @@ export default function CorrectEssays() {
     fetchEssay();
   }, [studentName, className, topicName]);
 
-  const handleGenerateAiComment = () => {
+  const handleGenerateAiComment = async () => {
     if (!displayEssayContent.trim()) {
       showSnackbar("No essay content to grade.", "warning");
       return;
     }
 
-    const nextComment = [
-      "AI suggestion:",
-      `1. Claims score ${claimsScore || 0}, grounds score ${groundsScore || 0}, rebuttals score ${rebuttalsScore || 0}.`,
-      "2. Strengthen evidence by adding concrete data and sources.",
-      "3. Add rebuttal details for opposing viewpoints.",
-    ].join("\n");
+    if (!RAGFLOW_API_KEY) {
+      showSnackbar("RAGFLOW API key is missing.", "error");
+      return;
+    }
 
-    setAiComment(nextComment);
+    setIsGeneratingAi(true);
+    try {
+      const userIdScope = [
+        String(localStorage.getItem("userId") || "").trim() || "teacher",
+        String(className || "").trim(),
+        String(topicName || "").trim(),
+        String(studentName || "").trim(),
+      ]
+        .filter(Boolean)
+        .join("_");
+
+      const createSessionResponse = await fetch(
+        `${RAGFLOW_API_SERVER}/api/v1/agents/${RAGFLOW_AI_GRADING_AGENT_ID}/sessions?user_id=${encodeURIComponent(userIdScope)}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${RAGFLOW_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: `CorrectEssays-${className}-${topicName}-${studentName}`,
+          }),
+        }
+      );
+      const createSessionPayload = await createSessionResponse.json();
+      if (!createSessionResponse.ok || createSessionPayload?.code !== 0) {
+        throw new Error(createSessionPayload?.message || `Create RAGFLOW session failed: HTTP ${createSessionResponse.status}`);
+      }
+
+      const sessionId =
+        createSessionPayload?.data?.id ||
+        createSessionPayload?.data?.session_id ||
+        createSessionPayload?.id ||
+        createSessionPayload?.session_id;
+      if (!sessionId) {
+        throw new Error("RAGFLOW session id missing in response.");
+      }
+
+      const prompt = buildAiGradingPrompt({
+        className,
+        topicName,
+        studentName: matchedScope.studentName || studentName,
+        essayContent: displayEssayContent,
+      });
+
+      const completionResponse = await fetch(
+        `${RAGFLOW_API_SERVER}/api/v1/agents/${RAGFLOW_AI_GRADING_AGENT_ID}/completions`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${RAGFLOW_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            question: prompt,
+            session_id: sessionId,
+            stream: false,
+          }),
+        }
+      );
+      const completionPayload = await completionResponse.json();
+      if (!completionResponse.ok || completionPayload?.code !== 0) {
+        throw new Error(completionPayload?.message || `RAGFLOW completion failed: HTTP ${completionResponse.status}`);
+      }
+
+      const rawReply =
+        completionPayload?.data?.data?.content ||
+        completionPayload?.data?.answer ||
+        completionPayload?.answer ||
+        "";
+
+      const parsedReply = parseAiReply(rawReply);
+      setAiComment(parsedReply.feedbackText || rawReply);
+      setAiFeedbackSections(parsedReply.sections || null);
+      setGradingView("ai");
+
+      if (parsedReply.claimsScore !== "") {
+        setClaimsScore(parsedReply.claimsScore);
+      }
+      if (parsedReply.groundsScore !== "") {
+        setGroundsScore(parsedReply.groundsScore);
+      }
+      if (parsedReply.rebuttalsScore !== "") {
+        setRebuttalsScore(parsedReply.rebuttalsScore);
+      }
+
+      showSnackbar("AI feedback generated.", "success");
+    } catch (error) {
+      console.error("Generate AI feedback failed:", error);
+      showSnackbar(`AI generation failed: ${error?.message || "unknown error"}`, "error");
+    } finally {
+      setIsGeneratingAi(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -454,15 +844,26 @@ export default function CorrectEssays() {
       const submitStudentName = matchedScope.studentName || studentName;
       const submitClassName = matchedScope.className || className;
       const submitTheme = matchedScope.theme || topicName;
+      const aiSectionsForSubmit = renderedAiSections || parseAiReply(aiComment).sections || null;
+      const feedbackTextForTeacherField =
+        gradingView === "ai"
+          ? buildEnglishFeedbackFromSections(aiSectionsForSubmit) || String(aiComment || "").trim()
+          : String(humanComment || "").trim();
+      const detailsForSplit =
+        gradingView === "ai"
+          ? normalizeFeedbackBlock(aiSectionsForSubmit?.details)
+          : normalizeFeedbackBlock(parseAiReply(humanComment).sections?.details);
+      const detailComments = extractDetailedCommentItems(detailsForSplit);
 
       const notePayload = JSON.stringify({
-        humanComment,
+        humanComment: feedbackTextForTeacherField,
+        aiComment,
         claimsScore,
         groundsScore,
         rebuttalsScore,
-        claimsComment,
-        groundsComment,
-        rebuttalsComment,
+        claimsComment: detailComments.claimsComment,
+        groundsComment: detailComments.groundsComment,
+        rebuttalsComment: detailComments.rebuttalsComment,
         totalScore,
       });
 
@@ -473,13 +874,14 @@ export default function CorrectEssays() {
         noteContent: notePayload,
         essayContent,
         totalScore,
-        humanComment,
+        humanComment: feedbackTextForTeacherField,
+        aiComment,
         claimsScore,
         groundsScore,
         rebuttalsScore,
-        claimsComment,
-        groundsComment,
-        rebuttalsComment,
+        claimsComment: detailComments.claimsComment,
+        groundsComment: detailComments.groundsComment,
+        rebuttalsComment: detailComments.rebuttalsComment,
       });
 
       showSnackbar("Submitted successfully.", "success");
@@ -496,131 +898,114 @@ export default function CorrectEssays() {
     }
   };
 
-  const menuItemSx = { fontSize: "20px" };
+  const menuItemSx = { fontSize: "14px" };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: '"Times New Roman", serif', fontSize: "20px" }}>
+    <div className="correct-essays-page">
       <Navbar />
 
-      <div style={containerStyle}>
-        <div
-          style={{
-            border: sectionBorder,
-            background: "#efefef",
-            padding: "6px 12px",
-            fontSize: "20px",
-            lineHeight: 1.25,
-            marginTop: "8px",
-            fontWeight: 500,
-          }}
-        >
-          <div>{`Class:${className}`}</div>
-          <div>{`Topic:${topicName}`}</div>
-          <div>{`Student:${matchedScope.studentName || "-"}`}</div>
-        </div>
-
-        <div
-          style={{
-            border: sectionBorder,
-            background: "#ffffff",
-            minHeight: "188px",
-            padding: "8px 10px",
-            fontSize: "20px",
-            lineHeight: 1.55,
-            overflowY: "auto",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {isLoading ? (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "190px" }}>
-              <CircularProgress size={26} />
+      <div className="correct-essays-workspace">
+        <section className="ce-panel ce-left-panel">
+          <div className="ce-info-card">
+            <div className="ce-info-row">
+              <span className="ce-info-label">Class</span>
+              <span className="ce-info-value">{className}</span>
             </div>
-          ) : (
-            displayEssayContent || "No essay content found for this class/topic/student."
-          )}
-        </div>
-
-        <div
-          style={{
-            border: sectionBorder,
-            borderTop: "none",
-            display: "grid",
-            gridTemplateColumns: "1.15fr 0.85fr",
-            background: "#efefef",
-            minHeight: "122px",
-          }}
-        >
-          <div style={{ borderRight: sectionBorder }}>
-            <div style={{ borderBottom: sectionBorder, padding: "6px 10px", fontSize: "20px", fontWeight: 600 }}>
-              Human Grading
+            <div className="ce-info-row">
+              <span className="ce-info-label">Topic</span>
+              <span className="ce-info-value">{topicName}</span>
             </div>
-            <textarea
-              value={humanComment}
-              onChange={(event) => setHumanComment(event.target.value)}
-              placeholder="Please enter your comments......"
-              style={{
-                width: "100%",
-                minHeight: "78px",
-                border: "none",
-                padding: "9px 10px",
-                boxSizing: "border-box",
-                resize: "vertical",
-                background: "#efefef",
-                fontSize: "20px",
-                fontFamily: "inherit",
-              }}
-            />
+            <div className="ce-info-row">
+              <span className="ce-info-label">Student</span>
+              <span className="ce-info-value">{matchedScope.studentName || "-"}</span>
+            </div>
           </div>
 
-          <div>
-            <div
-              style={{
-                borderBottom: sectionBorder,
-                padding: "4px 8px",
-                display: "flex",
-                justifyContent: "flex-end",
-                alignItems: "center",
-              }}
-            >
-              <Button
-                variant="outlined"
-                onClick={handleGenerateAiComment}
-                style={{ ...roundButtonStyle, minWidth: "126px", fontSize: "20px", padding: "4px 14px" }}
-              >
-                AI Grading
-              </Button>
+          <div className="ce-essay-card">
+            <div className="ce-card-title">Argumentative Essay</div>
+            <div className="ce-essay-content">
+              {isLoading ? (
+                <div className="ce-loading-wrapper">
+                  <CircularProgress size={26} />
+                </div>
+              ) : (
+                displayEssayContent || "No essay content found for this class/topic/student."
+              )}
             </div>
-            <textarea
-              value={aiComment}
-              onChange={(event) => setAiComment(event.target.value)}
-              placeholder="Click the button to generate comments"
-              style={{
-                width: "100%",
-                minHeight: "78px",
-                border: "none",
-                padding: "9px 10px",
-                boxSizing: "border-box",
-                resize: "vertical",
-                background: "#efefef",
-                fontSize: "20px",
-                fontFamily: "inherit",
-              }}
-            />
           </div>
-        </div>
+        </section>
 
-        <div
-          style={{
-            border: sectionBorder,
-            borderTop: "none",
-            background: "#efefef",
-            padding: "8px 10px 10px",
-          }}
-        >
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", columnGap: "14px", alignItems: "start" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "120px 110px 24px minmax(240px, 520px)", gap: "8px", alignItems: "center" }}>
-                <div style={{ fontSize: "20px", fontWeight: 700, lineHeight: 1 }}>Claims :</div>
+        <section className="ce-panel ce-right-panel">
+          <div className="ce-section-card">
+            <div className="ce-toolbar">
+              <div className="ce-tab-group">
+                <button
+                  type="button"
+                  className={`ce-tab-button ${gradingView === "teacher" ? "active" : ""}`}
+                  onClick={() => setGradingView("teacher")}
+                >
+                  Teacher Grading
+                </button>
+                <button
+                  type="button"
+                  className={`ce-tab-button ${gradingView === "ai" ? "active" : ""}`}
+                  onClick={() => setGradingView("ai")}
+                >
+                  AI Grading
+                </button>
+              </div>
+              {gradingView === "ai" ? (
+                <Button
+                  variant="outlined"
+                  onClick={handleGenerateAiComment}
+                  disabled={isGeneratingAi}
+                  style={roundButtonStyle}
+                >
+                  {isGeneratingAi ? "Generating..." : "Generate AI"}
+                </Button>
+              ) : null}
+            </div>
+
+            <div className="ce-subtitle">Feedback</div>
+            {gradingView === "ai" ? (
+              <div className="ce-overall-feedback ce-overall-feedback-rich">
+                <div className="ce-rich-block">
+                  <strong className="ce-rich-title">
+                    <span>Overall Feedback:</span>
+                  </strong>
+                  <div>{renderedAiSections?.overall || "（尚未產生）"}</div>
+                </div>
+                <div className="ce-rich-block">
+                  <strong className="ce-rich-title">
+                    <span>Key Improvement Focus:</span>
+                  </strong>
+                  <div>{renderedAiSections?.keyPoints || "（尚未產生）"}</div>
+                </div>
+                <div className="ce-rich-block">
+                  <strong className="ce-rich-title">
+                    <span>Detailed Feedback:</span>
+                  </strong>
+                  <div>{renderedAiSections?.details || "（尚未產生）"}</div>
+                </div>
+                <div className="ce-rich-block">
+                  <strong className="ce-rich-title">
+                    <span>Suggested Improvements:</span>
+                  </strong>
+                  <div>{renderedAiSections?.suggestions || "（尚未產生）"}</div>
+                </div>
+              </div>
+            ) : (
+              <textarea
+                value={activeOverallComment}
+                onChange={(event) => handleOverallCommentChange(event.target.value)}
+                placeholder="Please enter teacher overall feedback..."
+                className="ce-overall-feedback"
+              />
+            )}
+            <div className="ce-subtitle ce-score-subtitle">Scores</div>
+            <div className="ce-score-list">
+              <div className="ce-score-row">
+                <div className="ce-score-label">Claims</div>
                 <Select
                   size="small"
                   value={claimsScore}
@@ -628,10 +1013,10 @@ export default function CorrectEssays() {
                   displayEmpty
                   sx={selectStyle}
                 >
-                  <MenuItem sx={menuItemSx} value="">Select</MenuItem>
-                  <MenuItem sx={menuItemSx} value={0}>0</MenuItem>
-                  <MenuItem sx={menuItemSx} value={1}>1</MenuItem>
-                  <MenuItem sx={menuItemSx} value={2}>2</MenuItem>
+                  <MenuItem sx={menuItemSx} value="">Please select a score!</MenuItem>
+                  <MenuItem sx={menuItemSx} value={0}>0,No clear position</MenuItem>
+                  <MenuItem sx={menuItemSx} value={1}>1,A position is present but unclear or vague</MenuItem>
+                  <MenuItem sx={menuItemSx} value={2}>2,Clear and specific position</MenuItem>
                 </Select>
                 <Tooltip
                   arrow
@@ -647,18 +1032,10 @@ export default function CorrectEssays() {
                 >
                   <img src={questionIcon} alt="Claims score help" style={questionIconStyle} />
                 </Tooltip>
-                <TextField
-                  size="small"
-                  placeholder="Please enter your comments......"
-                  value={claimsComment}
-                  onChange={(event) => setClaimsComment(event.target.value)}
-                  fullWidth
-                  sx={commentFieldSx}
-                />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "120px 110px 24px minmax(240px, 520px)", gap: "8px", alignItems: "center" }}>
-                <div style={{ fontSize: "20px", fontWeight: 700, lineHeight: 1 }}>Grounds:</div>
+              <div className="ce-score-row">
+                <div className="ce-score-label">Ground</div>
                 <Select
                   size="small"
                   value={groundsScore}
@@ -666,12 +1043,12 @@ export default function CorrectEssays() {
                   displayEmpty
                   sx={selectStyle}
                 >
-                  <MenuItem sx={menuItemSx} value="">Select</MenuItem>
-                  <MenuItem sx={menuItemSx} value={0}>0</MenuItem>
-                  <MenuItem sx={menuItemSx} value={1}>1</MenuItem>
-                  <MenuItem sx={menuItemSx} value={2}>2</MenuItem>
-                  <MenuItem sx={menuItemSx} value={3}>3</MenuItem>
-                  <MenuItem sx={menuItemSx} value={4}>4</MenuItem>
+                  <MenuItem sx={menuItemSx} value="">Please select a score!</MenuItem>
+                  <MenuItem sx={menuItemSx} value={0}>0,No reasons or evidence</MenuItem>
+                  <MenuItem sx={menuItemSx} value={1}>1,Simple reason with little or no explanation</MenuItem>
+                  <MenuItem sx={menuItemSx} value={2}>2,Some reasons, but not fully developed or unclear</MenuItem>
+                  <MenuItem sx={menuItemSx} value={3}>3,Clear reasons with examples or explanation</MenuItem>
+                  <MenuItem sx={menuItemSx} value={4}>4,Strong, well-developed reasons with specific and convincing evidence</MenuItem>
                 </Select>
                 <Tooltip
                   arrow
@@ -687,18 +1064,10 @@ export default function CorrectEssays() {
                 >
                   <img src={questionIcon} alt="Grounds score help" style={questionIconStyle} />
                 </Tooltip>
-                <TextField
-                  size="small"
-                  placeholder="Please enter your comments......"
-                  value={groundsComment}
-                  onChange={(event) => setGroundsComment(event.target.value)}
-                  fullWidth
-                  sx={commentFieldSx}
-                />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "120px 110px 24px minmax(240px, 520px)", gap: "8px", alignItems: "center" }}>
-                <div style={{ fontSize: "20px", fontWeight: 700, lineHeight: 1 }}>Rebuttals :</div>
+              <div className="ce-score-row">
+                <div className="ce-score-label">Rebuttal</div>
                 <Select
                   size="small"
                   value={rebuttalsScore}
@@ -706,10 +1075,10 @@ export default function CorrectEssays() {
                   displayEmpty
                   sx={selectStyle}
                 >
-                  <MenuItem sx={menuItemSx} value="">Select</MenuItem>
-                  <MenuItem sx={menuItemSx} value={0}>0</MenuItem>
-                  <MenuItem sx={menuItemSx} value={1}>1</MenuItem>
-                  <MenuItem sx={menuItemSx} value={2}>2</MenuItem>
+                  <MenuItem sx={menuItemSx} value="">Please select a score!</MenuItem>
+                  <MenuItem sx={menuItemSx} value={0}>0,No counterargument mentioned</MenuItem>
+                  <MenuItem sx={menuItemSx} value={1}>1,Counterargument is mentioned but weakly addressed</MenuItem>
+                  <MenuItem sx={menuItemSx} value={2}>2,Clear counterargument with an effective rebuttal</MenuItem>
                 </Select>
                 <Tooltip
                   arrow
@@ -725,19 +1094,11 @@ export default function CorrectEssays() {
                 >
                   <img src={questionIcon} alt="Rebuttals score help" style={questionIconStyle} />
                 </Tooltip>
-                <TextField
-                  size="small"
-                  placeholder="Please enter your comments......"
-                  value={rebuttalsComment}
-                  onChange={(event) => setRebuttalsComment(event.target.value)}
-                  fullWidth
-                  sx={commentFieldSx}
-                />
               </div>
             </div>
 
-            <div style={{ minWidth: "160px", display: "flex", justifyContent: "center", alignItems: "center", gap: "10px", paddingTop: "2px" }}>
-              <div style={{ fontSize: "20px", fontWeight: 700 }}>Score:</div>
+            <div className="ce-total-row">
+              <span className="ce-total-label">Total Score</span>
               <TextField
                 size="small"
                 value={totalScore}
@@ -747,13 +1108,13 @@ export default function CorrectEssays() {
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "18px", marginTop: "10px" }}>
+          <div className="ce-footer-actions">
             <Button
               variant="outlined"
               onClick={() => navigate(-1)}
               style={roundButtonStyle}
             >
-              Back ↺
+              Back
             </Button>
 
             <Button
@@ -765,7 +1126,7 @@ export default function CorrectEssays() {
               {isSubmitting ? "Submitting..." : "Submit"}
             </Button>
           </div>
-        </div>
+        </section>
       </div>
 
       <Snackbar

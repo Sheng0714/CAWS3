@@ -1692,6 +1692,14 @@ const GRADING_FIELD_CONFIGS = [
     },
 ];
 
+const LOGIN_COUNT_FIELD_ALIASES = [
+    '登入次數',
+    '登录次数',
+    'Login Count',
+    'LoginCount',
+    'loginCount',
+];
+
 const SUBMITTED_STATUS_ALIASES = ['是', 'yes', 'true', '1', 'submitted', '已繳交'];
 const UNSUBMITTED_STATUS_ALIASES = ['否', 'no', 'false', '0', 'unsubmitted', '未繳交'];
 
@@ -1885,6 +1893,123 @@ const pickFirstNonEmptyValue = (...values) => {
     }
     return '';
 };
+
+const LOGIN_DATE_COUNTS_FIELD_ALIASES = [
+    '登入日期統計',
+    '登入日期次數',
+    '登入紀錄',
+    'Login Date Counts',
+    'LoginDateCounts',
+    'loginDateCounts',
+    'Login History',
+    'LoginHistory',
+];
+
+const toNonNegativeInteger = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return 0;
+    }
+    return Math.max(0, Math.floor(parsed));
+};
+
+const formatDateKeyByTimeZone = (dateLike = new Date(), timeZone = 'Asia/Taipei') => {
+    const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).formatToParts(date);
+    const year = parts.find((part) => part.type === 'year')?.value || '';
+    const month = parts.find((part) => part.type === 'month')?.value || '';
+    const day = parts.find((part) => part.type === 'day')?.value || '';
+    return year && month && day ? `${year}-${month}-${day}` : '';
+};
+
+const normalizeDateKey = (value) => {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        return raw;
+    }
+    return formatDateKeyByTimeZone(raw, 'Asia/Taipei');
+};
+
+const parseLoginDateCounts = (rawValue) => {
+    const normalizedRaw = String(rawValue ?? '').trim();
+    if (!normalizedRaw) {
+        return {};
+    }
+
+    let parsed = null;
+    try {
+        parsed = JSON.parse(normalizedRaw);
+    } catch (error) {
+        parsed = null;
+    }
+
+    const aggregated = {};
+    const append = (dateKey, count) => {
+        const normalizedDateKey = normalizeDateKey(dateKey);
+        if (!normalizedDateKey) return;
+        aggregated[normalizedDateKey] = (aggregated[normalizedDateKey] || 0) + toNonNegativeInteger(count);
+    };
+
+    if (Array.isArray(parsed)) {
+        parsed.forEach((item) => append(item, 1));
+        return aggregated;
+    }
+
+    if (parsed && typeof parsed === 'object') {
+        Object.entries(parsed).forEach(([dateKey, count]) => append(dateKey, count));
+        return aggregated;
+    }
+
+    normalizedRaw
+        .split(/[\r\n,;]+/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .forEach((item) => append(item, 1));
+    return aggregated;
+};
+
+const getLoginCountFromProperties = (properties = {}) => {
+    const rawValue = getDisplayValueByAliases(properties, LOGIN_COUNT_FIELD_ALIASES);
+    return toNonNegativeInteger(rawValue);
+};
+
+const getLoginDateCountsFromProperties = (properties = {}) => {
+    const rawValue = getDisplayValueByAliases(properties, LOGIN_DATE_COUNTS_FIELD_ALIASES);
+    return parseLoginDateCounts(rawValue);
+};
+
+async function resolveLoginCountPropertyOrThrow() {
+    const databaseProperties = await getDatabasePropertiesWithCache();
+    const lookup = buildPropertyLookup(databaseProperties);
+    const resolved = resolvePropertyConfig(lookup, LOGIN_COUNT_FIELD_ALIASES, [
+        'number',
+        'rich_text',
+        'title',
+    ]);
+
+    if (!resolved) {
+        throw new Error(
+            `Notion 資料庫找不到登入次數欄位，請新增欄位名稱如：${LOGIN_COUNT_FIELD_ALIASES.join(', ')}`
+        );
+    }
+    return resolved;
+}
+
+async function resolveLoginDateCountsPropertyOptional() {
+    const databaseProperties = await getDatabasePropertiesWithCache();
+    const lookup = buildPropertyLookup(databaseProperties);
+    return resolvePropertyConfig(lookup, LOGIN_DATE_COUNTS_FIELD_ALIASES, ['rich_text', 'title']);
+}
 
 async function buildGradingPropertiesPayloadFromRequest(requestBody = {}) {
     const providedConfigs = GRADING_FIELD_CONFIGS.filter(({ inputKey }) => hasOwn(requestBody, inputKey));
@@ -2397,8 +2522,110 @@ app.patch('/api/update-note', async (req, res) => {
 });
 
 // 根據班級名稱查詢 Notion 資料庫中的記錄
+app.post('/api/increment-login-count', async (req, res) => {
+    const normalizedStudentName = normalizeLookupValue(req.body?.studentName);
+    const normalizedClassName = normalizeLookupValue(req.body?.className);
+    const normalizedTheme = normalizeLookupValue(req.body?.theme);
+
+    if (!normalizedStudentName || !normalizedClassName || !normalizedTheme) {
+        return res.status(400).json({
+            success: false,
+            error: '缺少必要欄位：studentName、className、theme',
+        });
+    }
+
+    try {
+        const loginCountProperty = await resolveLoginCountPropertyOrThrow();
+        const loginDateCountsProperty = await resolveLoginDateCountsPropertyOptional();
+        const scopeResult = await findPageByScope({
+            studentName: normalizedStudentName,
+            className: normalizedClassName,
+            theme: normalizedTheme,
+        });
+        const currentCount = scopeResult.page
+            ? getLoginCountFromProperties(scopeResult.page.properties || {})
+            : 0;
+        const nextCount = currentCount + 1;
+        const nextCountPayload = toNotionPropertyValueByType(loginCountProperty.definition?.type, nextCount);
+
+        if (!nextCountPayload) {
+            throw new Error(`登入次數欄位型別不支援：${loginCountProperty.definition?.type || 'unknown'}`);
+        }
+
+        const todayDate = formatDateKeyByTimeZone(new Date(), 'Asia/Taipei');
+        const currentDateCounts = scopeResult.page
+            ? getLoginDateCountsFromProperties(scopeResult.page.properties || {})
+            : {};
+        const nextDateCounts = { ...currentDateCounts };
+        if (todayDate) {
+            nextDateCounts[todayDate] = toNonNegativeInteger(nextDateCounts[todayDate]) + 1;
+        }
+
+        const updateProperties = {
+            [loginCountProperty.name]: nextCountPayload,
+        };
+        if (loginDateCountsProperty) {
+            const loginDateCountsPayload = toNotionPropertyValueByType(
+                loginDateCountsProperty.definition?.type,
+                JSON.stringify(nextDateCounts)
+            );
+            if (!loginDateCountsPayload) {
+                throw new Error(`LoginDateCounts property type unsupported: ${loginDateCountsProperty.definition?.type || 'unknown'}`);
+            }
+            updateProperties[loginDateCountsProperty.name] = loginDateCountsPayload;
+        }
+
+        let responsePayload = null;
+        if (scopeResult.page) {
+            responsePayload = await notion.pages.update({
+                page_id: scopeResult.page.id,
+                properties: updateProperties,
+            });
+        } else {
+            responsePayload = await notion.pages.create({
+                parent: { database_id: NOTION_DATABASE_ID },
+                properties: {
+                    '摮貊?憪?': {
+                        title: [{ text: { content: normalizedStudentName } }],
+                    },
+                    '銝駁?': {
+                        rich_text: [{ text: { content: normalizedTheme } }],
+                    },
+                    '?剔?': {
+                        rich_text: [{ text: { content: normalizedClassName } }],
+                    },
+                    ...updateProperties,
+                },
+            });
+        }
+
+        return res.json({
+            success: true,
+            data: {
+                studentName: normalizedStudentName,
+                className: normalizedClassName,
+                theme: normalizedTheme,
+                loginCount: nextCount,
+                loginDateCounts: nextDateCounts,
+                loginDateCountsProperty: loginDateCountsProperty?.name || '',
+                matchedBy: scopeResult.matchedBy || 'created',
+                notionProperty: loginCountProperty.name,
+                pageId: responsePayload?.id || scopeResult.page?.id || '',
+            },
+        });
+    } catch (error) {
+        console.error('Notion increment-login-count 錯誤:', error);
+        return res.status(error?.status || 500).json({
+            success: false,
+            error: error?.message || '無法更新登入次數',
+        });
+    }
+});
+
 app.get('/api/get-students-by-class/:className', async (req, res) => {
     const { className } = req.params;
+    const requestedTheme = normalizeLookupValue(req.query?.theme);
+    const aggregateMode = String(req.query?.aggregate || '').trim().toLowerCase();
 
     if (!className) {
         return res.status(400).json({
@@ -2439,14 +2666,65 @@ app.get('/api/get-students-by-class/:className', async (req, res) => {
                 submissionDate: page.created_time || '尚未繳交',
                 submissionStatus,
                 totalScore: totalScore || '',
+                claimsScore: pickFirstNonEmptyValue(
+                    getDisplayValueByAliases(properties, ['Claims分數', 'Claims Score', 'Claims score', 'ClaimsScore']),
+                    parsedNote?.claimsScore
+                ) || '',
+                groundsScore: pickFirstNonEmptyValue(
+                    getDisplayValueByAliases(properties, ['Grounds分數', 'Grounds Score', 'Grounds score', 'GroundsScore']),
+                    parsedNote?.groundsScore
+                ) || '',
+                rebuttalsScore: pickFirstNonEmptyValue(
+                    getDisplayValueByAliases(properties, ['Rebuttals分數', 'Rebuttals Score', 'Rebuttals score', 'RebuttalsScore']),
+                    parsedNote?.rebuttalsScore
+                ) || '',
                 grade: totalScore || '-',
+                loginCount: getLoginCountFromProperties(properties),
+                loginDateCounts: getLoginDateCountsFromProperties(properties),
             };
         });
-        const submittedStudents = students.filter((student) => isSubmittedStatusYes(student.submissionStatus));
+        const filteredStudents = requestedTheme
+            ? students.filter((item) => normalizeLookupValue(item?.theme) === requestedTheme)
+            : students;
+
+        if (aggregateMode === 'student') {
+            const studentMap = new Map();
+            filteredStudents.forEach((item) => {
+                const key = normalizeLookupValue(item?.studentName).toLowerCase();
+                if (!key) return;
+                if (!studentMap.has(key)) {
+                    studentMap.set(key, {
+                        studentName: item.studentName,
+                        className,
+                        theme: requestedTheme || item.theme || '',
+                        loginCount: 0,
+                        loginDateCounts: {},
+                    });
+                }
+                const current = studentMap.get(key);
+                current.loginCount += toNonNegativeInteger(item.loginCount);
+                const itemDateCounts =
+                    item?.loginDateCounts && typeof item.loginDateCounts === 'object'
+                        ? item.loginDateCounts
+                        : {};
+                Object.entries(itemDateCounts).forEach(([dateKey, count]) => {
+                    const normalizedDateKey = normalizeDateKey(dateKey);
+                    if (!normalizedDateKey) return;
+                    current.loginDateCounts[normalizedDateKey] =
+                        toNonNegativeInteger(current.loginDateCounts[normalizedDateKey]) +
+                        toNonNegativeInteger(count);
+                });
+            });
+
+            return res.json({
+                success: true,
+                data: [...studentMap.values()],
+            });
+        }
 
         res.json({
             success: true,
-            data: submittedStudents,
+            data: filteredStudents,
         });
     } catch (error) {
         console.error('Notion API 錯誤詳情:', error);

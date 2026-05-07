@@ -225,10 +225,19 @@ import { findroomByInfo } from '../utils/findRoomMode';
 import hasNotificationIcon from '../assets/有通知.png';
 import noNotificationIcon from '../assets/沒通知.png';
 
+const notionApiBases = [
+    process.env.REACT_APP_NOTION_API_BASE_URL,
+    '/notion-api',
+    '/api/notion',
+    'http://localhost:4000',
+    'http://140.115.126.27:4000',
+].filter(Boolean);
+
 const Item = styled(Card, {
     shouldForwardProp: (prop) => prop !== 'status',
 })(({ theme, status }) => ({
-    backgroundColor: status === 'completed' ? '#DFEDD7' : '#D1E7FB',
+    // backgroundColor: status === 'completed' ? '#DFEDD7' : '#D1E7FB',
+    backgroundColor: status === 'completed' ? '#a3a3a3' : '#ededed',
     border: 'none',
     borderRadius: '12px',
     ...theme.typography.body2,
@@ -260,6 +269,57 @@ const _getActivityInfo_ = async () => await axios.get(url.backendHost + 'api/act
     return response;
 });
 
+const getCurrentStudentName = () => {
+    const candidates = [
+        localStorage.getItem('name'),
+        localStorage.getItem('username'),
+        localStorage.getItem('userName'),
+        sessionStorage.getItem('name'),
+        sessionStorage.getItem('username'),
+        sessionStorage.getItem('userName'),
+    ];
+
+    for (const candidate of candidates) {
+        const normalized = String(candidate || '').trim();
+        if (normalized) {
+            return normalized;
+        }
+    }
+    return '';
+};
+
+const incrementNotionLoginCount = async ({ studentName, className, theme }) => {
+    const normalizedStudentName = String(studentName || '').trim();
+    const normalizedClassName = String(className || '').trim();
+    const normalizedTheme = String(theme || '').trim();
+    if (!normalizedStudentName || !normalizedClassName || !normalizedTheme) return;
+
+    let lastError = null;
+    for (const base of notionApiBases) {
+        const normalizedBase = String(base || '').replace(/\/+$/, '');
+        if (!normalizedBase) continue;
+
+        try {
+            await axios.post(
+                `${normalizedBase}/api/increment-login-count`,
+                {
+                    studentName: normalizedStudentName,
+                    className: normalizedClassName,
+                    theme: normalizedTheme,
+                },
+                { timeout: 12000 }
+            );
+            return;
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    if (lastError) {
+        throw lastError;
+    }
+};
+
 export default function ActivityCard({
     activity,
     status = 'in-progress',
@@ -282,12 +342,16 @@ export default function ActivityCard({
         console.log(activity.ActivityGroup.Activity.id, activity.ActivityGroup.GroupId, activity.ActivityGroup.Group.joinCode);
 
         const { Activity, Group } = activity.ActivityGroup;
+        const className = Activity.title || '';
+        const topicName = Group.groupName || '';
 
         localStorage.setItem('activityId', Activity.id);
         localStorage.setItem('groupId', Group.groupId || Group.id || '');
         localStorage.setItem('joinCode', Group.joinCode || '');
-        localStorage.setItem('activityTitle', Activity.title);
-        localStorage.setItem('groupName', Group.groupName || '');
+        localStorage.setItem('activityTitle', className);
+        localStorage.setItem('groupName', topicName);
+        localStorage.setItem('selectedClassName', className);
+        localStorage.setItem('selectedTopicName', topicName);
         localStorage.setItem('activityEntryStatus', status);
         localStorage.setItem('isCompletedActivityEntry', status === 'completed' ? 'true' : 'false');
 
@@ -299,6 +363,17 @@ export default function ActivityCard({
     };
 
     const handleEnter = async () => {
+        const studentName = getCurrentStudentName();
+        const className = activity?.ActivityGroup?.Activity?.title || '';
+        const topicName = activity?.ActivityGroup?.Group?.groupName || '';
+        void incrementNotionLoginCount({
+            studentName,
+            className,
+            theme: topicName,
+        }).catch((error) => {
+            console.error('Failed to increment Notion login count:', error);
+        });
+
         setActivityContext();
 
         _getActivityInfo_()

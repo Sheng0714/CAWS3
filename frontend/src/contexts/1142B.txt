@@ -1,0 +1,954 @@
+﻿"
+     My Idea - 
+  Personalized learning
+AI enables personalized learning by tailoring educational content to meet the unique needs of each student. Through adaptive learning technologies, artificial intelligence can analyze a student's strengths, weaknesses, learning pace and preferences. This data allows AI systems to provide customized lesson plans and resources, ensuring that students receive instruction that is best suited to their individual learning styles. As a result, students can progress at their own pace, which helps to improve understanding and retention of material.
+From University Canada West'sresearch paper.
+ -    
+"
+( Personalized learning by 陳芷葳 G1)
+"
+     I need to understand -  Artificial intelligence is revolutionizing various sectors and education is no exception. The integration of AI in education has brought about significant changes that enhance learning experiences, streamline administrative tasks and support both students and educators in various ways.-     
+From University Canada West'sresearch paper.
+"
+( Advantage by 陳芷葳 G1)
+"     My Idea - improve efficiency-     " ( improve efficiency by 邱語薇 G1)
+"
+     My Idea -  
+Immersive learning experiences
+Artificial intelligence has the potential to create immersive learning experiences that engage students in ways traditional methods cannot. Technologies such as virtual reality (VR) and augmented reality (AR) powered by AI can simulate real-world scenarios and complex concepts, making learning more interactive and enjoyable. For instance, students can explore historical sites, conduct virtual science experiments or practice language skills with AI-driven avatars, providing a hands-on learning experience that enhances comprehension and retention.
+From University Canada West'sresearch paper
+-      
+ 
+"
+( Immersive learning experiences by 陳芷葳 G1)
+"
+     My Idea - 
+  Improved student engagement and motivation
+AI creating immersive learning experiences also can result in boosting student engagement and motivation by making learning more interactive and personalized. Gamified learning platforms, powered by AI, incorporate game elements such as rewards, challenges and leaderboards to make learning fun and competitive. Additionally, artificial intelligence can provide instant feedback and support, helping students stay motivated and focused on their learning goals. By addressing individual needs and offering real-time assistance, AI helps maintain student interest and encourages active participation.
+From University Canada West'sresearch paper.
+ -   
+"
+( Improved student engagement and motivation by 陳芷葳 G1)
+"     My Idea - Exclusive one-on-one tutoring -     " ( Exclusive one-on-one tutoring by 邱語薇 G1)
+"
+     My Idea - 
+ Integrated learning and intelligent tutoring system
+AI-driven intelligent tutoring systems offer personalized guidance and support to students, mimicking one-on-one tutoring. These systems use data analytics to understand a student's learning progress and provide targeted feedback and recommendations. They can identify knowledge gaps, suggest relevant resources and adjust the difficulty level of tasks to match the student's abilities. By offering tailored support and continuous assessment, artificial intelligence helps students achieve their learning objectives more effectively.
+From University Canada West'sresearch paper.
+ -    
+"
+( Integrated learning and intelligent tutoring system by 陳芷葳 G1)
+"
+     My Idea -  
+ Continuous evaluation and improvement in the long run
+AI facilitates continuous evaluation and improvement by providing real-time insights into student learning performance and learning outcomes. Through data analytics, AI can track student progress, identify trends and highlight areas for improvement. Educators can use this information to refine teaching strategies, develop personalized interventions and ensure that learning objectives are being met. Continuous evaluation enables a proactive approach to education, where adjustments can be made promptly to enhance the learning experience and outcomes.
+From University Canada West'sresearch paper.
+-    
+"
+( Continuous evaluation and improvement in the long run by 陳芷葳 G1)
+"     My Idea - Make good use of time -     " ( Make good use of time by 邱語薇 G1)
+"
+     A better idea - 
+ Cost-effective learning
+AI can make education more cost-effective by automating administrative tasks and providing scalable learning solutions. For example, artificial intelligence can handle routine tasks such as grading assignments, scheduling and managing student records, freeing up time for educators to focus on teaching. Additionally, AI-powered educational platforms can reach a large number of students with minimal additional cost, making high-quality education accessible to a broader audience. This scalability helps reduce the overall cost of education and ensures that more students can benefit from quality learning experiences.
+From University Canada West'sresearch paper.
+ -    
+"
+( Cost-effective learning by 陳芷葳 G1)
+"
+     My Idea - AI tools make it much easier for students to obtain the information they need. In
+the past, students had to spend a lot of time searching for information in reference books.
+However, with AI tools, they can gather useful and organized information in a short time.
+This allows students to focus more on understanding the content rather than spending time
+searching for it. As a result, learning becomes more efficient and productive. -     
+"
+( much easier for students to obtain the information they need by 邱語薇 G1)
+"     My Idea - Promote self-learning ability -     " ( Promote self-learning ability by 邱語薇 G1)
+"
+     My Idea - AI tools can help students solve problems immediately when they encounter
+difficulties. For example, when students do not understand a concept or a question, they can
+ask AI for explanations and examples. This immediate feedback helps them learn in real
+time and prevents them from feeling stuck or confused.  -     
+"
+( solve problems immediately by 邱語薇 G1)
+"
+     My Idea - AI tools can provide
+suggestions for grammar, vocabulary, and sentence structure. This is especially helpful for
+students who are not confident in their English writing skills. By using AI as a learning
+assistant, students can gradually improve their writing ability. -     
+"
+( assist students in improving their writing by 邱語薇 G1)
+
+"
+     My Idea 
+Over the past eight years, we’ve been studying the moral implications of pervasive engagement with AI as part of a joint research project between the Applied Ethics Center at UMass Boston and the Institute for Ethics and Emerging Technologies. In a recent white paper, we argue that as AI systems become more autonomous, the ethical stakes of AI use in higher ed rise, as do its potential consequences.
+As these technologies become better at producing knowledge work – designing classes, writing papers, suggesting experiments and summarizing difficult texts – they don’t just make universities more productive. They risk hollowing out the ecosystem of learning and mentorship upon which these institutions are built, and on which they depend.
+-  -     
+https://theconversation.com/the-greatest-risk-of-ai-in-higher-education-isnt-cheating-its-the-erosion-of-learning-itself-270243
+"
+( the moral implications of pervasive engagement with AI by 簡禾秦 G1)
+"
+
+file:///C:/Users/chienhechin/Downloads/ijaile-2-1-5.pdf -     
+"
+( Research about the ethical challenges brought about by using (AI) in academic writing by 簡禾秦 G1)
+"     My Idea - Repetition is a big issue with AI-generated material.  If you are part of a large class and using AI to generate assignments for you, the chances of one or more learners generating the same or similar pieces of work are high.  Usually, this manifests itself in content or subject matter that was not presented as part of the curriculum, Americanised language that reads differently to samples of the original work written by the learner and distinctive repetitive formatting.  -      " ( the same or similar pieces of work by 簡禾秦 G1)
+"
+     My Idea - 
+
+ -     
+"
+( AI has a limited understanding of the subject matter. by 簡禾秦 G1)
+" 
+•       My Idea -  
+•  Missed learning opportunities; I have saved my most passionate reason for not using AI (apart from the integrity piece which is central to the entire conversation) as my last point. One of the most significant disadvantages of relying on AI for academic writing is the missed opportunity for genuine learning and skill enhancement. Academic assignments serve as valuable opportunities for learners to research topics, think critically, and expand their writing skills. By outsourcing these tasks to AI, learners deprive themselves of the chance to engage actively with course material, explore diverse perspectives, and refine their academic skills, ultimately hindering their intellectual growth and progress. 
+•   -      " ( Missed learning opportunities by 簡禾秦 G1)
+"
+     My Idea - 
+•	AI-generated assignments are limited when it comes to customisation and adaptability. AI writing tools use predefined parameters and templates, which may not always align with the specific requirements and guidelines of your academic assignments.  Most assignments involve a certain amount of tailoring the content to meet the unique expectations of tutors, awarding bodies or sponsoring organisations e.g. ETBs, Nursing Homes, etc. While AI can support basic formatting and structure, it will not adapt to your nuanced writing style and experience and may not meet specific academic criteria for the programme you have signed up for.
+ -     
+"
+( customisation and adaptability. by 簡禾秦 G1)
+"     My Idea -  -         My Idea -My first point is to highlight the lack of originality in work that has been generated by AI.  One of the fundamental principles of academic writing is that learners are expected to produce an original piece of work that reflects their thoughts, research, or experience. While AI-generated content may appear to be well-written, it lacks the creativity and originality that is evidenced in true academic writing.  As a consequence, there is a very high risk of plagiarism which will undermine the integrity of your work and may even lead to the work being rejected or receiving a fail grade.   -     " ( lack of originality by 簡禾秦 G1)
+"
+     My Idea - 
+•	Don’t be fooled by sophisticated advancements in AI technology, these systems are not infallible and can still produce errors or Inaccuracies in the content they generate. Assignment writing often demands factual accuracy and practical application i.e. referring to your own experience to deepen your knowledge of a particular subject.  Depending on AI to write assignments increases the likelihood of errors slipping through undetected, potentially compromising the credibility of your work and your reputation.
+ -     
+https://www.newlinkstraining.com/6-reasons-to-avoid-using-ai-for-academic-writing/
+"
+( errors or Inaccuracies by 簡禾秦 G1)
+"
+     New Information -  -     
+d1 ,d2
+from :AI chatbots could be making you stupider
+https://www.bbc.com/future/article/20260417-ai-chatbots-could-be-making-you-stupider
+d3
+from :The greatest risk of AI in higher education isn’t cheating – it’s the erosion of learning itself
+https://theconversation.com/the-greatest-risk-of-ai-in-higher-education-isnt-cheating-its-the-erosion-of-learning-itself-270243
+"
+( Link by 陳姷陵 G1)
+"
+     My Idea -  -      
+Reduced mental effort ， some student use AI ，  but  don't  thinking deep， it could reduce thier creativity.
+"
+( disagree 1 reduce thier creativity by 陳姷陵 G1)
+"
+     My Idea -  -     
+once student  relies on  AI to find ansewr，they accept the imformation from AI, however never Verification, which  cause numerous unsure message in their report or homework,will Misleading people.
+"
+( dissagree 2 :unsure message Misleading by 陳姷陵 G1)
+
+"     New Information -AI tools can explain complex concepts in simpler ways , helping students grasp difficult material more quickly and clearly -     " ( Enhances learning and understanding by 李文清 G2)
+"
+     My Idea -  
+When professors or teaching assistants are not available, AI can provide instant explanations. This prevents students from getting stuck on difficult concepts for too long, keeps them motivated, and makes the whole learning process much more efficient.
+-     
+"
+( AI acts like a 24/7 personal tutor. by 曾詣喬 G2)
+"     A better idea -  Students may rely on AI instead of asking instructors.
+This can weaken teacher-student relationships and classroom engagement.-     " ( Supports non-native English speakers by 王清清 G2)
+"     My Idea -  AI can suggest multiple perspectives or topics, which is helpful when students feel stuck or lack inspiration.-     " ( Supports idea generation by 李文清 G2)
+"     My Idea -AI can simplify complicated ideas by breaking them into smaller, easier parts that students can understand. It can also give examples and explanations in different ways, which helps learners grasp the topic more quickly and easily.  -     " ( AI helps explain difficult concepts clearly by 王清清 G2)
+"     This idea cannot explain -True understanding comes from the hard work of figuring things out yourself. If AI instantly digests complex ideas for you, you lose the chance to build deep analytical skills.  -     " ( Relying on AI creates an "illusion of learning＂ by 曾詣喬 G2)
+"     New Information - Students can quickly gather background information,summaries,and key ideas,saving time during the research process.-     " ( Help with research efficiency by 李文清 G2)
+"     My Idea -  Using AI to simplify complex concepts allows you to bypass initial confusion and jump straight to higher-level analysis and real-world application.-     " ( AI as a Cognitive Accelerator by 段生芹 G2)
+"
+     This idea cannot explain - 
+The "initial confusion" is not a waste of time; it is exactly where deep learning happens. If you use AI to bypass understanding the basic mechanics, your knowledge will be too shallow, and your analysis will fall apart in real-world applications.
+ -     
+"
+( You cannot jump to "higher-level analysis" without a solid foundation. by 曾詣喬 G2)
+"
+     My Idea - 
+ Efficiency is more valuable than struggle. AI removes the "noise" of basic mechanics so you can master high-level strategy and real-world application faster.
+ -     
+"
+( The Strategic Advantage of AI-Assisted Learning by 段生芹 G2)
+"     My Idea -In the professional world, AI literacy is becoming a standard requirement rather than an optional skill. By allowing these tools in a university setting, institutions ensure that graduates are proficient in prompting, fact-checking, and collaborating with AI, making them more competitive in a rapidly evolving job market.  -     
+
+" ( Preparation for the future workforce by 段生芹 G2)
+"     This idea cannot explain -  If students use AI to complete assignments, they won't build the core expertise needed to judge if the AI is actually correct. University must build our independent thinking skills first, before we learn to collaborate with machines.-      " ( You cannot effectively "fact-check" AI without strong foundational knowledge. by 曾詣喬 G2)
+"
+.     My Idea -
+Collaboration with AI is not the opposite of independent thinking; it is a modern way to practice it. By using AI to generate outputs, students shift from "doing" to "auditing," which forces them to develop higher-level expertise to verify accuracy and refine logic.
+  -     
+"
+( AI as a Tool for Developing Critical Judgment by 段生芹 G2)
+"     A better idea -  Students may rely on AI instead of asking instructors.
+This can weaken teacher-student relationships and classroom engagement.-     " ( Supports non-native English speakers by 王清清 G2)
+"     New Information - AI can analyze massive datasets and summarize hundreds of research papers in seconds. This allows students to spend less time on manual searching and more time on high-level synthesis and original research. -     " ( Increasing Research Efficiency by 王清清 G2)
+"
+     My Idea -
+AI transforms students from data gatherers into strategic thinkers by automating the search process, allowing them to focus entirely on connecting ideas and generating original insights.
+  -     
+"
+( The Role of AI in Scaling Intellectual Productivity by 段生芹 G2)
+"     New Information - When students rely on AI to complete writing tasks, they may skip the process of thinking, researching, and organizing ideas themselves. This reduces long-term understanding of the subject. -     " ( Weakens deep learning process by 王清清 G2)
+"     My Idea -Students may rely on AI instead of asking instructors.
+This can weaken teacher-student relationships and classroom engagement.  -     " ( Reduces interaction with teachers by 王清清 G2)
+"     A better idea - Students may unknowingly share personal or academic information with AI systems.-     " ( Data privacy risks by 李文清 G2)
+"     A better idea - If AI can do the writing for them, some students might stop putting effort into their own work. This can lower their motivation to study and improve. -     " ( Students may become lazy by 王清清 G2)
+"     My Idea -  Relying on AI stops students from practicing how to analyze and solve problems independently.-     " ( Loss of Critical Thinking by 曾詣喬 G2)
+"     A better idea - If students depend too much on AI,they may not fully develop essential writing and communication skills.-     " ( Weakens writing ability by 李文清 G2)
+"     My Idea -  Relying on AI stops students from practicing how to analyze and solve problems independently.-     " ( Loss of Critical Thinking by 曾詣喬 G2)
+"     My Idea - Independent problem-solving is often frustrating and slow. By outsourcing that struggle to AI, we lower our tolerance for the "productive struggle" that is necessary for deep learning and innovation. -     " ( Reduced Cognitive Endurance by 段生芹 G2)
+"     New Information - If answers are easily generated, students may not feel the need to explore topics in depth. -     " ( Reduces motivation to learn deeply by 李文清 G2) "    
+ My Idea -When students use AI to generate essays, answers, or ideas, they often rely on ready-made content instead of creating from their own experience, opinions, or imagination. Over time, this can make their work sound similar to others who use the same tool, leading to less personal style and fewer unique perspectives.  -     " ( Students may lose originality in their ideas by 王清清 G2)
+"     My Idea - Students may become too reliant on AI and struggle when they must complete tasks without it.-     " ( Over dependence on technology by 李文清 G2)
+"     My Idea - access to AI elevates the baseline of human capability, allowing students to master complex systems and strategic oversight rather than focusing on manual tasks that are increasingly obsolete in the modern workforce. -     " ( The Evolution of Professional Fluency by 段生芹 G2)
+"     My Idea -AI generates text based on average patterns from existing data, meaning it cannot produce truly unique thoughts.  -     " ( I completely agree. by 曾詣喬 G2)
+"     Putting our knowledge together - The Mimicry of the Mean
+AI operates as a statistical mirror, synthesizing existing human knowledge into "most probable" outcomes rather than originating fundamentally new paradigms. -     " ( The Mimicry of the Mean by 段生芹 G2)
+"      New Information - According to a 2023 MIT study (by Noy and Zhang) on generative AI, while AI can help complete writing tasks faster, it significantly decreases the variance in the output. This phenomenon is called "homogenization." It scientifically proves that when students rely on AI, their essays converge into the same average patterns, destroying unique individual creativity and original ideas. -     " ( According to a 2023 MIT study by 曾詣喬 G2)
+"     A better idea - If AI can do the writing for them, some students might stop putting effort into their own work. This can lower their motivation to study and improve. -     " ( Students may become lazy by 王清清 G2)
+
+"  -     My Idea -Ai helps expand your vocabulary by suggesting synonyms and more natural ways to say things.   -     " ( Ai can help you expand your vocabulary by 謝秉書 G3)
+"     New Information - https://cln-asia.com/ai-english-learning-tips/ -     " ( Evidence by 謝秉書 G3)
+"     My Idea -Ai is a lifesaver for writer block.Since the hardest part is always getting started,it helps spark the process by generating outlines or a first draft ,so you're not just starting at a blank screen -     " ( Ai is a lifesaver for writer block by 謝秉書 G3)
+"     My Idea -Sunjaya Phillips, a student of Marketing Communications Management at Oxford Brookes University from Worcestershire, uses AI to generate ideas and plan essay structures with her lecturers' permission. The 22-year-old, who is currently an intern, says the technology provides a "sense of security" and helps her complete her assignments with "more confidence."https://www.bbc.com/zhongwen/articles/cnv19dzz92ro/trad  -     " ( Ai can help students complete their assignments more confidence by 謝秉書 G3)
+"
+     My Idea -
+Treat it as your "research assistant." The most time-consuming part of reading and writing reports is organizing the information. Let AI handle this for you:
+Super Summarizer: When you encounter an extremely long and complex academic paper or report, simply feed it to the AI and ask it to extract the "core points" and list the "key terms." This makes reading much easier for you.
+Quick Framework: Stuck on ideas before writing your report? Ask the AI to provide three different report outlines or thought structures tailored to your topic. You just need to choose the best one and start filling in the details.https://www.myplus.com.tw/article-20251117/2876/1
+  -     
+"
+( AI can help you extract summaries and write report structures. by 謝秉書 G3)
+"     My Idea - Ai give you instant feedback .Instead of waiting weeks for a teacher to grade your paper ,you get tips on grammar and logic on the spot ,so you can fix mistakes while the ideas are still fresh in your head-       " ( Ai give you instant feedback by 謝秉書 G3)
+"
+     My Idea -
+Treat it like your "one-on-one tutor." In traditional classes, if you don't understand something, you just have to suffer in silence. Now you can ask the AI anytime, letting it explain in the way you can best understand:
+In other words: When you encounter a difficult concept, ask the AI to "explain it using everyday examples."
+Have a mock exam: Let the AI play your teacher and ask it to "create a challenging application problem" based on the unit you just learned, then you solve it.
+Debate online with the AI: Set the AI to play a character who holds the opposite opinion to yours, engaging in a dialogue that forces you to develop a more complete argument.https://www.myplus.com.tw/article-20251117/2876/1
+ -     
+"
+( You can ask questions you don't understand. by 謝秉書 G3)
+"     My Idea - AI handle the grammar corrections for you ,so you can spend less time worrying about rules and focus entirely under creative side of writing. -     " ( Al handle the grammar corrections for you by 謝秉書 G3)
+"
+     New Information - 
+When writing, let AI help you express your ideas more elegantly and professionally.
+Correct grammar and tone: After you finish writing your report, ask AI to check for grammatical errors or to "make this text more academic."
+It only "edits" the text, not "draws" it: Your core ideas, data analysis, and conclusions must be written by yourself. AI only helps you "polish" the text better, not "ghostwrite" the entire content.https://www.myplus.com.tw/article-20251117/2876/1
+ -     
+"
+( New information by 謝秉書 G3)
+"there are several situations that could be noticed by daily life" ( personal observation by 吳睿文 G3)
+" 
+•  Blurring the Lines of Plagiarism: Content generated by AI is difficult to detect using traditional plagiarism software (like Turnitin), which makes the definition of "academic misconduct" increasingly ambiguous.
+•  Devaluation of Grading: If students use AI to complete assignments, instructors are essentially grading the capabilities of the AI rather than the student's learning progress. This undermines the credibility of degrees and transcripts as proof of individual competency.
+•  Unfair Competition: Students who are skilled in "prompt engineering" or who can afford premium AI models may achieve higher grades than those who rely on their own merit but lack access to these tools, creating an uneven playing field.
+" ( idea 1 (Erosion of Academic Integrity and Assessment Frameworks) by 吳睿文 G3)
+" 
+•  Data Leakage: When students input their research ideas or unpublished drafts into AI platforms, this data may be harvested by tech companies for model training, leading to the loss of personal privacy and intellectual property.
+•  Authorship Ambiguity: The legal ownership of AI-generated content remains a subject of intense debate, which could pose serious legal risks for future academic publishing or patent applications.
+" ( idea 5 (Privacy and Intellectual Property (IP) Risks) by 吳睿文 G3)
+" 
+•  Standardization of Writing: As noted in the paper, AI leads to the homogenization of content. University writing is meant to be a process of developing a student’s "unique voice" and "original insight"; AI turns this into an industrialized, generic output.
+•  Metacognitive Laziness: Students tend to accept the first answer provided by an AI without questioning its source or validity, which runs counter to the university's goal of producing "critical thinkers."
+" ( idea 6 (Homogenization of Thought and Loss of the Human Voice) by 吳睿文 G3)
+" 
+•  Loss of Research Capabilities: Traditional writing requires students to consult literature, filter information, and synthesize arguments. AI bypasses this critical "information-processing phase," leading to a decline in fundamental research and analytical skills.
+•  Weakening of Logical Structuring: Writing is a manifestation of thinking. If the framework of an essay is constructed by AI, students lose the opportunity to practice organizing complex ideas into a coherent and logical structure.
+" ( idea 2 (Skill Atrophy and "De-skilling") by 吳睿文 G3)
+" 
+•  The Paywall Barrier: Powerful AI tools often require subscription fees. This creates a gap where students from affluent backgrounds have access to superior "academic aids," while underprivileged students remain at a disadvantage, widening social inequality within education.
+•  Technological Dependency: Over-reliance on these tools can leave students completely incapable of solving problems or performing tasks in environments where internet access or AI tools are unavailable.
+" ( idea 4 (Exacerbation of the Digital Divide and Inequity) by 吳睿文 G3)
+" 
+•  Pseudo-scholarship and Fake Citations: AI often generates "hallucinations," confidently presenting false facts or non-existent references. In an academic setting, this compromises research rigor and leads students to internalize incorrect knowledge.
+•  Replication of Bias: AI models are trained on datasets that contain human societal biases. Relying on AI for writing may inadvertently reinforce gender, racial, or cultural stereotypes instead of fostering an independent, critical perspective.
+" ( idea 3 (Propagation of Hallucinations and Misinformation) by 吳睿文 G3)
+"
+paper topic: (by MIT)
+Your Brain on ChatGPT: Accumulation of Cognitive Debt when Using an AI Assistant for Essay Writing Task
+the mean idea:
+The study divided participants into three groups and do research.
+The group are:
+•	LLM Group: Used ChatGPT exclusively for information and writing assistance.
+•	Search Engine Group: Used Google Search (excluding AI-augmented results).
+•	Brain-only Group: Relied solely on their own knowledge without external tools.
+the key findings:
+•	The Brain-only group showed the strongest and most widespread neural connectivity, particularly in the Alpha and Theta bands associated with internal attention, memory retrieval, and creative ideation.
+•	The LLM group exhibited the weakest connectivity, reflecting significant "cognitive offloading," where the brain shifts the burden of planning and thinking to the AI.
+•	Cognitive Debt: In Session 4, participants who switched from LLM to Brain-only still showed weak neural connectivity, suggesting that long-term reliance on AI may make it harder for the brain to enter a state of deep thinking even when the tool is removed.
+•	Homogenization: Essays from the LLM group were highly similar in terms of Named Entity Recognition (NER) and thematic structure, lacking uniqueness.
+•	Memory Decay: The LLM group's ability to accurately recall their own essay content minutes after writing was significantly lower than the other groups (only 16.7% could vaguely recall content, and none were fully accurate).
+•	The LLM group felt the lowest sense of ownership, with many participants reporting feelings of guilt or viewing the work as AI-generated rather than their own.
+"
+( a paper that support it by 吳睿文 G3)
+"The authors suggest that educators should be cautious about AI integration, recognizing that over-automation may lead to an "atrophy" of the human brain's analytical and creative capacities." ( reason 3 (Educational Implications) by 吳睿文 G3)
+"Over-reliance on AI may trigger "metacognitive laziness," weakening the user's ability to solve problems independently and think critically." ( reason 2 (Metacognitive Laziness) by 吳睿文 G3)
+"While AI improves efficiency and provides structural support, it leads to lower engagement in deep analysis and creative processes, resulting in "cognitive debt."" ( reason 1 (Decline in Learning Skills) by 吳睿文 G3)
+
+"
+     My Idea -  -     
+AI tools enhance the university experience by providing bespoke learning paths. Unlike traditional one-size-fits-all models, AI analyzes a student’s unique progress and adjusts the difficulty level in real-time. This ensures that every learner remains challenged but supported, preventing them from falling behind. 
+"
+( Personalized Learnig by 李立璿 G4)
+"     My Idea - Engaging with AI like ChatGPT can make the learning process feel as natural as a conversation, increasing enthusiasm and focus. -     " ( interactive learning by 林宥亘 G4)
+"     My Idea - Sometimes there's no one to ask, but AI lets you ask questions anytime until you completely understand a particular detail. -     " ( You can learn anytime by 林宥亘 G4)
+"Even without AI, you can still search relevant literature through a browser to obtain more accurate answers." ( academic articles by 楊上逸 G4)
+"
+     My Idea -  -     
+In terms of academic writing, tools like Grammarly or QuillBot offer instantaneous feedback on grammar, syntax, and clarity. This allows students to correct errors and refine their communication skills as they write, transforming the writing process into a continuous learning opportunity rather than just a final evaluation.
+"
+( Instant Feedback and Writing Support by 李立璿 G4)
+"     My Idea -By uploading learning materials and having AI generate questions, learning outcomes can be effectively verified.  -     " ( Acceptance of learning outcomes by 林宥亘 G4)
+"     My Idea - Faced with reports or papers that are dozens of pages long, AI can help you create an outline first, allowing you to quickly determine which parts to read in depth, so you don't get lost between the lines. -     " ( Filtering useless messages by 林宥亘 G4)
+"
+     My Idea -  -     
+AI serves as an on-demand academic tutor available 24/7. This is particularly beneficial for university students who study outside of traditional office hours. AI-powered systems can explain complex concepts through interactive multimedia, providing immediate support whenever a student encounters a bottleneck in their understanding.
+"
+( 24/7 Smart Tutoring Systems by 李立璿 G4)
+"     My Idea - When you get stuck writing a report, AI can help you come up with structure suggestions, helping you overcome the anxiety of not knowing how to start and allowing you to spend your time filling in more meaningful content. -     " ( Provide ideas and directions by 林宥亘 G4)
+"     My Idea - Show your written content to AI and ask it, "Where is the logic flawed?" It can help you quickly debug and make learning more effective. -     " ( Check for logical vulnerabilities by 林宥亘 G4)
+"
+     My Idea -  -     
+By automating administrative tasks such as grading and scheduling, AI frees up educators to focus on what matters most: high-level mentoring and fostering critical thinking. This shift allows for more meaningful human interaction between professors and students, as routine tasks are handled efficiently by technology.
+"
+( Optimizing Educational Resources by 李立璿 G4)
+"
+     My Idea -  -     
+AI acts as a crucial equalizer for accessibility. For international students or those with learning disabilities like dyslexia, AI-driven translation and text-to-speech services break down linguistic and physical barriers. This fosters an inclusive educational environment where all students have an equal opportunity to succeed.
+"
+( Fostering Inclusivity and Accessibility by 李立璿 G4)
+"As AI becomes unavoidable in daily life, we are "losing the choice of when we interact with AI," making it necessary for schools to consciously "stop encouraging it" to protect the learning environment." ( The Erosion of Autonomy: "Losing the Choice" by 鄧兆棋 G4)
+"     My Idea -  -     Using AI creates a shortcut that "cuts out the development of basic skills" like writing and discerning information, ultimately "stunting our own growth" and ability to process information." ( The Decay of Critical Thinking: The Shortcut is the Cut by 鄧兆棋 G4)
+"The author advocates for a return to "independent work and thought" by prioritizing traditional educational resources that foster genuine intellectual development over technological convenience." ( A Call for Traditional Mastery: "Resources that have Worked for Decades" by 鄧兆棋 G4)
+"AI hallucination is a phenomenon where, in a large language model (LLM) often a generative AI chatbot or computer vision tool, perceives patterns or objects that are nonexistent or imperceptible to human observers, creating outputs that are nonsensical or altogether inaccurate." ( AI hallucinations by 楊上逸 G4)
+"the study drew attention to an important caveat: the tendency toward over-reliance on AI-driven solutions. For a subset of students, the ease and convenience offered by AI led to a diminished practice of independent problem-solving. In their reliance on automated assistance, some students risked neglecting the active engagement necessary for developing robust critical thinking skills and independent intellectual growth. This over-dependence on technological aids may, in the long term, hinder the cultivation of original thoughts and creative approaches essential at the tertiary level of education." ( It affects the cultivation of original and creative thinking. by 楊上逸 G4)
+
+"     A better idea - For non-native speakers or those who need to adjust their formal tone, AI is an excellent tool for grammar checking and polishing. -     " ( agree by 廖健崴 G5)
+"     My Idea - If the main idea is from the student,and just use AI to revise their words and grammer. -     " ( Agree with writing by 伍洋慕 G5)
+"     New Information - Provided the source is properly attributed, the use of AI tools in personal learning and research is permitted. -     " ( Harvard's example by 廖健崴 G5)
+"     A better idea -"-It helps students generate a preliminary outline or entry point when faced with a blank document." ( agree by 廖健崴 G5) -     " ( agree by 廖健崴 G5)
+"     My Idea - Authors should comply with artificial intelligence software usage policies and ensure that content sources are correctly attributed. -     " ( agree by 廖健崴 G5)
+"     My Idea -  -     AI can act as a private tutor that never gets tired." ( Agree [Personalized Learning at Scale] by 鄭丞凱 G5)
+"
+  "   -  -   It can explain a concept in ten different ways—using metaphors, step-by-step logic, or visual descriptions—until a student truly understands a difficult topic" ( explain by 鄭丞凱 G5)
+     New Information -    http://www.ater.org.tw/journal/article/14-11/topic/20.pdf-    
+"
+( explain by 鄭丞凱 G5)
+"     My Idea - Use AI tools make students learn new things more efficiently.  -     " ( Agree with learning by 伍洋慕 G5)
+"     New Information - 參考資料 This study explores the use of artificial intelligence (AI) in education, examining the possible advantages, challenges, and investments in this field as well as the upcoming trends -     " ( AI tools pros and cons reference by 伍洋慕 G5)
+"     New Information -  A-Bayesian-active-learning-approach-to-compara_2024_Computers-and-Education-.pdf -     " ( thesis by 鄭丞凱 G5)
+"     My Idea - Everyone's comprehension speed is different. AI can act as a personalized mentor for users. -     " ( agree by 廖健崴 G5)
+"     My Idea - AI can immediately point out grammatical errors or missing logical operations, which can improve learning efficiency. -     " ( Immediate Feedback by 廖健崴 G5)
+"     My Idea - If AI does the work for students, they are merely "piecing together answers" rather than "learning knowledge," which will lead to a superficial understanding of their field of expertise. -     " ( disagree by 廖健崴 G5)
+"     My Idea - Writing is to decribe somone idea or thought,AI just a tool,if student use AI to genarate an article without think,thire might lose the purpose of writing.  -     " ( Disagree with writing by 伍洋慕 G5)
+"     My Idea - This kind of irresponsible output seriously violates the essence of writing as an act of pursuing truth. -     " ( The core of academic writing is the pursuit of truth. by 廖健崴 G5)
+"     My Idea - AI often fabricates non-existent laws, accounting standards, or historical events. -     " ( disagree by 廖健崴 G5)
+"     A better idea - AI may create "hallucinations," fabricating false data, citations, or facts. -     " ( disagree by 廖健崴 G5)
+"     New Information - 參考資料，Using AI to generate assignments without permission violates the student code of conduct. -     " ( UCLA'example by 廖健崴 G5)
+"     New Information - 參考資料 This mini-review focuses on student well-being. It suggests that AI may help reduce workload and improve learning support, but it can also negatively affect mental health, social interaction, and students’ sense of autonomy if overused -     " ( Exploring the effects of artificial intelligence on student and academic well-being in higher education: a mini-review by 伍洋慕 G5)
+"     New Information -  A-Bayesian-active-learning-approach-to-compara_2024_Computers-and-Education-.pdf -          New Information -  A-framework-for-inclusive-AI-learning-des_2024_Computers-and-Education--Arti.pdf  -          New Information -  A-systematic-review-of-AI-education-in-K-12-classr_2024_Computers-and-Educat.pdf -          New Information -  -     " ( thesis by 鄭丞凱 G5)
+"     My Idea - Even though AI could provide informations immediately,but sometimes AI would give wrong references. -     " ( Disagree with learning by 伍洋慕 G5)
+"     New Information -  A-Bayesian-active-learning-approach-to-compara_2024_Computers-and-Education-.pdf -     " ( thesis by 鄭丞凱 G5)
+"     My Idea - If students have to ask AI every time they get stuck, they will lose their resilience when facing unknown problems. -     " ( disagree by 廖健崴 G5)
+"     New Information - 參考資料 The findings reveal that AI offers significant benefits,inclueinf personalized learning,improved academic outcomes,and enhanced student... -     " ( The Impact of Artificial Intelligence (AI) on Students’ Academic Development by 伍洋慕 G5)
+
+"
+3. Boosting Research Efficiency and Writing Structure
+     My Idea -  -     Excerpt: "Generative AI can assist in the brainstorming phase, helping writers overcome 'blank page syndrome' by generating outlines or suggesting structural improvements. This allows students to focus more on high-level argumentation rather than basic syntax and organization." —— Source: Nature, "AI and the future of academic publishing"
+"
+( Boosting Research Efficiency and Writing Structure by 李奇霖 G6)
+"
+Support for ESL and International Students: For students whose first language is not English, AI tools help bridge the gap by refining grammar, tone, and academic vocabulary, ensuring their ideas are judged fairly.
+'https://bokcenter.harvard.edu/ai-and-teaching
+"
+( Support for ESL and International Students by 盧昱禔 G6)
+"
+     My Idea - 
+•	Enhanced Productivity and Efficiency: AI can quickly summarize long research papers and help structure outlines, allowing students to focus more time on high-level analysis rather than repetitive manual tasks.
+•	https://www.unesco.org/en/articles/guidance-generative-ai-education-and-research
+"
+( Enhanced productive and efficiency by 盧昱禔 G6)
+" 
+     New Information - Reduced Teacher Workload
+AI reduces planning time by generating drafts, questions, rubrics, summaries, and sample responses. Teachers remain in control of instructional quality, with AI reducing the work required on the front end.      
+" ( Reduced Teacher Workload by 鄭丞弼 G6)
+"
+Inaccuracy and "Hallucinations": AI models frequently present false information or fake citations as facts. Students who rely on them without rigorous fact-checking risk spreading misinformation.
+https://bokcenter.harvard.edu/ai-and-teaching
+"
+( Inaccuracy and "Hallucinations by 盧昱禔 G6)
+"
+Personalized 24/7 Tutoring: AI serves as an on-demand tutor that can explain complex concepts in simpler terms or provide immediate feedback on drafts at any hour of the day.
+https://www.unesco.org/en/articles/guidance-generative-ai-education-and-research
+"
+( Personalized 24/7 Tutoring by 盧昱禔 G6)
+"AI-generated text often follows predictable patterns, which can result in generic, formulaic writing that lacks the unique perspective and "soul" of the student." ( Loss of Personal Voice and Originality by 盧昱禔 G6)
+"     My Idea -  It can foster critical thinkers. The advent and growing use of AI in classrooms lends itself to discussions regarding critical thinking and ethical considerations. Students are naturally intrigued by AI. The rich discussions that you can facilitate can help them grow and develop as thinkers and learners.-    " ( It can foster critical thinkers by 鄭丞弼 G6)
+"      My Idea - It can be used to personalize learning. AI can help you tailor your content to individual student needs and learning styles, based on AI-driven analytics that give you insight into student performance and learning trends. In this way, AI helps students be more engaged and motivated.-      " ( It can be used to personalize learning. by 鄭丞弼 G6)
+"     My Idea -  It can result in more inclusive lessons. AI has powerful tools that make previously inaccessible material available to students with special needs. Tools that offer text-to-speech, visual recognition, speech recognition, and more can help teachers adapt resources so that all students have an equal learning opportunity.-     " ( It can result in more inclusive lessons by 鄭丞弼 G6)
+"     My Idea - It can provide students with immediate feedback. AI offers students instantaneous and detailed feedback on their work, helping them to see their strengths and weaknesses. Such feedback enhances understanding and learning outcomes—and helps teachers to know what to focus on in future lessons. -   " ( It can provide students with immediate feedback. by 鄭丞弼 G6)
+"     My Idea -  It can be used to create and supplement content. Through AI-powered platforms, you can create lessons, activities, assessments, discussion prompts, and presentations simply by providing a short prompt with keywords.-     " ( It can be used to create and supplement content by 鄭丞弼 G6)
+"     My Idea -  It can provide greater access to resources. Educators can access a wealth of AI-powered platforms to facilitate and enhance the learning that takes place in their classrooms. Just a few examples are Canva Magic Write, which helps in brainstorming, outlining, and lesson planning; Curipod, which enables teachers to quickly create interactive lessons; Eduaide, which provides teachers with more than 100 resource types to choose from to create high-quality instructional materials; and Quizzizz, which can be used to design quizzes that will create a personalized learning path based on each student’s responses.-    " ( It can provide greater access to resources by 鄭丞弼 G6)
+"     My Idea -  It can be used to handle administrative tasks. You can use AI to streamline administrative tasks such as grading, scheduling, communicating with parents, and managing student records. This frees you up to do what you do best: teach. It affords you more hands-on time with students and helps to ensure that no students fall through the cracks.-     " ( It can be used to handle administrative tasks. by 鄭丞弼 G6)
+"
+     My Idea -  -     2. Preparing Students for a Future AI-Driven Workforce
+Excerpt: "University education must reflect the reality of the modern workplace. By allowing and teaching the ethical use of AI, institutions ensure that graduates are 'AI-literate,' a skill that is becoming non-negotiable in sectors ranging from data science to creative writing." —— Source: Harvard University, Office of Undergraduate Education (Academic Guidance)
+"
+( Preparing Students for a Future AI-Driven Workforce by 李奇霖 G6)
+"
+     This idea cannot explain - 
+The claim that universities must teach AI to ensure "AI literacy" can be countered by the danger of prioritizing tool-use over fundamental mastery:
+•	Erosion of Foundations: If a student learns to write code or essays primarily through AI prompting, they lack the "first-principles" understanding required to fix the AI when it fails. In a professional crisis, an "AI-literate" worker who cannot perform the task manually is a liability, not an asset.
+•	Market Volatility: AI tools evolve at a pace that university curricula cannot match. Teaching specific AI workflows today may be useless by the time a student graduates. Conversely, the "human-only" skills—deep empathy, ethical intuition, and complex synthesis—are what will remain "non-negotiable" as AI commoditizes basic technical tasks. Universities should therefore double down on what AI cannot do.
+Key Counter-evidence: "The focus on tool-specific literacy risks turning higher education into vocational training for software that may be obsolete in eighteen months. To truly prepare students, universities must emphasize 'human-in-the-loop' critical thinking that remains independent of any specific technological interface." —— Reference concept: The "Automation Paradox" in Cognitive Labor
+ -     
+"
+( Counter-argument: The Obsolescence of Skills and the "Black Box" Dependency by 李奇霖 G6)
+"
+     My Idea - 1. Levelling the Playing Field and Personalized Learning -     
+Excerpt: "AI can provide 24/7 support, acting as a personal tutor that adapts to a student's individual pace and learning style. For students from disadvantaged backgrounds or those with learning disabilities, AI tools can bridge the gap by providing real-time feedback and simplifying complex concepts." —— Source: UNESCO, "Guidance for generative AI in education and research"
+"
+( Levelling the Playing Field and Personalized Learning by 李奇霖 G6)
+"
+     This idea cannot explain -
+Counter-argument: The "Digital Divide" and the De-skilling of Vulnerable Students
+While the argument suggests AI democratizes education, it overlooks two critical flaws:
+•	The Premium Gap: High-quality, low-hallucination AI models (like the latest specialized reasoning models) are often behind paywalls. Students from affluent backgrounds will have access to "AI Super-tutors," while disadvantaged students may rely on free, outdated models that provide biased or incorrect information, effectively widening the achievement gap rather than closing it.
+•	The Crutch Effect: For students with learning disabilities, over-reliance on AI for "simplifying concepts" can prevent the development of essential cognitive persistence. By bypassing the "productive struggle" required to decode complex information, these students may fail to develop the mental resilience and foundational literacy skills needed for high-level independent work.
+Key Counter-evidence: > "The digital divide is not just about access to hardware, but the quality of the tools and the ability to use them critically. If AI becomes a substitute for human instruction, disadvantaged students—who often have less access to face-to-face mentorship—will be the most harmed by the loss of human-centric pedagogical support." —— Reference concept: Critical Digital Pedagogy
+  -     
+"
+( Counter-argument: The "Digital Divide" and the De-skilling of Vulnerable Students by 李奇霖 G6)
+"
+Threat to Academic Integrity and Originality
+Excerpt: "The ease of generating high-quality text makes it increasingly difficult to distinguish between a student's original thought and machine-generated output. This undermines the grading system and devalues the degrees conferred by institutions if authentic assessment cannot be guaranteed." —— Source: Oxford University, "Policy on the Use of AI in Student Assessments"
+"
+( Threat to Academic Integrity and Originality by 李奇霖 G6)
+"
+     This idea cannot explain -  -     
+The idea that AI leads to "superficial understanding" assumes that students use AI as a final destination rather than a starting point.
+•	Shifting the Cognitive Burden: By outsourcing "low-level" tasks (such as summarizing long texts or checking basic syntax), students can dedicate more mental energy to "high-level" tasks like synthesis, cross-disciplinary application, and creative problem-solving. This is similar to how the calculator allowed mathematicians to focus on complex theory rather than manual long division.
+•	The "Socratic" Dialogue: When a student uses AI to generate an initial analysis, they are forced into the role of an editor and critic. They must evaluate the AI’s output, find its weaknesses, and improve upon them. This "collaborative friction" can actually lead to a deeper understanding because the student must justify why they agree or disagree with the AI's generated logic.
+Key Counter-evidence: "When integrated thoughtfully, AI does not replace thinking; it changes the nature of the task from 'generative' to 'evaluative.' This transition requires students to exercise higher-order thinking skills—such as critique and verification—which are arguably more critical in the 21st-century information landscape than rote drafting." —— Reference concept: Bloom’s Taxonomy in the AI Era
+"
+( Counter-argument: AI as a Catalyst for High-Order Evaluation by 李奇霖 G6)
+"
+     My Idea -  -     1. Erosion of Critical Thinking and Cognitive Skills
+Excerpt: "There is a significant risk that students will outsource their thinking to algorithms. When AI generates the analysis, the student bypasses the 'productive struggle' necessary for deep learning, leading to a superficial understanding of the subject matter." —— Source: Stanford University, "AI and the Challenge of Academic Integrity"
+"
+( Erosion of Critical Thinking and Cognitive Skills by 李奇霖 G6)
+"
+     This idea cannot explain -  -     
+The idea that AI leads to "superficial understanding" assumes that students use AI as a final destination rather than a starting point.
+•	Shifting the Cognitive Burden: By outsourcing "low-level" tasks (such as summarizing long texts or checking basic syntax), students can dedicate more mental energy to "high-level" tasks like synthesis, cross-disciplinary application, and creative problem-solving. This is similar to how the calculator allowed mathematicians to focus on complex theory rather than manual long division.
+•	The "Socratic" Dialogue: When a student uses AI to generate an initial analysis, they are forced into the role of an editor and critic. They must evaluate the AI’s output, find its weaknesses, and improve upon them. This "collaborative friction" can actually lead to a deeper understanding because the student must justify why they agree or disagree with the AI's generated logic.
+Key Counter-evidence: "When integrated thoughtfully, AI does not replace thinking; it changes the nature of the task from 'generative' to 'evaluative.' This transition requires students to exercise higher-order thinking skills—such as critique and verification—which are arguably more critical in the 21st-century information landscape than rote drafting." —— Reference concept: Bloom’s Taxonomy in the AI Era
+"
+( Counter-argument: AI as a Catalyst for High-Order Evaluation by 李奇霖 G6)
+"
+The Problem of "Hallucinations" and Misinformation
+Excerpt: "Large Language Models (LLMs) are probabilistic, not deterministic; they frequently produce 'hallucinations'—convincing but entirely fabricated facts or citations. In a university setting, this poses a threat to the fundamental scholarly requirement of accuracy and evidence-based truth." —— Source: MIT Technology Review, "The problems with AI-generated research"
+"
+( The Problem of "Hallucinations" and Misinformation by 李奇霖 G6)
+"
+     This idea cannot explain -  -     
+While AI hallucinations are a technical flaw, they can be transformed into a powerful pedagogical advantage.
+•	Mandatory Fact-Checking: The known unreliability of AI creates a "perfect laboratory" for teaching Information Literacy. In a traditional setting, students often blindly trust textbooks. In an AI-assisted setting, students are taught to be "professional skeptics." They must verify every citation and claim made by the AI, which reinforces the scholarly habit of primary source verification.
+•	Prompt Engineering as Logical Rigor: "Hallucinations" often occur due to vague or poorly structured prompts. Learning to mitigate hallucinations requires students to learn precise communication and logical framing. To get accurate results, a student must provide clear context, constraints, and data—skills that directly translate to better scientific and economic research methodologies.
+Key Counter-evidence: "The 'flaws' of AI—its tendency to hallucinate—serve as a vital wake-up call for academia. It forces a return to the fundamentals of evidence-based truth. By requiring students to cross-reference AI output with peer-reviewed databases, institutions are producing graduates who are more discerning and rigorous than those who never had their sources challenged by a machine." —— Reference concept: Adversarial Learning in Pedagogy
+"
+( Counter-argument: Hallucinations as a Tool for Information Literacy by 李奇霖 G6)
+"     My Idea - Students may learn incorrect facts if they do not check the answers carefully. -     " ( AI sometimes gives wrong information. by 余政翰 G6)
+"     My Idea - Students may become lazy because AI makes tasks too easy. -     " ( Learning motivation may decrease. by 余政翰 G6)
+"     This idea cannot explain - Some people think AI makes students lazy and less motivated, but AI can also make learning more engaging and easier to understand. For example, AI can explain difficult topics step by step, give instant feedback, and provide personalized help. When students feel less frustrated and more confident, they may become more interested in studying and more motivated to learn. -     " ( AI Can Increase Learning Motivation by 余政翰 G6)
+"       My Idea -  Reduced Human Interaction
+Relying more and more on AI may reduce the teacher-to-student interactions and relationships and take away from the social-emotional aspects of learning. If those interactions diminish, students’ social skills and interpersonal development will suffer. Teachers need to be aware of this and take care to identify and respond to the social and emotional needs of their students. -     " ( Reduced Human Interaction by 鄭丞弼 G6)
+"     My Idea -  However, on the flip side, automating administrative tasks such as lesson planning, grading, and maintaining student records should free up teachers’ time to spend more time building relationships with students and fostering their social and emotional growth. Doing so has proven to result in many benefits, including better grades and higher college enrollment rates.-     " ( Rebuttal by 鄭丞弼 G6)
+"     My Idea - Some students may use AI to complete assignments dishonestly. -     " ( AI can encourage cheating. by 余政翰 G6)
+"     This idea cannot explain - Some people argue that AI encourages cheating, but cheating depends on the student’s decisions, not the technology itself. Students could cheat even before AI existed by copying homework or plagiarizing online sources. The real solution is to create clear school rules and teach academic honesty. When used properly, AI can support learning instead of harming it. -     " ( Cheating Is a Human Choice, Not an AI Problem by 余政翰 G6)
+" 
+1.	Uploading original research or sensitive data into AI platforms poses significant risks regarding intellectual property and how that data might be used by tech companies.
+2.	https://www.chronicle.com/
+" ( Data Privacy and Ethical Risks by 盧昱禔 G6)
+"     My Idea - If they rely on AI too much, they may practice less discussion and teamwork. -     " ( Students may lose communication skills. by 余政翰 G6)
+"     This idea cannot explain - Although some people believe AI may weaken students’ communication skills, AI cannot replace real human interaction. University students still need to join group projects, class discussions, presentations, and teamwork. These activities require listening, expressing ideas clearly, and cooperating with others. In fact, AI can even help students improve communication by practicing language skills, organizing thoughts, or preparing speeches. -     " ( AI Does Not Replace Human Communication by 余政翰 G6)
+"     My Idea - When students let AI write essays or ideas, they may use less original thinking. -     " ( AI can hurt creativity. by 余政翰 G6)
+"
+https://www.timeshighereducation.com/
+•	Relying on AI to generate answers may lead students to skip the "struggle" of learning, potentially weakening their ability to think independently and solve problems.
+ 
+"
+( Erosion of Critical Thinking by 盧昱禔 G6)
+"     My Idea - If students always trust AI answers, they may stop questioning information. -     " ( AI can reduce critical thinking skills. by 余政翰 G6)
+"     My Idea -  If used correctly, AI can actually improve critical thinking by offering different viewpoints and questions.-     " ( Rebuttal by 余政翰 G6)
+"     My Idea - They may use AI to finish homework instead of thinking by themselves. -     " ( Students may become too dependent on AI. by 余政翰 G6)
+"     My Idea - Students still need their own judgment and effort to learn well. -     " ( Rebuttal:AI is only a tool. by 余政翰 G6)
+"
+Many advanced AI tools require paid subscriptions. This creates an unfair advantage for students who can afford them, further deepening socioeconomic inequality in education.
+https://www.timeshighereducation.com/
+"
+( Widening the Digital Divide by 盧昱禔 G6)
+
+"     My Idea - I agree that AI tools should be allowed in university learning and writing  " ( I agree by 吳姵儀 G7)
+"
+     A better idea - 
+AI is already being used in many industries, such as business, technology, healthcare, and media. If students learn how to use AI responsibly at university, they will be better prepared for future jobs. Universities should help students develop the digital skills needed in modern society.
+ -     
+"
+( 5. AI prepares students for the future workplace by 吳姵儀 G7)
+"
+1.	     My Idea -  
+AI can help students check grammar, spelling, sentence structure, and word choice. It can also suggest better ways to organize ideas. Because of this, students can produce clearer and more polished writing while still expressing their own thoughts.
+-     
+"
+( 2. AI improves writing quality by 吳姵儀 G7)
+"     A better idea - https://flipedu.parenting.com.tw/article/009495 -     " ( Sources by 吳姵儀 G7)
+"
+     A better idea -
+AI tools can explain difficult ideas, summarize long readings, and provide quick answers to questions. This helps students save time and understand course materials more easily. As a result, they can focus more on learning important concepts instead of spending too much time feeling confused.
+  -     
+     Putting our knowledge together - https://tw.news.yahoo.com/%E9%80%BE7%E6%88%90%E5%A4%A7%E5%AD%B8%E7%94%9F-%E7%94%A8ai%E5%AF%AB%E5%A0%B1%E5%91%8A-201000171.html?guccounter=1&guce_referrer=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS8&guce_referrer_sig=AQAAAFAi0wRrLhimIzPXQTe_O569cHNNa9relG-0rrIAbt-hP6zxFGWb7BcR7MA6UjylJsywLCYg9YJRobf0Utu8IpOYPvh9pucpTQKdfcU9dAI2h7vbA9TzJFYwDdHt_gfpqyxynUSN6evjau0wW586aEFBdqRI_C-9cvmlQwPMEvIM -     
+"
+( 1.AI helps students learn more efficiently by 吳姵儀 G7)
+"
+     A better idea - 
+Not every student learns in the same way or at the same speed. AI can offer personalized help, such as simple explanations, step-by-step guidance, or extra practice. This makes learning more inclusive and gives more students a fair chance to succeed.
+ -     
+"
+( 3. AI supports students with different learning needs by 吳姵儀 G7)
+"
+     A better idea -
+AI can help fix grammar for students learning a new language. This way, teachers can focus on the students' real ideas, not just their language skills.
+  -     
+"
+( 3. Making Learning Fair for Everyone by 闕語萱 G7)
+"
+     New Information -  
+ASU partnered with OpenAI to bring ChatGPT to its campus. The leadership emphasized that providing access to these advanced tools is "leveling the playing field." Educational research also highlights that AI's language editing skills increase equity for non-native speakers and students with learning disabilities.
+-     
+"
+( Supporters: Michael M. Crow (President ofASU) by 闕語萱 G7)
+"
+     A better idea - 
+With AI tools, students can study on their own outside the classroom. They do not always need to wait for a teacher or tutor to answer basic questions. This allows them to become more active, responsible, and confident learners.
+ -     
+"
+( 4. AI encourages independent learning by 吳姵儀 G7)
+"
+     A better idea -
+AI sometimes gives wrong answers. When students use AI, they must learn to double-check if the information is true. This is a very important skill to practice.
+  -     
+"
+( 5. Learning to Check Facts by 闕語萱 G7)
+"
+     My Idea -
+For students who are not native English speakers, AI can be especially useful. It can help them understand vocabulary, improve grammar, and express ideas more clearly in writing. In this way, AI gives international students more support and confidence in academic work.
+  -     
+"
+( 6. AI can reduce language barriers by 吳姵儀 G7)
+"
+     A better idea -
+College students need to read a lot. AI can quickly find the main points in long articles. This saves students a lot of time.
+  -     
+"
+( 6. Saving Time on Research by 闕語萱 G7)
+"
+     A better idea - 
+AI can do small things like fixing spelling and formatting pages. Because AI does this boring work, students can focus their brain power on creating original ideas and solving big problems.
+ -     
+"
+( 7. Focusing on the Big Ideas by 闕語萱 G7)
+"
+     A better idea - 
+Starting an essay is hard. AI can help you think of ideas and make an outline, so it is much easier to start writing.
+ -     
+"
+( 4. Finding Ideas and Starting to Write by 闕語萱 G7)
+"
+     New Information -
+Many top universities, including Harvard, acknowledge in their official AI guidelines that generative AI is an excellent "brainstorming partner." When used ethically, it helps students overcome writer's block (the fear of the blank page) by generating outlines and preliminary ideas.
+  -     
+"
+( Sources: Harvard Derek Bok Center for Teaching and Learning by 闕語萱 G7)
+"
+     A better idea -
+AI is like a teacher who is always there. It has a lot of patience, can answer questions anytime, and explain hard things in a simple way.
+  -     
+"
+( 2. A 24/7 Personal Tutor by 闕語萱 G7)
+"
+     New Information -
+Sal Khan is a Founder of Khan Academy and strong advocate for AI tutors (like Khanmigo), arguing they provide personalized guidance for every student. A 2023 academic paper in Education Sciences also confirms that AI provides 24/7 support and personalized tutoring, helping students understand complex concepts at their own pace.
+  -     
+"
+( Supporters: Sal Khan by 闕語萱 G7)
+"
+     A better idea -
+Many jobs use AI today. If students learn to use AI in college, they will have a better chance to find good jobs and work faster after they graduate.
+  -     
+"
+( 1. Getting Ready for Future Jobs by 闕語萱 G7)
+"
+     New Information - 
+Professor Ethan Mollick (Professor at the Wharton School of the University of Pennsylvania)
+actually requires his students to use AI in his classes because he believes it mirrors the reality of the future workforce. Additionally, a BCG report titled "What Gen Z Thinks About AI in Higher Ed" explicitly states that universities must incorporate AI into the curriculum to prepare students to use AI in their future work.
+ -     
+"
+( Supporters：Ethan Mollick by 闕語萱 G7)
+"
+     A better idea -  
+Some people worry that AI may lead to cheating, but this does not mean it should be completely banned. Many tools, such as calculators and online dictionaries, can also be misused, yet they are still allowed with rules. In the same way, AI should be permitted as a support tool while universities set clear guidelines for proper use.
+-     
+"
+( 7. AI can be a helpful tool if rules are clear by 吳姵儀 G7)
+"
+     A better idea - Using AI more may reduce teacher-student interaction. This can weaken students’ social skills and emotional development. -     
+https://kf6.nccu.edu.tw/view/69cb2f1bcfbf5f7e47c0b2e3
+"
+( Reduced Human Interaction by 邱若語 G7)
+"     My Idea - AI may let grade system loss discrimination. -     
+
+" ( AI may let grade system loss discrimination.  by 葉思琪 G7)
+"     A better idea - People worry about how their data is stored and protected. They also fear privacy leaks, false information, and how easily others can access personal data. -     " ( Data privacy concerns by 邱若語 G7)
+"
+     My Idea - Privacy risks have been a concern for as long as AI has been around. -     
+https://kf6.nccu.edu.tw/view/69cb2f1bcfbf5f7e47c0b2e3
+"
+( Privacy risks by 邱若語 G7)
+"     My Idea - Studies have shown significant bias in GPT (generative pre-trained transformers; e.g., ChatGPT) against non-native English speakers. -     
+https://education.illinois.edu/about/news-events/news/article/2024/10/24/ai-in-schools--pros-and-cons" ( Potential Bias in AI Algorithms by 邱若語 G7)
+"     A better idea -   GPT detectors may misjudge simple writing as AI. This can wrongly accuse students, especially non-native speakers, of cheating.-   " ( Bias in GPT detection by 邱若語 G7)
+"     My Idea - AI will kill the originality .-     " ( AI will kill the originality . by 葉思琪 G7)
+"
+     New Information -  
+•	Environmental Impact: Training and running large AI models require immense energy and water consumption, which is inconsistent with the sustainability goals of many universities.
+-     
+"
+( Environmental Issues by 邱若語 G7)
+"
+     My Idea -  If the data it draws from is inaccurate or biased, then the information it creates will be inaccurate or biased.-     
+https://kf6.nccu.edu.tw/view/69cb2f1bcfbf5f7e47c0b2e3
+"
+( Unpredictability and inaccurate information by 邱若語 G7)
+"     My Idea - Neural connectivity will weaken and the brain even enter a state of "sleep mode".-     " ( Neural connectivity will weaken and the brain even enter a state of "sleep mode". by 葉思琪 G7)
+"
+     My Idea - AI is used to complete assignments or exams or write papers, it is unfair to the students who don’t cheat, and it undermines the education and learning process for those who do cheat. -     
+https://kf6.nccu.edu.tw/view/69cb2f1bcfbf5f7e47c0b2e3
+"
+( Academic misconduct by 邱若語 G7)
+"     My Idea - High level AI needs to pay,this may cause the gap of education because of poor and rich.-     " ( High level AI needs to pay,this may cause the gap of education because of poor and rich. by 葉思琪 G7)
+"     My Idea - AI may generate hallucinations and prejudices. -     
+
+" ( AI may generate hallucinations and prejudices. by 葉思琪 G7)
+"     My Idea - Students tend to forget the content they wrote quickly.-     " ( Students tend to forget the content they wrote quickly. by 葉思琪 G7)
+"     My Idea - This leads to a decline in the development of critical thinking skills. -     " ( This leads to a decline in the development of critical thinking skills. by 邱若語 G7)
+"     My Idea - AI can't substitute human conversation in the core of education. -   
+
+" ( AI can't substitute human conversation in the core of education. by 葉思琪 G7)
+"     My Idea - People may depend on AI excessively.-     " ( People may depend on AI excessively. by 葉思琪 G7)
+"     My Idea - Pseudo-understanding ,students may mislead they realize the knowledge ,but actually they haven't internalized the information. -     " ( Pseudo-understanding ,students may mislead they realize the knowledge ,but actually they haven't internalized the information. by 葉思琪 G7)
+
+
+"     My Idea - AI provides intuitive interfaces and personalized settings, so that students can adjust their learning style according to their own needs. Real-time feedback and interactive learning modules increase the motivation of learning, and gamified elements can improve the fun of learning, so that students can maintain a long-term sense of learning participation. -     " ( Enhance learning participation by 丁心怡 G8)
+"
+     New Information For students with visual or hearing impairments, AI systems can assist by recording lectures and utilizing speech-to-text technology. If a student struggles to focus on the lecture because they are preoccupied with taking notes, AI can simultaneously create audio recordings and transcripts. This allows the student to revisit specific points in time to listen to or read the instructor's explanation. Furthermore, teachers save time as they no longer need to review course materials to provide separate notes for students.-     
+ https://www.intel.com.tw/content/www/tw/zh/learn/ai-in-education.html
+"
+( Near-Instantaneous Note-taking by 許婉婷 G8)
+"     My Idea -  AI-assisted learning can help students build self-oriented learning ability and cultivate their lifelong learning spirit. This is not only a process of knowledge learning, but also an opportunity to cultivate students' self-development and self-efficacy.-     " ( Cultivation of independent learning ability by 丁心怡 G8)
+"      My Idea - Quickly generate content: Use generative AI to write emails, make briefing outlines, create images or write code to speed up the project. -     " ( learning faster by 丁心怡 G8)
+"     My Idea -Dynamically adjust the learning environment and content according to students' interests, strengths, weaknesses and learning preferences.  -     " ( Personalized Learning by 丁心怡 G8)
+"     My Idea -  AI can assist in sorting out notes, quickly summarizing long articles, translating sentences or converting formats, saving a lot of tedious time-     " ( Efficiency by 丁心怡 G8)
+"
+     My Idea - When college students use generative AI tools to assist learning, the main purpose is to collect information, accounting for about 75%; followed by 68% of students use it to retouch or rewrite articles. In addition, AI tools are also often used to formulate outlines or organize notes to help students quickly grasp the key points and save time. -     
+https://topic.udn.com/newstopic/2025edu_AI/203
+"
+( Purpose by 丁心怡 G8)
+"
+This page explains that generative AI can support students in brainstorming, understanding difficult ideas, improving grammar, and checking writing, as long as it is used responsibly.
+
+https://www.westminster.ac.uk/current-students/studies/study-skills-and-training/guidance-for-students-on-using-generative-ai?utm_source=chatgpt.com
+"
+( Guidance for students on using Generative AI by 西村龍乃介 G8)
+"This page says that generative AI can be used in learning and teaching, but students must understand the rules for fair and appropriate use in assessment.
+
+
+https://www.liverpool.ac.uk/about/the-university/reports-policies-and-governance/ai-at-liverpool/policies-and-guidance/guidance-learning-teaching-and-assessment/?utm_source=chatgpt.com" ( University guidance on GenAI in learning, teaching and assessment by 西村龍乃介 G8)
+"
+     My Idea - 
+I agree that AI tools should be allowed in university learning and writing.According to the University of Liverpool, generative AI is already becoming part of learning, teaching, and assessment. I think universities should not simply ban AI, because students need to learn how to use it properly and responsibly.However, students must follow the rules for each assignment and be honest about how they use AI.
+ -     
+"
+( AI tools should be allowed in university learning and writing. by 西村龍乃介 G8)
+"This page shows that students may use generative AI in their studies for support, such as developing ideas and improving writing, if they follow university guidance.
+
+
+https://information-services.ed.ac.uk/computing/comms-and-collab/elm/generative-ai-guidance-for-students/using-generative?utm_source=chatgpt.com" ( Using generative AI in your studies: guidelines for students by 西村龍乃介 G8)
+"
+     My Idea - 
+I agree that generative AI should be allowed in university study because it can help students learn in a more effective way. The University of Edinburgh explains that AI can support students in developing ideas, improving writing, and helping with the learning process. I think this is important because many students need support when they face difficult topics or do not know how to start their work.Generative AI can be useful for brainstorming, organizing information, and making writing clearer. It can also help students study on their own and save time during the learning process. Because of this, I think AI is a valuable educational tool.At the same time, students must use AI carefully and responsibly. They should check the accuracy of the information, follow university rules, and make sure that their final work still shows their own understanding. Therefore, I believe AI should be allowed, but it should always be used in an honest and responsible way.
+ -     
+"
+( Using Generative AI Responsibly in University Study by 西村龍乃介 G8)
+"     My Idea -  I agree that AI tools should be allowed in university learning and writing.According to the University of Westminster, generative AI can help students brainstorm ideas, understand difficult topics, proofread their work, and create personalized study materials. I think this is a good reason to allow AI, because it can support students’ learning and make studying more effective.However, students should use AI responsibly. They should check the accuracy of the information and not depend on AI completely. -    " ( AI tools should be allowed in university learning and writing by 西村龍乃介 G8)
+"
+     My Idea - 
+I agree that AI tools should be allowed in university learning and writing. According to the University of Westminster, generative AI can help students brainstorm ideas, understand difficult topics, proofread their work, and create personalized study materials. I think this is a good reason to allow AI, because it can support students’ learning and make studying more effective.In my opinion, AI is especially useful when students do not know how to start their work. It can give them direction and help them organize their thoughts more clearly. I also think AI can be helpful for students who are not native English speakers, because it can help them improve grammar and express their ideas better.Another reason to allow AI is that students will need to use AI responsibly in the future. Learning how to use AI at university can prepare them for work and society. Also, instead of banning AI completely, universities should teach students how to use it properly and honestly.However, students should use AI responsibly. They should check the accuracy of the information, follow assignment rules, and not depend on AI completely.
+ -     
+
+Sources:https://www.westminster.ac.uk/current-students/studies/study-skills-and-training/guidance-for-students-on-using-generative-aihttps://www.southampton.ac.uk/about/governance/regulations-policies/policies/using-gen-ai-during-your-studieshttps://www.liverpool.ac.uk/about/the-university/reports-policies-and-governance/ai-at-liverpool/policies-and-guidance/guidance-learning-teaching-and-assessment/
+"
+( The Benefits of Using AI in University Learning and Writing by 西村龍乃介 G8)
+"     New Information AI enables individualized learning, addressing the limitations of traditional educational models that often fail to tailor instruction to each student's specific needs. By leveraging big data analytics, AI can provide personalized content based on a student's unique learning style, interests, and progress, allowing them to learn at their own pace.       pace.ttp://www.ater.org.tw/journal/article/13-12/free/02.pdf" ( Providing Adaptive and Individualized Instructional Strategies by 許婉婷 G8)
+"Knewton, an educational technology company in the United States, fully leverages big data analytics and artificial intelligence to improve students' learning methods and outcomes." ( ex:Knewton by 許婉婷 G8)
+"
+https://interactionculture.net/2026/02/15/many-faculty-members-disagree-with-administration-about-ai-both-are-right/     My Idea - Technology leaders once told us that virtual reality, blockchain, and massive open online courses (MOOCs) would transform education, and they urged universities to prioritize investment in infrastructure, training, research programs, and curriculum design—only for those technologies to prove to be short-lived fads. Now, they are repeating the same pattern, this time targeting artificial intelligence. There is another valid reason behind this skepticism: universities are guardians of the gold standard in knowledge production. Pursuing the highest level of knowledge—for example, medical experimental research—moves slowly for good reason. In addition, producing knowledge to that standard is expensive, involving faculty hiring, building facilities, technological infrastructure, professional support, strategic research investments, project development, curriculum development, and more. If universities blindly chase trends, their use of public resources will become scattered and disorganized. It is precisely the presence of such skeptics that ensures we act wisely.
+ -     
+"
+( scattered and disorganized by 張惟智 G8)
+"
+     My Idea - The content generated by AI blurs the boundaries of the author's identity. -          My Idea - 
+•	Creation by non-natural persons: Copyright law protects the creation of "human" spirit. AI is not a natural person or a legal person, so its independently generated works cannot obtain copyright.
+Lack of originality: AI output content is often regarded as a technical "data output", which is difficult to reflect human personality or uniqueness, and is usually not protected by copyright.
+ -     
+"
+( The problem of academic integrity by 丁心怡 G8)
+" 
+•       My Idea - 
+•  Dependency on Standardized Answers: AI outputs often carry an air of authority. If students habitually accept these results without question, they lose the ability to scrutinize sources and identify logical fallacies.
+•  Bypassing the Cognitive Process: The "struggle" during writing or problem-solving is where actual learning happens. By jumping straight to the solution, students miss the intellectual exercise required to develop complex reasoning.
+•   -     
+" ( Erosion of Critical Thinking by 譚丞峻 G8)
+"     My Idea - People may use artificial intelligence to cheat or avoid their work responsibilities. -   https://theconversation.com/the-greatest-risk-of-ai-in-higher-education-isnt-cheating-its-the-erosion-of-learning-itself-270243  " ( avoid work responsibilities by 張惟智 G8)
+"     My Idea -  Artificial intelligence can reduce tedious work, and that is not necessarily a bad thing. However, it can also distance users from the learning processes that help develop ability, such as generating ideas, working through confusion, revising awkward drafts, and learning to identify their own mistakes.https://theconversation.com/the-greatest-risk-of-ai-in-higher-education-isnt-cheating-its-the-erosion-of-learning-itself-270243 -     " ( Cognitive offloading by 張惟智 G8)
+"     New Information Originality and ethical concerns arise from using AI technology in thesis writing, particularly when students use AI solely to obtain grades. Therefore, it is essential to combat plagiarism in research; all citations must clearly indicate their sources. Using open AI chatbots like ChatGPT without proper attribution, or distributing AI-generated articles without authorization, may lead to legal disputes.      ttp://www.ater.org.tw/journal/article/13-12/free/02.pdf" ( Moral and Ethical Challenges by 許婉婷 G8)
+"
+     New Information The risk of student cheating raises ethical concerns and can undermine their ability to learn essential content and skills. Additionally, students may swap devices, forget their devices, or forget their login credentials, posing significant security risks.
+        
+"
+( Student Misuse by 許婉婷 G8)
+"https://interactionculture.net/2026/02/15/many-faculty-members-disagree-with-administration-about-ai-both-are-right/     My Idea - We are in the midst of a climate crisis, and the environmental impact of artificial intelligence is severe; its costs far outweigh any benefits. -     " ( the environmental impact by 張惟智 G8)
+"     New Information - Most large-scale AI deployments are housed in data centres, including those operated by cloud service providers. These data centres can take a heavy toll on the planet. The electronics they house rely on a staggering amount of grist: making a 2 kg computer requires 800 kg of raw materials. As well, the microchips that power AI need rare earth elements, which are often mined in environmentally destructive ways, noted Navigating New Horizons.  https://www.unep.org/news-and-stories/story/ai-has-environmental-problem-heres-what-world-can-do-about -     " ( Data centres can take a heavy toll on the planet. by 譚丞峻 G8)
+"     New Information Since AI tools are trained on data, they may inherit or even amplify the biases present in that data. This can lead to unfair outcomes regarding gender, race, socioeconomic status, or other demographic factors, potentially disadvantaging certain groups of students within the university system.     " ( Algorithmic Bias by 許婉婷 G8)
+"https://theconversation.com/the-greatest-risk-of-ai-in-higher-education-isnt-cheating-its-the-erosion-of-learning-itself-270243     My Idea -The natural-language interface provided by AI chatbots makes it difficult to tell whether one is interacting with a real person or with an automated agent. This may leave users feeling alienated and distracted. Students reviewing exam materials should be able to tell whether they are communicating with a teaching assistant or with a chatbot. Students reading feedback on a term paper need to know whether that feedback comes from the instructor. In these situations, anything short of complete transparency will make everyone involved feel alienated and will shift the focus of academic interaction away from learning itself and toward the way learning is being delivered or the technology behind it. Researchers at the University of Pittsburgh have already shown that this kind of shift can create uncertainty, anxiety, and distrust among students.  -     " ( transparency in AI by 張惟智 G8)
+"     My Idea -  It hinders students' ability to think critically and solve problems, because they habitually seek immediate answers instead of really understanding the content.-     " ( Rigid thinking by 丁心怡 G8)
+"
+     My Idea - A recent MIT study, “Your Brain on ChatGPT: Accumulation of Cognitive Debt when Using an AI Assistant for Essay Writing Task,” provides sobering evidence. When participants used ChatGPT to draft essays, brain scans revealed a 47 percent drop in neural connectivity across regions associated with memory, language, and critical reasoning. Their brains worked less, but they felt just as engaged—a kind of metacognitive mirage. Eighty-three percent of heavy AI users couldn’t recall key points from what they’d “written,” compared to only 10 percent of those who composed unaided. Neutral reviewers described the AI-assisted writing as “soulless, empty, lacking individuality.” Most alarmingly, after four months of reliance on ChatGPT, participants wrote worse once it was removed than those who had never used it at all. 
+https://www.currentaffairs.org/news/ai-is-destroying-the-university-and-learning-itself
+"
+( Accumulation of Cognitive Debt when Using an AI Assistant for Essay Writing Task by 譚丞峻 G8)
+"
+https://theconversation.com/the-greatest-risk-of-ai-in-higher-education-isnt-cheating-its-the-erosion-of-learning-itself-270243     My Idea -
+The natural-language interface provided by AI chatbots makes it difficult to tell whether one is interacting with a real person or with an automated agent. This may leave users feeling alienated and distracted. Students reviewing exam materials should be able to tell whether they are communicating with a teaching assistant or with a chatbot. Students reading feedback on a term paper need to know whether that feedback comes from the instructor. In these situations, anything short of complete transparency will make everyone involved feel alienated and will shift the focus of academic interaction away from learning itself and toward the way learning is being delivered or the technology behind it. Researchers at the University of Pittsburgh have already shown that this kind of shift can create uncertainty, anxiety, and distrust among students.
+  -     
+"
+( uncertainty, anxiety, and distrust by 張惟智 G8)
+"
+https://interactionculture.net/2026/02/15/many-faculty-members-disagree-with-administration-about-ai-both-are-right/     My Idea - 
+Artificial intelligence is not merely a technology; it is an agenda—a project closely tied to corporate interests, or colonial interests, military interests, and so on—and it is an agenda that I do not accept or support. Many disciplines are skeptical of technology, because the development and spread of new technologies are often closely connected to social phenomena that deserve scrutiny. For example, in the previous generation, skeptics recognized the existence of the “digital divide” and actively pushed society to address it. The digital divide refers to the unequal distribution of digital technology and the benefits it brings. Their efforts had a lasting impact: even today, some policy initiatives—such as providing internet infrastructure to rural areas in the United States—still reflect their ideas and goals. In other words, these skeptical disciplines draw our attention to the hidden and troubling threats that emerging technologies pose to our own values. In the long run, discipline-based skeptical reasoning helps improve the implementation of technology, whether by refining algorithms to reduce identified problems, creating policies to limit their harm, or simply informing the public.
+ -     
+"
+( digital divide by 張惟智 G8)
+"     My Idea - The ChatGPT group showed notably less brain activity – it was reduced by up to 55%https://www.bbc.com/future/article/20260417-ai-chatbots-could-be-making-you-stupider" ( AI chatbots could be making you stupider by 譚丞峻 G8)
+"     My Idea - The very people most likely to misuse AI—those with shallow background knowledge, weak discernment or motivation—are the ones most susceptible to its illusions.https://fordhaminstitute.org/national/commentary/illusion-learning-danger-artificial-intelligence-education -     " ( The illusion of learning by 譚丞峻 G8)
+"
+     New Information - AI is not a democratizing force that will level the playing field for students and make teachers’ jobs easier. When automation replaces learning, the opposite happens: the knowledgeable become more powerful, the uninitiated more dependent.
+https://www.aei.org/op-eds/the-illusion-of-learning-the-danger-of-artificial-intelligence-to-education/ -     
+"
+( The Seductive Ease of Knowing Without Learning by 譚丞峻 G8)
+
+"     My Idea - I agree that AI tools should be allowed in university learning and writing. -     " ( Agreement by 陳妤蓁 G9)
+"     My Idea - AI tools can help summarize long articles. -     " ( Saving time by 陳妤蓁 G9)
+"     My Idea - Student can use AI to quickly understand the main points of a research paper. -     " ( Example by 陳妤蓁 G9)
+"     My Idea - AI can explain difficult concepts in a simple way. -     " ( Learning support by 陳妤蓁 G9)
+"     My Idea - If a student doesn’t understand a math problem, AI can give step-by-step explanations. -     " ( Example by 陳妤蓁 G9)
+"     My Idea - AI tools can help me check grammar and spelling. -     " ( Improving writing quality by 陳妤蓁 G9)
+"     My Idea - For example, a student can use AI to fix mistakes in an essay and make sentences clearer. -     " ( Example by 陳妤蓁 G9)
+"
+     My Idea - Since each student learns uniquely, AI in higher education enables professors to create personalized learning experiences with ease, enhancing student engagement.3 With AI, adaptive learning platforms can tailor their content to individual student needs, offering extra assistance where students need it and facilitating a more interactive learning experience. -     
+     My Idea - https://www.usa.edu/blog/ai-in-higher-education-how-ai-is-reshaping-higher-education/ -     
+"
+( Personalized Learning Experiences by 謝定軒 G9)
+"     My Idea - AI can explain concepts based on a student’s level. -     " ( Personalized learning by 陳妤蓁 G9)
+"     My Idea - If a student doesn’t understand calculus, AI can explain it step by step in simple words. -     " ( Example by 陳妤蓁 G9)
+"
+     My Idea - It can explaining complex concepts in simpler terms tailored to the student’s level.
+  -     
+"
+( Clarification by 劉采瑜 G9)
+"
+     My Idea -li can helping international students bridge the gap in their academic writing without losing their original ideas.
+  -     
+"
+( Language Support by 劉采瑜 G9)
+"
+     My Idea - AI as a personalized tutor
+連結https://www.theworldmaths.com/posts/AI-Learning -     
+"
+( Personalized Tutor by 劉采瑜 G9)
+"
+     My Idea -
+AI provides intuitive interfaces and personalized settings that allow students to tailor their learning experience to their specific needs. Real-time feedback and interactive modules boost motivation, while gamified elements enhance the enjoyment of learning, fostering long-term engagement.
+  -     
+"
+( Enhancing student engagement by 劉采瑜 G9)
+"
+     My Idea -
+AI-assisted learning can help students develop self-directed learning abilities and cultivate their spirit of lifelong learning. This is not only a process of acquiring knowledge, but also an opportunity for students to develop self-growth and a sense of self-efficacy.
+  -     
+"
+( Developing independent learning ability by 劉采瑜 G9)
+"
+     My Idea - 
+Engage with generative AI tools with your students in person, when possible. Otherwise, share AI-generated responses to questions during class time and ask students to consider them or have students experiment with the technology at home, document their experiences, and share them with the class. 
+ -     
+     My Idea - https://www.gse.harvard.edu/ideas/usable-knowledge/23/07/embracing-artificial-intelligence-classroom -     
+"
+( Use AI alongside your students by 謝定軒 G9)
+"     My Idea - You can use AI to support your studies, but acknowledge its use, especially in exams. -          My Idea - https://communications.admin.ox.ac.uk/communications-resources/ai-guidance -     " ( University of Oxford by 謝定軒 G9)
+"
+     New Information - 
+The integration of AI in education has the potential to raise academic standards and improve the overall quality of education. Artificial intelligence can help ensure consistency and accuracy in grading, provide access to high-quality resources and support educators in delivering effective instruction. By leveraging AI technologies, educational institutions can offer a more rigorous and comprehensive curriculum that meets the evolving needs of students. AI can facilitate collaborative learning environments, where students and educators can share knowledge and resources, fostering a culture of continuous learning and improvement.
+The advantages of AI in education are manifold, ranging from personalized and immersive learning experiences to cost-effective and high-quality education. As AI continues to evolve, its role in transforming education will become increasingly significant, offering new opportunities for students and educators alike.
+ -          New Information - https://www.ucanwest.ca/blog/education-careers-tips/advantages-and-disadvantages-of-ai-in-education -     
+"
+( Raising academic standards and educational quality by 謝定軒 G9)
+"
+     My Idea - 
+Artificial intelligence in higher education can be used to identify students at risk of falling behind or dropping out of school, enabling early interventions that then increase the odds of student success.8 Additionally, AI education tools can help continuously track student academic progress and optimize their learning outcomes by identifying areas where there are opportunities for improvement and notifying the appropriate parties.8 This allows professors, advisors and students to take proactive measures to maintain academic success.
+ -          My Idea - https://www.usa.edu/blog/ai-in-higher-education-how-ai-is-reshaping-higher-education/ -     
+"
+( Advanced Analytics for Student Success by 謝定軒 G9)
+"
+     My Idea - 
+AI is transforming how educators manage their time by automating many of their administrative tasks. As a result, teachers can focus more of their time on student engagement. My personal favorite AI tool is Grammarly, which provides real-time spelling, grammar, style and punctuation feedback to help users produce concise and clear writing. There are several ways that teachers can benefit from Grammarly, including: 
+•	Improved Communication – helps teachers write clearer and more professional emails to colleagues and parents. 
+•	Instant Feedback and Grading – assists in speeding up the grading process by automatically highlighting grammar and style issues. 
+•	Teacher Support – saves time on editing and proofreading, which enables teachers to focus more on lesson planning and student engagement. 
+•	Professional Development – enhances teachers’ own writing skills over time. 
+ -          My Idea - https://ace.edu/blog/pros-and-cons-ai-in-education/ -     
+"
+( Automation of Administrative Tasks by 謝定軒 G9)
+"
+     My Idea - AI can help teachers tailor their content to individual student learning styles and needs. One of the best AI tools that is currently being used by teachers in personalized learning is Khanmigo. Developed by Khan Academy, Khanmigo is an AI-powered teaching assistant and tutor that is designed to provide interactive and personalized support for both teachers and students. For example, teachers can use Khanmigo to generate lesson plans and quizzes, while also providing real-time feedback on student responses.   -     
+     My Idea - https://ace.edu/blog/pros-and-cons-ai-in-education/ -     
+"
+( Personalized Learning and Instant Feedback by 謝定軒 G9)
+"
+     New Information - 
+John Villasenor of Brookings argues that traditional non-AI-assisted writing skills are becoming largely obsolete, asserting that “today’s young people will inhabit a future where the vast majority of writing will be produced using AI.” This perspective suggests that writing education should shift from manual composition to evaluating, refining, and effectively leveraging AI-generated content.
+ -          New Information - https://medium.com/future-of-school/should-students-be-allowed-to-use-ai-in-school-innovation-vs-integrity-6fbd65d23257 -     
+"
+( Preparing Students for an AI-Integrated Future by 謝定軒 G9)
+"     My Idea - AI tools can make previously inaccessible material available to students with diverse backgrounds, abilities and learning needs. For example, there are AI tools that can translate lesson plans into multiple languages or convert text to speech, helping English Language Learners and students with visual impairments. In addition, captioning and transcription tools, such as Microsoft Teams and Otter.ai, can produce real-time captions and transcripts. These use cases can support all students, including those who are deaf or hard of hearing.  -          My Idea - https://ace.edu/blog/pros-and-cons-ai-in-education/ -     " ( Accessibility by 謝定軒 G9)
+"     New Information - U.S. Secretary of Education Miguel Cardona offers a balanced view: “Technology can help enhance learning. It could facilitate good practice. It doesn’t replace the school experience. It doesn’t replace the community experience.” He emphasizes the need to “inform and involve educators around designing and developing and testing and implementing AI-enabled education technology.” -          New Information - https://medium.com/future-of-school/should-students-be-allowed-to-use-ai-in-school-innovation-vs-integrity-6fbd65d23257 -     " ( Strong Policy Support and Expert Endorsement by 謝定軒 G9)
+"     New Information - AI can make education more cost-effective by automating administrative tasks and providing scalable learning solutions. For example, artificial intelligence can handle routine tasks such as grading assignments, scheduling and managing student records, freeing up time for educators to focus on teaching. Additionally, AI-powered educational platforms can reach a large number of students with minimal additional cost, making high-quality education accessible to a broader audience. This scalability helps reduce the overall cost of education and ensures that more students can benefit from quality learning experiences. -         New Information - https://www.ucanwest.ca/blog/education-careers-tips/advantages-and-disadvantages-of-ai-in-education -      " ( Cost-effective learning by 謝定軒 G9)
+"
+     My Idea -  
+AI offers professors a valuable tool to save time on daily managerial tasks, giving them more hours to focus on teaching and student engagement.
+-      
+     My Idea - https://www.faulkner.edu/news/the-future-of-learning-positive-applications-of-ai-in-education/ -     
+""
+     My Idea - 
+The integration of AI in education has the potential to raise academic standards and improve the overall quality of education. Artificial intelligence can help ensure consistency and accuracy in grading, provide access to high-quality resources and support educators in delivering effective instruction. By leveraging AI technologies, educational institutions can offer a more rigorous and comprehensive curriculum that meets the evolving needs of students. AI can facilitate collaborative learning environments, where students and educators can share knowledge and resources, fostering a culture of continuous learning and improvement.
+The advantages of AI in education are manifold, ranging from personalized and immersive learning experiences to cost-effective and high-quality education. As AI continues to evolve, its role in transforming education will become increasingly significant, offering new opportunities for students and educators alike.
+ -          My Idea - https://www.ucanwest.ca/blog/education-careers-tips/advantages-and-disadvantages-of-ai-in-education -     
+"
+( Raising academic standards and educational quality by 謝定軒 G9)
+
+( offers professors a valuable tool by 謝定軒 G9)
+"    My Idea - Specific administrative tasks, such as admissions, grading and scheduling, can be repetitive and timely. Bringing together AI and higher education, the tool can help automate these tasks so that leaders in higher education can focus on key duties, such as connecting with and educating students.1 Furthermore, AI chatbots can efficiently address common student inquiries, allowing professors to focus on personalized support.7  -          My Idea - https://www.usa.edu/blog/ai-in-higher-education-how-ai-is-reshaping-higher-education/ -     " ( Streamlined Administrative Tasks by 謝定軒 G9)
+"     My Idea - Use AI for personal study and research, but not for summative assessments without permission. -          My Idea - https://blendedlearning.cam.ac.uk/guidance-support/ai-and-education/using-generative-ai -     " ( University of Cambridge by 謝定軒 G9)
+
+"     My Idea - disagreement -     " ( Disagreement by 童奕舜 G9)
+"
+     My Idea - While proponents claim AI prepares students for the workforce, critics argue that high-level professionals are needed to "verify and critique" AI outputs. If students skip foundational training, they will lack the essential "domain knowledge" required to supervise AI, eventually making them easily replaceable by the machines they rely on. -     
+     My Idea - Harvard Business Review - "The skill of questioning in the AI era" -     
+"
+( The Illusion of Professional Competence by 童奕舜 G9)
+"     My Idea - An accounting student uses AI to generate complex financial statements and analysis for a case study. The results look flawless and professional. However, when the professor asks why a specific tax regulation was applied, the student cannot explain it. They have the "outward appearance" of a professional accountant without the "inner logic" and domain knowledge required to justify their work. -     " ( Example by 童奕舜 G9)
+"The core of university education lies in training students how to think, analyze, and construct arguments. Over-reliance on AI-generated content will cause students to skip the process of in-depth reading of materials and logical reasoning.https://www.businessinsider.tw/article/1707     My Idea -  -     " ( Impairing the development of critical thinking and core competencies by 林佳暘 G9)
+"
+     My Idea - 
+•	Future workplaces need "AI supervisors." If students lack foundational knowledge, they cannot identify AI errors, effectively becoming mere "tools of the tool" rather than decision-makers.
+ -     
+"
+( Consequences by 童奕舜 G9)
+"Students simply submit the questions to AI, skipping the painful period of data collection, filtering, and architecture planning.     My Idea -  -     " ( Example by 林佳暘 G9)
+"Without deep internalization of knowledge, learning becomes superficial, and one may even feel helpless when faced with real-world challenges without AI assistance.     My Idea -  -     " ( Consequences by 林佳暘 G9)
+"
+     My Idea - The true value of academic writing lies in the "productive struggle." When students bypass cognitive roadblocks by seeking instant AI answers, they lose the opportunity to develop resilience, logical complexity, and the ability to find order in chaos. This leads to intellectual fragility when facing real-world problems that have no standard answers. -     
+     My Idea - Forbes - "The Hidden Danger of AI in Education" -     
+"
+( Atrophy of Problem-Solving Skills by 童奕舜 G9)
+"     My Idea -  -     Academic writing is an important way to showcase personal viewpoints and research findings. The use of AI can easily blur the line between "personal originality" and "machine generation," sparking controversies regarding academic ethics.
+https://ocacnews.net/article/404729     My Idea -  -     " ( The loss of academic integrity by 林佳暘 G9)
+"Students use AI to generate paragraphs and then make minor adjustments. Is this considered original work or plagiarism?     My Idea -  -     " ( Example by 林佳暘 G9)
+"The consequences include difficulty in verifying the true author, causing existing anti-plagiarism software (such as Turnitin) to face technical bottlenecks.     A better idea -      My Idea -  -      -     " ( Consequences by 林佳暘 G9)
+"
+     My Idea -  Generative AI operates on probabilistic word prediction rather than factual verification. It often produces "hallucinations"—false data or fabricated citations. Without rigorous fact-checking, this undermines the fundamental integrity of academic research.-     
+      My Idea - AI Chatbots Hallucinate because They Are Optimized for Plausibility, Not Truth -     
+"
+( Risks of AI Hallucinations and Academic Accuracy by 童奕舜 G9)
+"     My Idea - Suppose a student asks an AI to find academic sources for "the impact of economic indicators on well-being." The AI might generate a perfectly formatted citation: “Chen, Y. (2022). Economic Growth and Mental Health in Taiwan. Journal of East Asian Economics.” However, this paper does not exist. The AI simply combined common names, a plausible year, and a realistic-sounding journal name based on probability. -     " ( Example by 童奕舜 G9)
+"     My Idea - If a professor or peer verifies the source and finds it is fabricated, the student's credibility is ruined, potentially leading to charges of academic dishonesty. -     " ( Consequences by 童奕舜 G9)
+"     My Idea - Imagine a student assigned to write an argumentative essay on a complex economic theory. Instead of reading through academic papers and forming their own perspective, the student prompts an AI: "Write a 1000-word essay on the pros and cons of Keynesian economics." The AI provides a smooth, well-structured draft in seconds. The student submits it after minor editing, skipping the entire process of logical reasoning and synthesis. -     " ( Example by 童奕舜 G9)
+"     My Idea - Students become "operators" rather than "thinkers." Without AI assistance (e.g., during exams or live interviews), they struggle to construct deep, logical arguments independently, leading to intellectual dependency. -     " ( Consequences by 童奕舜 G9)
+"     My Idea - Restricts AI use for core academic tasks. Penalties include degree revocation. -          My Idea - https://stl.pku.edu.cn/uploads/202411/26102211_98533_67921156%5B-%5DSTLAcademicRules-AIPolicy-Fall2024.pdf -     " ( Peking University by 謝定軒 G9)
+"
+     My Idea - 
+Over-restricting AI use prevents students from developing essential skills they will need in future workplaces.
+ -     
+"
+( rebut by 劉采瑜 G9)
+"
+     My Idea - 
+Bias in algorithms is a current limitation of AI in education because it can lead to inaccurate or unfair outcomes that disproportionately impact certain groups of students. These biases often stem from the data used to train AI systems, which may reflect historical stereotypes or inequities. A notable example involves AI-based plagiarism detection tools.  
+According to a Stanford University study, some of these tools have been shown to falsely flag essays written by non-native English speakers as AI-generated or plagiarized. This study also acknowledged the challenge of facial recognition software used for online proctoring, which has been found to perform poorly on students with darker skin tones. 
+The International Journal of Artificial Intelligence in Education recently published a comprehensive review of algorithmic bias in education. The review indicated that for certain underrepresented groups, biased algorithms could lead to the misidentification of learning needs, disproportionate student disciplinary actions or unfair feedback and grading. 
+ -          My Idea - https://ace.edu/blog/pros-and-cons-ai-in-education/ -     
+"
+( Potential Bias in Algorithms by 謝定軒 G9)
+"
+     My Idea - Bias is not unique to AI, human decision-making is also inherently biased, but AI systems can be systematically evaluated and improved.
+link:https://arxiv.org/abs/1911.05755?utm_source=chatgpt.com -     
+"
+( rebut by 劉采瑜 G9)
+"AI could seriously fabricate fake document citations, historical events, or scientific data." ( Example by 林佳暘 G9)
+"If students lack the ability to verify information, it can lead to errors in academic papers and even the spread of false biases.     My Idea -  -     " ( Consequences by 林佳暘 G9)
+"
+     My Idea -
+Students should possess basic knowledge before conducting research, so that they can promptly identify errors in AI-generated content and provide suggestions for correction.
+  -     
+"
+( rebut by 劉采瑜 G9)
+"     New Information - Lastly, the rise of AI in education brings the concern of teacher job displacement. As AI systems take on more roles traditionally filled by educators, there is a fear that teachers may become obsolete. Automated grading, AI-driven tutoring, and administrative tasks handled by AI could reduce the need for human teachers, leading to job losses and a devaluation of the teaching profession. While AI can certainly support and enhance educational practices, it is essential to balance its implementation to ensure that teachers remain integral to the educational process, providing the human touch that technology cannot replace. -          New Information - https://www.ucanwest.ca/blog/education-careers-tips/advantages-and-disadvantages-of-ai-in-education -     " ( Teacher Job Displacement by 謝定軒 G9)
+"
+     My Idea - 
+Privacy and security concerns are a challenge in education because AI systems often require access to large amounts of data to function effectively. Sometimes, the data is sensitive and could include academic records, behavioral data or other types of personal information. If the data is not stored properly, it could be vulnerable to hackers or others who are not authorized to access it. 
+One increasingly common issue has to do with online proctoring tools. During remote exams, AI-powered proctoring tools can monitor students via webcam, track eye movements and flag “suspicious” behavior. While designed to prevent cheating, these tools have generated significant security and privacy concerns. Regarding security, if the proctoring platform is compromised, sensitive personal data and video could be leaked. There are also serious privacy concerns, as these tools require students to show their IDs, scan their rooms and allow access to their microphones and cameras. 
+ -          My Idea - https://ace.edu/blog/pros-and-cons-ai-in-education/ -     
+"
+( Security and Privacy Concerns by 謝定軒 G9)
+"
+     My Idea - 
+AI in education also raises the risk of cheating. Advanced AI tools can be exploited by students to find ways to bypass academic integrity measures. For instance, AI-powered plagiarism detection systems may themselves be outsmarted by sophisticated AI-generated content that mimics genuine student work. Additionally, AI-based tutoring systems and automated assessments might be manipulated to provide undue assistance, undermining the fairness and integrity of academic evaluations. Schools and institutions must continuously adapt and update their AI tools to mitigate these risks.
+ -         My Idea - https://www.ucanwest.ca/blog/education-careers-tips/advantages-and-disadvantages-of-ai-in-education -     
+"
+( Risk Of Cheating by 謝定軒 G9)
+"
+   - 
+While AI can automate tasks and personalize content, it cannot replicate the compassion, empathy and support that educators provide. 
+In a recent study, researchers found that students who relied heavily on AI writing assistants or chatbots showed a decline in analytical reasoning, critical thinking and decision-making. These students frequently accepted AI-generated responses without questioning their logic or accuracy, leading to a superficial understanding of complex topics. 
+ -      - https://ace.edu/blog/pros-and-cons-ai-in-education/ -   
+"
+( Less Human Interaction by 謝定軒 G9)
+"
+     My Idea - 
+While AI can automate tasks and personalize content, it cannot replicate the compassion, empathy and support that educators provide. 
+In a recent study, researchers found that students who relied heavily on AI writing assistants or chatbots showed a decline in analytical reasoning, critical thinking and decision-making. These students frequently accepted AI-generated responses without questioning their logic or accuracy, leading to a superficial understanding of complex topics. 
+ -          My Idea - https://ace.edu/blog/pros-and-cons-ai-in-education/ -     
+"
+( Less Human Interaction by 謝定軒 G9)
+"
+     My Idea - AI is trained on historical data and tends to produce mainstream, mediocre viewpoints, which reinforces existing societal biases (e.g., gender or cultural stereotypes). The core of university education is to challenge the status quo; however, over-reliance on AI traps students in an algorithmic "echo chamber," stifling academic innovation. -     
+     My Idea - UNESCO - "Guidance for generative AI in education and research" -     
+"
+( Algorithmic Bias and Loss of Critical Spirit by 童奕舜 G9)
+

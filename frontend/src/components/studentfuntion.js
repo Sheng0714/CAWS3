@@ -78,6 +78,8 @@ const getScoringUnlocked = () => {
 const getIsCompletedEntry = () =>
   localStorage.getItem("isCompletedActivityEntry") === "true";
 
+const isWritingAreaEntryTemporarilyDisabled = false;
+
 export default function Studentfuntion() {
   const navigate = useNavigate();
   const [isScoringUnlocked, setIsScoringUnlocked] = useState(getScoringUnlocked);
@@ -116,6 +118,7 @@ export default function Studentfuntion() {
   }, [refreshCompletedEntryState, refreshScoringUnlockState]);
 
   const handleEnterClick = (id) => {
+    if (isWritingAreaEntryTemporarilyDisabled && id === 3) return;
     if (isCompletedLockedCard(id)) return;
 
     if (id === 1) {
@@ -219,7 +222,8 @@ export default function Studentfuntion() {
               const isScoringCard = card.id === 4;
               const isScoringLocked = isScoringCard && !isScoringUnlocked;
               const isCompletedLocked = isCompletedLockedCard(card.id);
-              const isEnterLocked = isScoringLocked || isCompletedLocked;
+              const isWritingAreaLocked = isWritingAreaEntryTemporarilyDisabled && card.id === 3;
+              const isEnterLocked = isScoringLocked || isCompletedLocked || isWritingAreaLocked;
 
               return (
               <div

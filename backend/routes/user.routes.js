@@ -20,6 +20,7 @@ module.exports = app => {
     
     // User renew token
     router.get("/renew", authenticateJWT, users.reNewToken);
+    router.post("/login-trend-by-students", authenticateJWT, bodyParser.json(), users.getLoginTrendByStudents);
 
     
     // Retrieve all Users

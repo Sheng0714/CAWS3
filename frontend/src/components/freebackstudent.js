@@ -1,8 +1,9 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Box, Button, TextField } from '@mui/material';
+import { Box, Button, CircularProgress } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar_Student';
+import './freebackstudent.css';
 
 const notionApiBases = [
   process.env.REACT_APP_NOTION_API_BASE_URL,
@@ -90,18 +91,6 @@ const WritingArea = () => {
   const [rebuttalsText, setRebuttalsText] = useState('');
   const [score, setScore] = useState('');
 
-  const blackBorderFieldSx = {
-    '& .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#000',
-    },
-    '&:hover .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#000',
-    },
-    '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#000',
-    },
-  };
-
   useEffect(() => {
     let mounted = true;
 
@@ -153,7 +142,11 @@ const WritingArea = () => {
         if (!mounted) return;
         const fetchedEssay = notionData?.essayContent || '';
         setEditorContent(normalizeEssayText(fetchedEssay || fallbackLocalEssay));
-        setTeacherFeedback(normalizeFieldValue(notionData?.teacherFeedback));
+        setTeacherFeedback(
+          normalizeFieldValue(
+            notionData?.teacherFeedback || notionData?.humanComment || notionData?.aiComment
+          )
+        );
         setClaimsCount(normalizeFieldValue(notionData?.claimsScore));
         setClaimsText(normalizeFieldValue(notionData?.claimsComment));
         setGroundsCount(normalizeFieldValue(notionData?.groundsScore));
@@ -183,256 +176,87 @@ const WritingArea = () => {
   }, [location.state]);
 
   return (
-    <div style={{ backgroundColor: '#fff' }}>
+    <div className="fbs-page">
       <Navbar />
 
-      <Box
-        sx={{
-          display: 'flex',
-          minHeight: 'calc(100vh - 120px)',
-          padding: '10px',
-          gap: '10px',
-          backgroundColor: '#fff',
-        }}
-      >
-        <Box
-          sx={{
-            width: '100%',
-            border: '1px solid #000',
-            borderRadius: '0',
-            backgroundColor: '#fff',
-            boxSizing: 'border-box',
-            position: 'relative',
-            minHeight: { md: '600px', sm: '800px', xs: 'auto' },
-            display: 'flex',
-            flexDirection: 'row',
-            '@media (max-width: 700px)': {
-              width: '100%',
-              padding: '10px',
-              border: '1px solid #000',
-            },
-          }}
-        >
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
-            <Box
-              sx={{
-                width: '100%',
-                minHeight: '100px',
-                display: 'flex',
-                justifyContent: 'flex-start',
-                alignItems: 'flex-start',
-                backgroundColor: '#fff',
-                borderBottom: '1px solid #000',
-                fontSize: '22px',
-                fontWeight: 500,
-                padding: '10px',
-              }}
-            >
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                <Box sx={{ fontSize: '22px', fontWeight: 500, lineHeight: 1.2, fontFamily: 'inherit' }}>
-                  {`Student: ${studentName || '-'}`}
-                </Box>
-                <Box sx={{ fontSize: '22px', fontWeight: 500, lineHeight: 1.2, fontFamily: 'inherit' }}>
-                  {`Class: ${activityTitle || '-'}`}
-                </Box>
-                <Box sx={{ fontSize: '22px', fontWeight: 500, lineHeight: 1.2, fontFamily: 'inherit' }}>
-                  {`Topic: ${groupName || '-'}`}
-                </Box>
+      <div className="fbs-workspace">
+        <section className="fbs-panel fbs-left-panel">
+          <div className="fbs-info-card">
+            <div className="fbs-info-row">
+              <span className="fbs-info-label">Student</span>
+              <span className="fbs-info-value">{studentName || '-'}</span>
+            </div>
+            <div className="fbs-info-row">
+              <span className="fbs-info-label">Class</span>
+              <span className="fbs-info-value">{activityTitle || '-'}</span>
+            </div>
+            <div className="fbs-info-row">
+              <span className="fbs-info-label">Topic</span>
+              <span className="fbs-info-value">{groupName || '-'}</span>
+            </div>
+          </div>
+
+          <div className="fbs-essay-card">
+            <div className="fbs-card-title">Argumentative Essay</div>
+            <div className="fbs-essay-content">
+              {isEssayLoading ? (
+                <div className="fbs-loading">
+                  <CircularProgress size={24} />
+                </div>
+              ) : (
+                editorContent || 'No essay content found for this student.'
+              )}
+            </div>
+            {!isEssayLoading && essayLoadError ? (
+              <div className="fbs-error">{essayLoadError}</div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="fbs-panel fbs-right-panel">
+          <div className="fbs-section-card">
+            <div className="fbs-subtitle">Feedback</div>
+            <div className="fbs-feedback-content">
+              {teacherFeedback || 'No feedback available yet.'}
+            </div>
+          </div>
+
+          <div className="fbs-section-card">
+            <div className="fbs-subtitle">Detailed Feedback</div>
+
+            <Box className="fbs-detail-block">
+              <Box className="fbs-detail-head">
+                <span>Claims</span>
+                <span>{`Score: ${claimsCount || '-'}`}</span>
               </Box>
+              <Box className="fbs-detail-body">{claimsText || 'No claims feedback.'}</Box>
             </Box>
 
-            {isEssayLoading && (
-              <Box sx={{ px: 1.5, py: 1, fontSize: '14px', color: '#334155' }}>
-                正在載入學生文章...
+            <Box className="fbs-detail-block">
+              <Box className="fbs-detail-head">
+                <span>Grounds</span>
+                <span>{`Score: ${groundsCount || '-'}`}</span>
               </Box>
-            )}
-
-            {!isEssayLoading && essayLoadError && (
-              <Box sx={{ px: 1.5, py: 1, fontSize: '14px', color: '#b91c1c' }}>
-                {essayLoadError}
-              </Box>
-            )}
-
-            <Box sx={{ flex: 1, overflowY: 'auto', minHeight: '300px', backgroundColor: 'white', width: '100%' }}>
-              <TextField
-                multiline
-                fullWidth
-                minRows={10}
-                value={editorContent}
-                onChange={(e) => setEditorContent(e.target.value)}
-                placeholder=""
-                sx={{
-                  height: '100%',
-                  width: '100%',
-                  '& .MuiOutlinedInput-root': {
-                    height: '100%',
-                    alignItems: 'flex-start',
-                    '& fieldset': {
-                      border: 'none',
-                    },
-                    '&:hover fieldset': {
-                      border: 'none',
-                    },
-                    '&.Mui-focused fieldset': {
-                      border: 'none',
-                    },
-                  },
-                }}
-              />
+              <Box className="fbs-detail-body">{groundsText || 'No grounds feedback.'}</Box>
             </Box>
 
-            <Box sx={{ pt: 1, width: '100%' }}>
-              <Box
-                sx={{
-                  borderTop: '1px solid #000',
-                  borderBottom: '1px solid #000',
-                  backgroundColor: '#fff',
-                  minHeight: '140px',
-                  p: 2,
-                  width: '100%',
-                  boxSizing: 'border-box',
-                }}
-              >
-                <Box
-                  sx={{
-                    fontSize: '22px',
-                    fontWeight: 500,
-                    lineHeight: 1.2,
-                    fontFamily: 'inherit',
-                    pb: 1,
-                    mb: 1,
-                    mx: -2,
-                    px: 2,
-                    borderBottom: '1px solid #000',
-                  }}
-                >
-                  Teacher feedback
-                </Box>
-                <TextField
-                  multiline
-                  rows={4}
-                  fullWidth
-                  value={teacherFeedback}
-                  InputProps={{ readOnly: true }}
-                  onChange={(e) => setTeacherFeedback(e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': {
-                        border: 'none',
-                      },
-                      '&:hover fieldset': {
-                        border: 'none',
-                      },
-                      '&.Mui-focused fieldset': {
-                        border: 'none',
-                      },
-                    },
-                  }}
-                />
+            <Box className="fbs-detail-block">
+              <Box className="fbs-detail-head">
+                <span>Rebuttals</span>
+                <span>{`Score: ${rebuttalsCount || '-'}`}</span>
               </Box>
-
-              <Box
-                sx={{
-                  mt: 2,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  gap: 2,
-                }}
-              >
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ width: '90px' }}>Claims</Box>
-                    <TextField
-                      size="small"
-                      value={claimsCount}
-                      InputProps={{ readOnly: true }}
-                      onChange={(e) => setClaimsCount(e.target.value)}
-                      sx={{ width: '80px', ...blackBorderFieldSx }}
-                    />
-                    <TextField
-                      size="small"
-                      fullWidth
-                      value={claimsText}
-                      InputProps={{ readOnly: true }}
-                      onChange={(e) => setClaimsText(e.target.value)}
-                      sx={blackBorderFieldSx}
-                    />
-                  </Box>
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ width: '90px' }}>Grounds</Box>
-                    <TextField
-                      size="small"
-                      value={groundsCount}
-                      InputProps={{ readOnly: true }}
-                      onChange={(e) => setGroundsCount(e.target.value)}
-                      sx={{ width: '80px', ...blackBorderFieldSx }}
-                    />
-                    <TextField
-                      size="small"
-                      fullWidth
-                      value={groundsText}
-                      InputProps={{ readOnly: true }}
-                      onChange={(e) => setGroundsText(e.target.value)}
-                      sx={blackBorderFieldSx}
-                    />
-                  </Box>
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ width: '90px' }}>Rebuttals</Box>
-                    <TextField
-                      size="small"
-                      value={rebuttalsCount}
-                      InputProps={{ readOnly: true }}
-                      onChange={(e) => setRebuttalsCount(e.target.value)}
-                      sx={{ width: '80px', ...blackBorderFieldSx }}
-                    />
-                    <TextField
-                      size="small"
-                      fullWidth
-                      value={rebuttalsText}
-                      InputProps={{ readOnly: true }}
-                      onChange={(e) => setRebuttalsText(e.target.value)}
-                      sx={blackBorderFieldSx}
-                    />
-                  </Box>
-                </Box>
-
-                <Box sx={{ width: '140px', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Box sx={{ fontWeight: 'bold' }}>Score</Box>
-                  <TextField
-                    size="small"
-                    value={score}
-                    InputProps={{ readOnly: true }}
-                    onChange={(e) => setScore(e.target.value)}
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={() => navigate(-1)}
-                    sx={{
-                      width: '30%',
-                      minWidth: '90px',
-                      alignSelf: 'center',
-                      color: '#000',
-                      fontWeight: 'bold',
-                      border: '1px solid #000',
-                      backgroundColor: 'rgba(204, 149, 101, 0.3)',
-                      boxShadow: 'none',
-                      '&:hover': {
-                        backgroundColor: 'rgba(204, 149, 101, 0.45)',
-                        boxShadow: 'none',
-                      },
-                    }}
-                  >
-                    Back
-                  </Button>
-                </Box>
-              </Box>
+              <Box className="fbs-detail-body">{rebuttalsText || 'No rebuttals feedback.'}</Box>
             </Box>
-          </Box>
-        </Box>
-      </Box>
+          </div>
+
+          <div className="fbs-footer">
+            <div className="fbs-total-score">{`Total Score: ${score || '-'}`}</div>
+            <Button variant="outlined" onClick={() => navigate(-1)} className="fbs-back-btn">
+              Back
+            </Button>
+          </div>
+        </section>
+      </div>
     </div>
   );
 };
