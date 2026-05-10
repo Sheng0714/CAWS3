@@ -18,7 +18,7 @@ import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import io from 'socket.io-client';
 import ActivityCard from '../components/ActivityCard';
 import url from '../url.json';
-import { fetchGradedStatus } from '../services/essayNotificationService';
+import { fetchNotificationStatus } from '../services/essayNotificationService';
 import teacherAvatar from '../assets/teacher.png';
 
 const READ_NOTIFICATION_STORAGE_KEY = 'readNotificationMap_v1';
@@ -33,6 +33,20 @@ const buildActivityKey = (activity) => {
   const activityId = activity?.ActivityGroup?.Activity?.id || '';
   const groupId = activity?.ActivityGroup?.Group?.groupId || activity?.ActivityGroup?.Group?.id || '';
   return `${activityId}::${groupId}`;
+};
+
+const formatNotificationTime = (timeValue) => {
+  const raw = String(timeValue || '').trim();
+  if (!raw) return '';
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return parsed.toLocaleString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
 
 const readNotificationMapFromStorage = () => {
@@ -57,6 +71,7 @@ export default function Index() {
     className: '',
     topicName: '',
     hasNotification: false,
+    notifications: [],
     message: '',
   });
   const [ws, setWs] = useState(null);
@@ -119,16 +134,25 @@ export default function Index() {
           }
 
           try {
-            const hasNotification = await fetchGradedStatus({
+            const status = await fetchNotificationStatus({
               studentName,
               className,
               theme: topicName,
             });
-            const isRead = key ? Boolean(readNotificationMap[getReadNotificationKey(key)]) : false;
-            return [key, hasNotification && !isRead];
+            const readVersion = key ? String(readNotificationMap[getReadNotificationKey(key)] || '') : '';
+            const hasUnread = status?.hasNotification && readVersion !== String(status?.version || '');
+            return [key, hasUnread, status];
           } catch (error) {
             console.error('Failed to load notification status:', error);
-            return [key, false];
+            return [
+              key,
+              false,
+              {
+                hasNotification: false,
+                version: 'error',
+                message: 'Unable to load notifications right now. Please try again later.',
+              },
+            ];
           }
         })
       );
@@ -202,6 +226,7 @@ export default function Index() {
       className: normalizedClassName,
       topicName: normalizedTopicName,
       hasNotification: false,
+      notifications: [],
       message: '',
     });
 
@@ -213,20 +238,21 @@ export default function Index() {
         className: normalizedClassName,
         topicName: normalizedTopicName,
         hasNotification: false,
+        notifications: [],
         message: 'No new notification for this class topic yet.',
       });
       return;
     }
 
     try {
-      const graded = await fetchGradedStatus({
+      const status = await fetchNotificationStatus({
         studentName,
         className: normalizedClassName,
         theme: normalizedTopicName,
       });
 
-      if (graded && key) {
-        setReadNotificationMap((prev) => ({ ...prev, [readKey]: true }));
+      if (status?.hasNotification && key) {
+        setReadNotificationMap((prev) => ({ ...prev, [readKey]: String(status?.version || '') }));
       }
 
       setNotificationMap((prev) => ({ ...prev, [key]: false }));
@@ -235,10 +261,9 @@ export default function Index() {
         loading: false,
         className: normalizedClassName,
         topicName: normalizedTopicName,
-        hasNotification: graded,
-        message: graded
-          ? "Your essay has been graded! You can check your teacher's comments and score in Scoring & Feedback."
-          : 'No new notification for this class topic yet.',
+        hasNotification: Boolean(status?.hasNotification),
+        notifications: Array.isArray(status?.notifications) ? status.notifications : [],
+        message: status?.message || 'No new notification for this class topic yet.',
       });
     } catch (error) {
       console.error('Failed to load notification status:', error);
@@ -248,6 +273,7 @@ export default function Index() {
         className: normalizedClassName,
         topicName: normalizedTopicName,
         hasNotification: false,
+        notifications: [],
         message: 'Unable to load notifications right now. Please try again later.',
       });
     }
@@ -396,39 +422,93 @@ export default function Index() {
           ) : (
             <Box
               sx={{
-                border: '1.5px solid #D1D5DB',
-                borderRadius: '12px',
-                padding: '14px 16px',
                 display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                backgroundColor: '#FFFFFF',
+                flexDirection: 'column',
+                gap: '10px',
+                maxHeight: '360px',
+                overflowY: 'auto',
+                paddingRight: '4px',
               }}
             >
-              <Box
-                sx={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  backgroundColor: '#2563EB',
-                  flex: '0 0 auto',
-                }}
-              />
-              <Box
-                component="img"
-                src={teacherAvatar}
-                alt="Teacher avatar"
-                sx={{
-                  width: '45px',
-                  height: '45px',
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  flex: '0 0 auto',
-                }}
-              />
-                <p style={{ margin: 0, fontSize: '15px', lineHeight: 1.5, fontWeight: 700 }}>
-                  {notificationDialog.message}
-                </p>
+              {Array.isArray(notificationDialog.notifications) && notificationDialog.notifications.length > 0 ? (
+                notificationDialog.notifications.map((item, idx) => (
+                  <Box
+                    key={`${item?.type || 'notification'}-${idx}`}
+                    sx={{
+                      border: '1.5px solid #D1D5DB',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '12px',
+                      backgroundColor: '#FFFFFF',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        backgroundColor: '#2563EB',
+                        flex: '0 0 auto',
+                        marginTop: '6px',
+                      }}
+                    />
+                    <Box
+                      component="img"
+                      src={teacherAvatar}
+                      alt="Teacher avatar"
+                      sx={{
+                        width: '45px',
+                        height: '45px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        flex: '0 0 auto',
+                      }}
+                    />
+                    <p style={{ margin: 0, fontSize: '15px', lineHeight: 1.6, fontWeight: 700, whiteSpace: 'pre-wrap' }}>
+                      {`${item?.title || 'Teacher'}:\nMessage: ${item?.content || ''}\ntime: ${formatNotificationTime(item?.time) || '-'}`}
+                    </p>
+                  </Box>
+                ))
+              ) : (
+                <Box
+                  sx={{
+                    border: '1.5px solid #D1D5DB',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    backgroundColor: '#FFFFFF',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '50%',
+                      backgroundColor: '#2563EB',
+                      flex: '0 0 auto',
+                    }}
+                  />
+                  <Box
+                    component="img"
+                    src={teacherAvatar}
+                    alt="Teacher avatar"
+                    sx={{
+                      width: '45px',
+                      height: '45px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      flex: '0 0 auto',
+                    }}
+                  />
+                  <p style={{ margin: 0, fontSize: '15px', lineHeight: 1.5, fontWeight: 700 }}>
+                    {notificationDialog.message}
+                  </p>
+                </Box>
+              )}
             </Box>
           )}
         </DialogContent>

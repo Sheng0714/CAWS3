@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import Navbar from "./Navbar_Student";
 import StudentLeftSidebar from "./StudentLeftSidebar";
 import backIcon from "../assets/back.png";
@@ -56,12 +57,17 @@ const cardData = [
   },
 ];
 
-const buildSubmitLockKey = (studentName, className, theme) =>
-  `submitLocked::${encodeURIComponent(studentName || "")}::${encodeURIComponent(
-    className || ""
-  )}::${encodeURIComponent(theme || "")}`;
+const notionApiBases = [
+  process.env.REACT_APP_NOTION_API_BASE_URL,
+  "/notion-api",
+  "http://localhost:4000",
+  "http://140.115.126.27:4000",
+].filter(Boolean);
 
-const getScoringUnlocked = () => {
+const SUBMISSION_STATUS_FIELD = "\u662f\u5426\u7e73\u4ea4";
+const hasSubmissionStatusValue = (value) => String(value ?? "").trim().length > 0;
+
+const resolveScoringScope = () => {
   const studentName =
     localStorage.getItem("name") ||
     localStorage.getItem("username") ||
@@ -69,10 +75,34 @@ const getScoringUnlocked = () => {
     "";
   const className = localStorage.getItem("activityTitle") || "";
   const theme = localStorage.getItem("groupName") || "";
+  return { studentName, className, theme };
+};
+
+const syncScoringUnlockFromNotion = async () => {
+  const { studentName, className, theme } = resolveScoringScope();
   if (!studentName || !className || !theme) return false;
 
-  const scopedSubmitLockKey = buildSubmitLockKey(studentName, className, theme);
-  return localStorage.getItem(scopedSubmitLockKey) === "true";
+  const token = localStorage.getItem("jwtToken");
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+  for (const base of notionApiBases) {
+    const normalizedBase = base.replace(/\/+$/, "");
+    const url = `${normalizedBase}/api/get-essay/${encodeURIComponent(studentName)}`;
+    try {
+      const response = await axios.get(url, {
+        timeout: 15000,
+        headers,
+        params: { className, theme },
+      });
+      const record = response?.data?.data || null;
+      const submissionStatus = record?.submissionStatus ?? record?.[SUBMISSION_STATUS_FIELD];
+      return hasSubmissionStatusValue(submissionStatus);
+    } catch (error) {
+      if (error?.response?.status === 404) return false;
+    }
+  }
+
+  return false;
 };
 
 const getIsCompletedEntry = () =>
@@ -82,14 +112,15 @@ const isWritingAreaEntryTemporarilyDisabled = false;
 
 export default function Studentfuntion() {
   const navigate = useNavigate();
-  const [isScoringUnlocked, setIsScoringUnlocked] = useState(getScoringUnlocked);
+  const [isScoringUnlocked, setIsScoringUnlocked] = useState(false);
   const [isCompletedEntry, setIsCompletedEntry] = useState(getIsCompletedEntry);
   const [showScoringLockTooltip, setShowScoringLockTooltip] = useState(false);
   const scoringLockedTooltip =
     "Please submit your argumentative essay in the Writing Area first!!!";
 
-  const refreshScoringUnlockState = useCallback(() => {
-    setIsScoringUnlocked(getScoringUnlocked());
+  const syncScoringUnlockState = useCallback(async () => {
+    const isUnlocked = await syncScoringUnlockFromNotion();
+    setIsScoringUnlocked(isUnlocked);
   }, []);
 
   const refreshCompletedEntryState = useCallback(() => {
@@ -102,20 +133,26 @@ export default function Studentfuntion() {
   );
 
   useEffect(() => {
-    refreshScoringUnlockState();
+    void syncScoringUnlockState();
     refreshCompletedEntryState();
-    window.addEventListener("focus", refreshScoringUnlockState);
+    const onWindowFocus = () => {
+      void syncScoringUnlockState();
+    };
+    const onWindowStorage = () => {
+      void syncScoringUnlockState();
+    };
+    window.addEventListener("focus", onWindowFocus);
     window.addEventListener("focus", refreshCompletedEntryState);
-    window.addEventListener("storage", refreshScoringUnlockState);
+    window.addEventListener("storage", onWindowStorage);
     window.addEventListener("storage", refreshCompletedEntryState);
 
     return () => {
-      window.removeEventListener("focus", refreshScoringUnlockState);
+      window.removeEventListener("focus", onWindowFocus);
       window.removeEventListener("focus", refreshCompletedEntryState);
-      window.removeEventListener("storage", refreshScoringUnlockState);
+      window.removeEventListener("storage", onWindowStorage);
       window.removeEventListener("storage", refreshCompletedEntryState);
     };
-  }, [refreshCompletedEntryState, refreshScoringUnlockState]);
+  }, [refreshCompletedEntryState, syncScoringUnlockState]);
 
   const handleEnterClick = (id) => {
     if (isWritingAreaEntryTemporarilyDisabled && id === 3) return;

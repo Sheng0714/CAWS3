@@ -1686,6 +1686,11 @@ const GRADING_FIELD_CONFIGS = [
         allowedTypes: ['rich_text', 'title'],
     },
     {
+        inputKey: 'teacherMessage',
+        aliases: ['\u7559\u8a00\u6b04\u4f4d', '\u7559\u8a00', 'Teacher Message', 'Message Board', 'TeacherNotification'],
+        allowedTypes: ['rich_text', 'title'],
+    },
+    {
         inputKey: 'submissionStatus',
         aliases: ['是否繳交', '繳交狀態', '提交狀態', 'Submission Status', 'SubmissionStatus', 'Submitted'],
         allowedTypes: ['rich_text', 'title', 'select', 'status', 'checkbox'],
@@ -2271,6 +2276,17 @@ app.get('/api/get-essay/:studentName', async (req, res) => {
             getDisplayValueByAliases(properties, ['教師評語']),
             parsedNote?.humanComment
         );
+        const teacherMessage = pickFirstNonEmptyValue(
+            getDisplayValueByAliases(properties, [
+                '\u7559\u8a00\u6b04\u4f4d',
+                '\u7559\u8a00',
+                'Teacher Message',
+                'Message Board',
+                'TeacherNotification',
+            ]),
+            parsedNote?.teacherNotificationMessage,
+            parsedNote?.teacherMessage
+        );
         const claimsScore = pickFirstNonEmptyValue(
             getDisplayValueByAliases(properties, ['Claims分數']),
             parsedNote?.claimsScore
@@ -2300,15 +2316,31 @@ app.get('/api/get-essay/:studentName', async (req, res) => {
             parsedNote?.totalScore
         );
 
+        const submissionStatus = normalizeSubmissionStatus(
+            pickFirstNonEmptyValue(
+                getDisplayValueByAliases(properties, [
+                    '\u662f\u5426\u7e73\u4ea4',
+                    '\u7e73\u4ea4\u72c0\u614b',
+                    '\u63d0\u4ea4\u72c0\u614b',
+                    'Submission Status',
+                    'SubmissionStatus',
+                    'Submitted',
+                ]),
+                parsedNote?.submissionStatus
+            )
+        );
+
         res.json({
             success: true,
             data: {
+                lastEditedTime: latestPage?.last_edited_time || '',
                 essayContent,
                 noteContent,
                 kfAnalysisContent,
                 chatHistory: safeJsonParse(chatHistoryContent, []),
                 outlineContent,
                 teacherFeedback,
+                teacherMessage,
                 claimsScore,
                 claimsComment,
                 groundsScore,
@@ -2316,6 +2348,7 @@ app.get('/api/get-essay/:studentName', async (req, res) => {
                 rebuttalsScore,
                 rebuttalsComment,
                 totalScore,
+                submissionStatus,
             },
             matchedBy,
         });

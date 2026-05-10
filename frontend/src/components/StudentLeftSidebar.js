@@ -197,24 +197,8 @@ const buildWritingStageChecks = ({ summaryValue = "", outlineValue = "", finalWr
 const buildEssayStorageKey = (studentName, className, topicName) =>
   `essayData::${encodeURIComponent(studentName || "")}::${encodeURIComponent(className || "")}::${encodeURIComponent(topicName || "")}`;
 
-const buildSubmitLockKey = (studentName, className, theme) =>
-  `submitLocked::${encodeURIComponent(studentName || "")}::${encodeURIComponent(
-    className || ""
-  )}::${encodeURIComponent(theme || "")}`;
-
-const getScoringUnlocked = () => {
-  const studentName =
-    localStorage.getItem("name") ||
-    localStorage.getItem("username") ||
-    localStorage.getItem("userName") ||
-    "";
-  const className = localStorage.getItem("activityTitle") || "";
-  const theme = localStorage.getItem("groupName") || "";
-  if (!studentName || !className || !theme) return false;
-
-  const scopedSubmitLockKey = buildSubmitLockKey(studentName, className, theme);
-  return localStorage.getItem(scopedSubmitLockKey) === "true";
-};
+const hasSubmissionStatusValue = (value) => String(value ?? "").trim().length > 0;
+const SUBMISSION_STATUS_FIELD = "\u662f\u5426\u7e73\u4ea4";
 
 const isWritingAreaEntryTemporarilyDisabled = false;
 
@@ -228,7 +212,7 @@ export default function StudentLeftSidebar() {
   const [activeSidebarEditor, setActiveSidebarEditor] = useState("");
   const [expandedToolkitPanel, setExpandedToolkitPanel] = useState("");
   const [expandedPrimaryPanel, setExpandedPrimaryPanel] = useState("");
-  const [isScoringUnlocked, setIsScoringUnlocked] = useState(getScoringUnlocked);
+  const [isScoringUnlocked, setIsScoringUnlocked] = useState(false);
   const latestLoadRequestRef = useRef(0);
   const latestScopeSignatureRef = useRef("");
   const triggerToolkitReloadRef = useRef(() => {});
@@ -369,6 +353,7 @@ export default function StudentLeftSidebar() {
       );
 
       if (!toolkitScope.studentName || !toolkitScope.className || !toolkitScope.topicName) {
+        setIsScoringUnlocked(false);
         setWritingStageChecks(buildWritingStageChecks());
         return;
       }
@@ -382,6 +367,7 @@ export default function StudentLeftSidebar() {
           return;
         }
         if (!notionData) {
+          setIsScoringUnlocked(false);
           setWritingStageChecks(buildWritingStageChecks());
           return;
         }
@@ -394,6 +380,8 @@ export default function StudentLeftSidebar() {
           typeof notionData?.essayContent === "string" ? notionData.essayContent : "";
         const fetchedNotes =
           typeof notionData?.noteContent === "string" ? notionData.noteContent : "";
+        const submissionStatus = notionData?.submissionStatus ?? notionData?.[SUBMISSION_STATUS_FIELD];
+        setIsScoringUnlocked(hasSubmissionStatusValue(submissionStatus));
 
         setKfSummaryContent(fetchedKfSummary);
         setOutlineContent(fetchedOutline);
@@ -414,6 +402,7 @@ export default function StudentLeftSidebar() {
         writeToolkitContentByScope("noteData", fetchedNotes, toolkitScope);
       } catch (error) {
         if (isUnmounted) return;
+        setIsScoringUnlocked(false);
         console.error("Failed to fetch sidebar toolkit content from Notion:", error);
       }
     };
@@ -446,27 +435,6 @@ export default function StudentLeftSidebar() {
       window.removeEventListener("storage", onWindowStorage);
       window.removeEventListener(RAGFLOW_TOOLKIT_STORAGE_EVENT, onToolkitStorageUpdated);
       triggerToolkitReloadRef.current = () => {};
-    };
-  }, []);
-
-  useEffect(() => {
-    const refreshScoringUnlockState = () => {
-      setIsScoringUnlocked(getScoringUnlocked());
-    };
-
-    refreshScoringUnlockState();
-    const onWindowFocus = () => refreshScoringUnlockState();
-    const onWindowStorage = () => refreshScoringUnlockState();
-    const lockWatcherInterval = window.setInterval(() => {
-      refreshScoringUnlockState();
-    }, 1000);
-
-    window.addEventListener("focus", onWindowFocus);
-    window.addEventListener("storage", onWindowStorage);
-    return () => {
-      window.clearInterval(lockWatcherInterval);
-      window.removeEventListener("focus", onWindowFocus);
-      window.removeEventListener("storage", onWindowStorage);
     };
   }, []);
 

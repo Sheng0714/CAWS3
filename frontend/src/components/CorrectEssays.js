@@ -265,12 +265,30 @@ const clampScore = (value, min, max) => {
   return String(Math.min(max, Math.max(min, Math.round(num))));
 };
 
+const createEmptyScoreSet = () => ({
+  claimsScore: "",
+  groundsScore: "",
+  rebuttalsScore: "",
+});
+
 const parseScoreObject = (scoreInput) => {
   const score = scoreInput && typeof scoreInput === "object" ? scoreInput : {};
   return {
-    claimsScore: clampScore(score.claims ?? score.Claims ?? score.claim ?? score.Claim, 0, 2),
-    groundsScore: clampScore(score.grounds ?? score.Grounds ?? score.ground ?? score.Ground, 0, 4),
-    rebuttalsScore: clampScore(score.rebuttals ?? score.Rebuttals ?? score.rebuttal ?? score.Rebuttal, 0, 2),
+    claimsScore: clampScore(
+      score.claimsScore ?? score.claims ?? score.Claims ?? score.claim ?? score.Claim,
+      0,
+      2
+    ),
+    groundsScore: clampScore(
+      score.groundsScore ?? score.grounds ?? score.Grounds ?? score.ground ?? score.Ground,
+      0,
+      4
+    ),
+    rebuttalsScore: clampScore(
+      score.rebuttalsScore ?? score.rebuttals ?? score.Rebuttals ?? score.rebuttal ?? score.Rebuttal,
+      0,
+      2
+    ),
   };
 };
 
@@ -572,15 +590,17 @@ export default function CorrectEssays() {
   const [aiComment, setAiComment] = useState("");
   const [aiFeedbackSections, setAiFeedbackSections] = useState(null);
 
-  const [claimsScore, setClaimsScore] = useState("");
-  const [groundsScore, setGroundsScore] = useState("");
-  const [rebuttalsScore, setRebuttalsScore] = useState("");
+  const [teacherScores, setTeacherScores] = useState(createEmptyScoreSet);
+  const [aiScores, setAiScores] = useState(createEmptyScoreSet);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
   const [gradingView, setGradingView] = useState("teacher");
+
+  const activeScores = gradingView === "teacher" ? teacherScores : aiScores;
+  const { claimsScore, groundsScore, rebuttalsScore } = activeScores;
 
   const totalScore = useMemo(() => {
     const c = Number.isNaN(Number(claimsScore)) ? 0 : Number(claimsScore || 0);
@@ -610,13 +630,20 @@ export default function CorrectEssays() {
     setAiFeedbackSections(null);
   };
 
+  const setActiveScoreField = (field, value) => {
+    if (gradingView === "teacher") {
+      setTeacherScores((prev) => ({ ...prev, [field]: value }));
+      return;
+    }
+    setAiScores((prev) => ({ ...prev, [field]: value }));
+  };
+
   const resetGradingFields = () => {
     setHumanComment("");
     setAiComment("");
     setAiFeedbackSections(null);
-    setClaimsScore("");
-    setGroundsScore("");
-    setRebuttalsScore("");
+    setTeacherScores(createEmptyScoreSet());
+    setAiScores(createEmptyScoreSet());
   };
 
   useEffect(() => {
@@ -708,12 +735,24 @@ export default function CorrectEssays() {
             setHumanComment(parsed.humanComment || "");
             setAiComment(parsed.aiComment || "");
             setAiFeedbackSections(null);
-            setClaimsScore(parsed.claimsScore ?? "");
-            setGroundsScore(parsed.groundsScore ?? "");
-            setRebuttalsScore(parsed.rebuttalsScore ?? "");
+            const legacyScores = parseScoreObject({
+              claimsScore: parsed.claimsScore,
+              groundsScore: parsed.groundsScore,
+              rebuttalsScore: parsed.rebuttalsScore,
+            });
+            const parsedTeacherScores = parseScoreObject(parsed.teacherScores);
+            const parsedAiScores = parseScoreObject(parsed.aiScores);
+            setTeacherScores({
+              claimsScore: parsedTeacherScores.claimsScore || legacyScores.claimsScore,
+              groundsScore: parsedTeacherScores.groundsScore || legacyScores.groundsScore,
+              rebuttalsScore: parsedTeacherScores.rebuttalsScore || legacyScores.rebuttalsScore,
+            });
+            setAiScores(parsedAiScores);
           } catch {
             setAiComment(rawNote);
             setAiFeedbackSections(null);
+            setTeacherScores(createEmptyScoreSet());
+            setAiScores(createEmptyScoreSet());
           }
         }
       } catch (error) {
@@ -813,16 +852,11 @@ export default function CorrectEssays() {
       setAiComment(parsedReply.feedbackText || rawReply);
       setAiFeedbackSections(parsedReply.sections || null);
       setGradingView("ai");
-
-      if (parsedReply.claimsScore !== "") {
-        setClaimsScore(parsedReply.claimsScore);
-      }
-      if (parsedReply.groundsScore !== "") {
-        setGroundsScore(parsedReply.groundsScore);
-      }
-      if (parsedReply.rebuttalsScore !== "") {
-        setRebuttalsScore(parsedReply.rebuttalsScore);
-      }
+      setAiScores((prev) => ({
+        claimsScore: parsedReply.claimsScore !== "" ? parsedReply.claimsScore : prev.claimsScore,
+        groundsScore: parsedReply.groundsScore !== "" ? parsedReply.groundsScore : prev.groundsScore,
+        rebuttalsScore: parsedReply.rebuttalsScore !== "" ? parsedReply.rebuttalsScore : prev.rebuttalsScore,
+      }));
 
       showSnackbar("AI feedback generated.", "success");
     } catch (error) {
@@ -849,6 +883,11 @@ export default function CorrectEssays() {
         gradingView === "ai"
           ? buildEnglishFeedbackFromSections(aiSectionsForSubmit) || String(aiComment || "").trim()
           : String(humanComment || "").trim();
+      const submitScores = gradingView === "ai" ? aiScores : teacherScores;
+      const submitTotalScore =
+        (Number.isNaN(Number(submitScores.claimsScore)) ? 0 : Number(submitScores.claimsScore || 0)) +
+        (Number.isNaN(Number(submitScores.groundsScore)) ? 0 : Number(submitScores.groundsScore || 0)) +
+        (Number.isNaN(Number(submitScores.rebuttalsScore)) ? 0 : Number(submitScores.rebuttalsScore || 0));
       const detailsForSplit =
         gradingView === "ai"
           ? normalizeFeedbackBlock(aiSectionsForSubmit?.details)
@@ -858,13 +897,17 @@ export default function CorrectEssays() {
       const notePayload = JSON.stringify({
         humanComment: feedbackTextForTeacherField,
         aiComment,
-        claimsScore,
-        groundsScore,
-        rebuttalsScore,
+        claimsScore: submitScores.claimsScore,
+        groundsScore: submitScores.groundsScore,
+        rebuttalsScore: submitScores.rebuttalsScore,
         claimsComment: detailComments.claimsComment,
         groundsComment: detailComments.groundsComment,
         rebuttalsComment: detailComments.rebuttalsComment,
-        totalScore,
+        totalScore: submitTotalScore,
+        gradingNotifiedAt: new Date().toISOString(),
+        gradingView,
+        teacherScores,
+        aiScores,
       });
 
       await updateNoteToNotion({
@@ -873,12 +916,12 @@ export default function CorrectEssays() {
         theme: submitTheme,
         noteContent: notePayload,
         essayContent,
-        totalScore,
+        totalScore: submitTotalScore,
         humanComment: feedbackTextForTeacherField,
         aiComment,
-        claimsScore,
-        groundsScore,
-        rebuttalsScore,
+        claimsScore: submitScores.claimsScore,
+        groundsScore: submitScores.groundsScore,
+        rebuttalsScore: submitScores.rebuttalsScore,
         claimsComment: detailComments.claimsComment,
         groundsComment: detailComments.groundsComment,
         rebuttalsComment: detailComments.rebuttalsComment,
@@ -961,7 +1004,7 @@ export default function CorrectEssays() {
                   disabled={isGeneratingAi}
                   style={roundButtonStyle}
                 >
-                  {isGeneratingAi ? "Generating..." : "Generate AI"}
+                  {isGeneratingAi ? "Grading..." : "Start AI Grading"}
                 </Button>
               ) : null}
             </div>
@@ -1009,7 +1052,7 @@ export default function CorrectEssays() {
                 <Select
                   size="small"
                   value={claimsScore}
-                  onChange={(event) => setClaimsScore(event.target.value)}
+                  onChange={(event) => setActiveScoreField("claimsScore", event.target.value)}
                   displayEmpty
                   sx={selectStyle}
                 >
@@ -1039,7 +1082,7 @@ export default function CorrectEssays() {
                 <Select
                   size="small"
                   value={groundsScore}
-                  onChange={(event) => setGroundsScore(event.target.value)}
+                  onChange={(event) => setActiveScoreField("groundsScore", event.target.value)}
                   displayEmpty
                   sx={selectStyle}
                 >
@@ -1071,7 +1114,7 @@ export default function CorrectEssays() {
                 <Select
                   size="small"
                   value={rebuttalsScore}
-                  onChange={(event) => setRebuttalsScore(event.target.value)}
+                  onChange={(event) => setActiveScoreField("rebuttalsScore", event.target.value)}
                   displayEmpty
                   sx={selectStyle}
                 >
