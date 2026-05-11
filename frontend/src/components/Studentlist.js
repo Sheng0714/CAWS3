@@ -90,6 +90,87 @@ const formatGradeOutOfEight = (value) => {
   return `${raw}/8`;
 };
 
+const normalizeScoreValue = (value) => {
+  if (value === null || value === undefined) return "";
+  const raw = String(value).trim();
+  if (!raw || raw === "-") return "";
+  if (raw.toLowerCase() === "not graded") return "";
+  return raw;
+};
+
+const firstAvailableScore = (values = []) => {
+  for (const value of values) {
+    const normalized = normalizeScoreValue(value);
+    if (normalized !== "") return normalized;
+  }
+  return "";
+};
+
+const isZeroScore = (value) => {
+  const normalized = normalizeScoreValue(value);
+  if (normalized === "") return false;
+  const numeric = Number(normalized);
+  return !Number.isNaN(numeric) && numeric === 0;
+};
+
+const parseGradingView = (source = {}) => {
+  const direct = normalizeText(source?.gradingView);
+  if (direct === "teacher" || direct === "ai") return direct;
+
+  const rawNote = source?.noteContent;
+  if (typeof rawNote !== "string" || !rawNote.trim()) return "";
+  try {
+    const parsed = JSON.parse(rawNote);
+    const fromNote = normalizeText(parsed?.gradingView);
+    if (fromNote === "teacher" || fromNote === "ai") return fromNote;
+  } catch {
+    // Ignore invalid note JSON; fallback logic will handle score selection.
+  }
+  return "";
+};
+
+const resolveDisplayedGradeRaw = ({ item, essayData }) => {
+  const teacherScore = firstAvailableScore([
+    essayData?.teacherTotalScore,
+    essayData?.totalScore,
+    item?.teacherTotalScore,
+    item?.totalScore,
+    item?.TotalScore,
+    item?.["總分"],
+    item?.grade,
+    item?.Grade,
+    item?.score,
+    item?.Score,
+    item?.grading,
+    item?.Grading,
+  ]);
+  const aiScore = firstAvailableScore([
+    essayData?.aiTotalScore,
+    item?.aiTotalScore,
+    item?.AITotalScore,
+    item?.aiScore,
+    item?.AIScore,
+  ]);
+
+  const teacherFeedback = normalizeText(
+    essayData?.teacherFeedback || essayData?.humanComment || item?.teacherFeedback || item?.humanComment
+  );
+  const aiFeedback = normalizeText(
+    essayData?.aiFeedback || essayData?.aiComment || item?.aiFeedback || item?.aiComment
+  );
+
+  const gradingView = parseGradingView(essayData) || parseGradingView(item);
+  if (gradingView === "ai") return aiScore || teacherScore;
+  if (gradingView === "teacher") return teacherScore || aiScore;
+
+  const teacherSeemsUnfilled = !teacherFeedback && (teacherScore === "" || isZeroScore(teacherScore));
+  if (aiScore !== "" && (teacherSeemsUnfilled || aiFeedback)) {
+    return aiScore;
+  }
+
+  return teacherScore || aiScore;
+};
+
 const fetchNotionRowsByClass = async (className) => {
   let lastError = null;
   const token = localStorage.getItem("jwtToken");
@@ -285,17 +366,7 @@ export default function Studentlist() {
               submissionTime: formatSubmissionTime(item?.submissionDate),
               progressPercent: progress.percent,
               progressCompletedByStep: progress.completedByStep,
-              gradeRaw:
-                item?.totalScore ??
-                item?.TotalScore ??
-                item?.["總分"] ??
-                item?.grade ??
-                item?.Grade ??
-                item?.score ??
-                item?.Score ??
-                item?.grading ??
-                item?.Grading ??
-                "",
+              gradeRaw: resolveDisplayedGradeRaw({ item, essayData }),
             };
           })
         );
