@@ -984,9 +984,6 @@ export default function CorrectEssays() {
         theme: submitTheme,
         noteContent: notePayload,
         essayContent,
-        kfAnalysisContent,
-        chatHistory: chatHistoryContent,
-        outlineContent,
       };
 
       if (isTeacherGradingSubmit) {

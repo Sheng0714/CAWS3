@@ -1459,7 +1459,8 @@ const { Client } = require('@notionhq/client');
 const cors = require('cors');
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // 配置 CORS
 const explicitAllowedOrigins = [
@@ -2146,19 +2147,19 @@ app.post('/api/submit-to-notion', async (req, res) => {
             text: { content: chunk }
         }));
 
-        const kfAnalysisChunks = splitTextIntoChunks(kfAnalysisContent || '', 2000);
-        const kfAnalysisRichText = kfAnalysisChunks.map(chunk => ({
+        let kfAnalysisChunks = splitTextIntoChunks(kfAnalysisContent || '', 2000);
+        let kfAnalysisRichText = kfAnalysisChunks.map(chunk => ({
             text: { content: chunk }
         }));
 
-        const chatHistoryText = typeof chatHistory === 'object' ? JSON.stringify(chatHistory) : chatHistory || '';
-        const chatHistoryChunks = splitTextIntoChunks(chatHistoryText, 2000);
-        const chatHistoryRichText = chatHistoryChunks.map(chunk => ({
+        let chatHistoryText = typeof chatHistory === 'object' ? JSON.stringify(chatHistory) : chatHistory || '';
+        let chatHistoryChunks = splitTextIntoChunks(chatHistoryText, 2000);
+        let chatHistoryRichText = chatHistoryChunks.map(chunk => ({
             text: { content: chunk }
         }));
 
-        const outlineChunks = splitTextIntoChunks(outlineContent || '', 2000);
-        const outlineRichText = outlineChunks.map(chunk => ({
+        let outlineChunks = splitTextIntoChunks(outlineContent || '', 2000);
+        let outlineRichText = outlineChunks.map(chunk => ({
             text: { content: chunk }
         }));
 
@@ -2508,19 +2509,19 @@ app.patch('/api/update-note', async (req, res) => {
             text: { content: chunk }
         }));
 
-        const kfAnalysisChunks = splitTextIntoChunks(kfAnalysisContent || '', 2000);
-        const kfAnalysisRichText = kfAnalysisChunks.map(chunk => ({
+        let kfAnalysisChunks = splitTextIntoChunks(kfAnalysisContent || '', 2000);
+        let kfAnalysisRichText = kfAnalysisChunks.map(chunk => ({
             text: { content: chunk }
         }));
 
-        const chatHistoryText = typeof chatHistory === 'object' ? JSON.stringify(chatHistory) : chatHistory || '';
-        const chatHistoryChunks = splitTextIntoChunks(chatHistoryText, 2000);
-        const chatHistoryRichText = chatHistoryChunks.map(chunk => ({
+        let chatHistoryText = typeof chatHistory === 'object' ? JSON.stringify(chatHistory) : chatHistory || '';
+        let chatHistoryChunks = splitTextIntoChunks(chatHistoryText, 2000);
+        let chatHistoryRichText = chatHistoryChunks.map(chunk => ({
             text: { content: chunk }
         }));
 
-        const outlineChunks = splitTextIntoChunks(outlineContent || '', 2000);
-        const outlineRichText = outlineChunks.map(chunk => ({
+        let outlineChunks = splitTextIntoChunks(outlineContent || '', 2000);
+        let outlineRichText = outlineChunks.map(chunk => ({
             text: { content: chunk }
         }));
         const gradingPayload = await buildGradingPropertiesPayloadFromRequest(req.body);
@@ -2535,6 +2536,36 @@ app.patch('/api/update-note', async (req, res) => {
                 filter: createScopeFilter('contains', normalizedStudentName, normalizedClassName, normalizedTheme),
             });
             matchedPage = sortByLastEditedDesc(fuzzyResponse.results)[0] || null;
+        }
+
+        // Preserve existing large text fields when caller omits them.
+        if (matchedPage) {
+            const existingProperties = matchedPage?.properties || {};
+
+            if (kfAnalysisContent === undefined) {
+                const existingKfAnalysisContent = getDisplayValueByAliases(existingProperties, ['KF摘要']);
+                kfAnalysisChunks = splitTextIntoChunks(existingKfAnalysisContent || '', 2000);
+                kfAnalysisRichText = kfAnalysisChunks.map(chunk => ({
+                    text: { content: chunk }
+                }));
+            }
+
+            if (chatHistory === undefined) {
+                const existingChatHistoryContent = getDisplayValueByAliases(existingProperties, ['聊天歷史紀錄']);
+                chatHistoryText = existingChatHistoryContent || '';
+                chatHistoryChunks = splitTextIntoChunks(chatHistoryText, 2000);
+                chatHistoryRichText = chatHistoryChunks.map(chunk => ({
+                    text: { content: chunk }
+                }));
+            }
+
+            if (outlineContent === undefined) {
+                const existingOutlineContent = getDisplayValueByAliases(existingProperties, ['寫作大綱']);
+                outlineChunks = splitTextIntoChunks(existingOutlineContent || '', 2000);
+                outlineRichText = outlineChunks.map(chunk => ({
+                    text: { content: chunk }
+                }));
+            }
         }
 
         if (matchedPage) {
