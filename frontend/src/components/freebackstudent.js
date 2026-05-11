@@ -83,6 +83,8 @@ const WritingArea = () => {
   const [essayLoadError, setEssayLoadError] = useState('');
 
   const [teacherFeedback, setTeacherFeedback] = useState('');
+  const [aiFeedback, setAiFeedback] = useState('');
+  const [feedbackView, setFeedbackView] = useState('teacher');
   const [claimsCount, setClaimsCount] = useState('');
   const [claimsText, setClaimsText] = useState('');
   const [groundsCount, setGroundsCount] = useState('');
@@ -90,6 +92,13 @@ const WritingArea = () => {
   const [rebuttalsCount, setRebuttalsCount] = useState('');
   const [rebuttalsText, setRebuttalsText] = useState('');
   const [score, setScore] = useState('');
+  const [aiClaimsCount, setAiClaimsCount] = useState('');
+  const [aiClaimsText, setAiClaimsText] = useState('');
+  const [aiGroundsCount, setAiGroundsCount] = useState('');
+  const [aiGroundsText, setAiGroundsText] = useState('');
+  const [aiRebuttalsCount, setAiRebuttalsCount] = useState('');
+  const [aiRebuttalsText, setAiRebuttalsText] = useState('');
+  const [aiScore, setAiScore] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -124,6 +133,7 @@ const WritingArea = () => {
       setIsEssayLoading(true);
       setEssayLoadError('');
       setTeacherFeedback('');
+      setAiFeedback('');
       setClaimsCount('');
       setClaimsText('');
       setGroundsCount('');
@@ -131,6 +141,13 @@ const WritingArea = () => {
       setRebuttalsCount('');
       setRebuttalsText('');
       setScore('');
+      setAiClaimsCount('');
+      setAiClaimsText('');
+      setAiGroundsCount('');
+      setAiGroundsText('');
+      setAiRebuttalsCount('');
+      setAiRebuttalsText('');
+      setAiScore('');
 
       try {
         const notionData = await fetchEssayFromNotion({
@@ -144,7 +161,12 @@ const WritingArea = () => {
         setEditorContent(normalizeEssayText(fetchedEssay || fallbackLocalEssay));
         setTeacherFeedback(
           normalizeFieldValue(
-            notionData?.teacherFeedback || notionData?.humanComment || notionData?.aiComment
+            notionData?.teacherFeedback || notionData?.humanComment
+          )
+        );
+        setAiFeedback(
+          normalizeFieldValue(
+            notionData?.aiFeedback || notionData?.aiComment
           )
         );
         setClaimsCount(normalizeFieldValue(notionData?.claimsScore));
@@ -154,6 +176,13 @@ const WritingArea = () => {
         setRebuttalsCount(normalizeFieldValue(notionData?.rebuttalsScore));
         setRebuttalsText(normalizeFieldValue(notionData?.rebuttalsComment));
         setScore(normalizeFieldValue(notionData?.totalScore));
+        setAiClaimsCount(normalizeFieldValue(notionData?.aiClaimsScore));
+        setAiClaimsText(normalizeFieldValue(notionData?.aiClaimsComment));
+        setAiGroundsCount(normalizeFieldValue(notionData?.aiGroundsScore));
+        setAiGroundsText(normalizeFieldValue(notionData?.aiGroundsComment));
+        setAiRebuttalsCount(normalizeFieldValue(notionData?.aiRebuttalsScore));
+        setAiRebuttalsText(normalizeFieldValue(notionData?.aiRebuttalsComment));
+        setAiScore(normalizeFieldValue(notionData?.aiTotalScore));
       } catch (error) {
         if (!mounted) return;
         if (error?.code !== 'NOT_FOUND') {
@@ -174,6 +203,17 @@ const WritingArea = () => {
       mounted = false;
     };
   }, [location.state]);
+
+  const activeFeedback = feedbackView === 'teacher' ? teacherFeedback : aiFeedback;
+  const activeClaimsCount = feedbackView === 'teacher' ? claimsCount : aiClaimsCount;
+  const activeClaimsText = feedbackView === 'teacher' ? claimsText : aiClaimsText;
+  const activeGroundsCount = feedbackView === 'teacher' ? groundsCount : aiGroundsCount;
+  const activeGroundsText = feedbackView === 'teacher' ? groundsText : aiGroundsText;
+  const activeRebuttalsCount = feedbackView === 'teacher' ? rebuttalsCount : aiRebuttalsCount;
+  const activeRebuttalsText = feedbackView === 'teacher' ? rebuttalsText : aiRebuttalsText;
+  const activeTotalScore = feedbackView === 'teacher' ? score : aiScore;
+  const feedbackEmptyText =
+    feedbackView === 'teacher' ? 'No teacher feedback available yet.' : 'No AI feedback available yet.';
 
   return (
     <div className="fbs-page">
@@ -214,10 +254,27 @@ const WritingArea = () => {
         </section>
 
         <section className="fbs-panel fbs-right-panel">
+          <div className="fbs-tab-group">
+            <button
+              type="button"
+              className={`fbs-tab-button ${feedbackView === 'teacher' ? 'active' : ''}`}
+              onClick={() => setFeedbackView('teacher')}
+            >
+              Teacher Feedback
+            </button>
+            <button
+              type="button"
+              className={`fbs-tab-button ${feedbackView === 'ai' ? 'active' : ''}`}
+              onClick={() => setFeedbackView('ai')}
+            >
+              AI Feedback
+            </button>
+          </div>
+
           <div className="fbs-section-card">
             <div className="fbs-subtitle">Feedback</div>
             <div className="fbs-feedback-content">
-              {teacherFeedback || 'No feedback available yet.'}
+              {activeFeedback || feedbackEmptyText}
             </div>
           </div>
 
@@ -227,30 +284,30 @@ const WritingArea = () => {
             <Box className="fbs-detail-block">
               <Box className="fbs-detail-head">
                 <span>Claims</span>
-                <span>{`Score: ${claimsCount || '-'}`}</span>
+                <span>{`Score: ${activeClaimsCount || '-'}`}</span>
               </Box>
-              <Box className="fbs-detail-body">{claimsText || 'No claims feedback.'}</Box>
+              <Box className="fbs-detail-body">{activeClaimsText || 'No claims feedback.'}</Box>
             </Box>
 
             <Box className="fbs-detail-block">
               <Box className="fbs-detail-head">
                 <span>Grounds</span>
-                <span>{`Score: ${groundsCount || '-'}`}</span>
+                <span>{`Score: ${activeGroundsCount || '-'}`}</span>
               </Box>
-              <Box className="fbs-detail-body">{groundsText || 'No grounds feedback.'}</Box>
+              <Box className="fbs-detail-body">{activeGroundsText || 'No grounds feedback.'}</Box>
             </Box>
 
             <Box className="fbs-detail-block">
               <Box className="fbs-detail-head">
                 <span>Rebuttals</span>
-                <span>{`Score: ${rebuttalsCount || '-'}`}</span>
+                <span>{`Score: ${activeRebuttalsCount || '-'}`}</span>
               </Box>
-              <Box className="fbs-detail-body">{rebuttalsText || 'No rebuttals feedback.'}</Box>
+              <Box className="fbs-detail-body">{activeRebuttalsText || 'No rebuttals feedback.'}</Box>
             </Box>
           </div>
 
           <div className="fbs-footer">
-            <div className="fbs-total-score">{`Total Score: ${score || '-'}`}</div>
+            <div className="fbs-total-score">{`Total Score: ${activeTotalScore || '-'}`}</div>
             <Button variant="outlined" onClick={() => navigate(-1)} className="fbs-back-btn">
               Back
             </Button>

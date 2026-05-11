@@ -271,6 +271,15 @@ const createEmptyScoreSet = () => ({
   rebuttalsScore: "",
 });
 
+const hasOwnKey = (target, key) => Object.prototype.hasOwnProperty.call(target, key);
+
+const computeTotalFromScores = (scoreSet = {}) => {
+  const claims = Number.isNaN(Number(scoreSet?.claimsScore)) ? 0 : Number(scoreSet?.claimsScore || 0);
+  const grounds = Number.isNaN(Number(scoreSet?.groundsScore)) ? 0 : Number(scoreSet?.groundsScore || 0);
+  const rebuttals = Number.isNaN(Number(scoreSet?.rebuttalsScore)) ? 0 : Number(scoreSet?.rebuttalsScore || 0);
+  return claims + grounds + rebuttals;
+};
+
 const parseScoreObject = (scoreInput) => {
   const score = scoreInput && typeof scoreInput === "object" ? scoreInput : {};
   return {
@@ -603,10 +612,7 @@ export default function CorrectEssays() {
   const { claimsScore, groundsScore, rebuttalsScore } = activeScores;
 
   const totalScore = useMemo(() => {
-    const c = Number.isNaN(Number(claimsScore)) ? 0 : Number(claimsScore || 0);
-    const g = Number.isNaN(Number(groundsScore)) ? 0 : Number(groundsScore || 0);
-    const r = Number.isNaN(Number(rebuttalsScore)) ? 0 : Number(rebuttalsScore || 0);
-    return c + g + r;
+    return computeTotalFromScores({ claimsScore, groundsScore, rebuttalsScore });
   }, [claimsScore, groundsScore, rebuttalsScore]);
   const displayEssayContent = useMemo(() => normalizeEssayContentForDisplay(essayContent), [essayContent]);
 
@@ -728,13 +734,39 @@ export default function CorrectEssays() {
 
         setEssayContent(data.essayContent || "");
 
+        const teacherFeedbackFromDb = String(data?.teacherFeedback || data?.humanComment || "").trim();
+        const aiFeedbackFromDb = String(data?.aiFeedback || data?.aiComment || "").trim();
+        const topLevelScores = parseScoreObject({
+          claimsScore: data?.claimsScore,
+          groundsScore: data?.groundsScore,
+          rebuttalsScore: data?.rebuttalsScore,
+        });
+        const aiTopLevelScores = parseScoreObject({
+          claimsScore: data?.aiClaimsScore,
+          groundsScore: data?.aiGroundsScore,
+          rebuttalsScore: data?.aiRebuttalsScore,
+        });
+        const hasAiTopLevelScores =
+          String(aiTopLevelScores.claimsScore || "").trim() !== "" ||
+          String(aiTopLevelScores.groundsScore || "").trim() !== "" ||
+          String(aiTopLevelScores.rebuttalsScore || "").trim() !== "";
+
+        setHumanComment(teacherFeedbackFromDb);
+        setAiComment(aiFeedbackFromDb);
+        setAiFeedbackSections(null);
+        setTeacherScores(topLevelScores);
+        setAiScores(aiTopLevelScores);
+
         const rawNote = data.noteContent || "";
         if (rawNote) {
           try {
             const parsed = JSON.parse(rawNote);
-            setHumanComment(parsed.humanComment || "");
-            setAiComment(parsed.aiComment || "");
-            setAiFeedbackSections(null);
+            const parsedGradingView = String(parsed?.gradingView || "").trim().toLowerCase();
+            const hasTeacherCommentField = hasOwnKey(parsed, "teacherComment");
+            const hasLegacyHumanCommentField = hasOwnKey(parsed, "humanComment");
+            const hasTeacherScoresField = parsed?.teacherScores && typeof parsed.teacherScores === "object";
+            const hasAiScoresField = parsed?.aiScores && typeof parsed.aiScores === "object";
+            const hasModeSpecificScores = hasTeacherScoresField || hasAiScoresField;
             const legacyScores = parseScoreObject({
               claimsScore: parsed.claimsScore,
               groundsScore: parsed.groundsScore,
@@ -742,17 +774,37 @@ export default function CorrectEssays() {
             });
             const parsedTeacherScores = parseScoreObject(parsed.teacherScores);
             const parsedAiScores = parseScoreObject(parsed.aiScores);
-            setTeacherScores({
-              claimsScore: parsedTeacherScores.claimsScore || legacyScores.claimsScore,
-              groundsScore: parsedTeacherScores.groundsScore || legacyScores.groundsScore,
-              rebuttalsScore: parsedTeacherScores.rebuttalsScore || legacyScores.rebuttalsScore,
-            });
-            setAiScores(parsedAiScores);
-          } catch {
-            setAiComment(rawNote);
+
+            const teacherCommentFromParsed = teacherFeedbackFromDb || (hasTeacherCommentField
+              ? String(parsed.teacherComment || "")
+              : parsedGradingView === "ai" && hasLegacyHumanCommentField
+                ? ""
+                : String(parsed.humanComment || ""));
+            const aiCommentFromParsed = aiFeedbackFromDb ||
+              String(parsed.aiComment || "").trim() ||
+              (parsedGradingView === "ai" ? String(parsed.humanComment || "").trim() : "");
+
+            setHumanComment(teacherCommentFromParsed);
+            setAiComment(aiCommentFromParsed);
             setAiFeedbackSections(null);
-            setTeacherScores(createEmptyScoreSet());
-            setAiScores(createEmptyScoreSet());
+            setTeacherScores(
+              hasTeacherScoresField
+                ? parsedTeacherScores
+                : !hasModeSpecificScores && parsedGradingView !== "ai"
+                  ? legacyScores
+                  : createEmptyScoreSet()
+            );
+            setAiScores(
+              hasAiTopLevelScores
+                ? aiTopLevelScores
+                : hasAiScoresField
+                ? parsedAiScores
+                : !hasModeSpecificScores && parsedGradingView === "ai"
+                  ? legacyScores
+                  : createEmptyScoreSet()
+            );
+          } catch {
+            // Keep database column values as source of truth when note JSON is invalid.
           }
         }
       } catch (error) {
@@ -878,54 +930,78 @@ export default function CorrectEssays() {
       const submitStudentName = matchedScope.studentName || studentName;
       const submitClassName = matchedScope.className || className;
       const submitTheme = matchedScope.theme || topicName;
+      const isTeacherGradingSubmit = gradingView === "teacher";
       const aiSectionsForSubmit = renderedAiSections || parseAiReply(aiComment).sections || null;
-      const feedbackTextForTeacherField =
-        gradingView === "ai"
-          ? buildEnglishFeedbackFromSections(aiSectionsForSubmit) || String(aiComment || "").trim()
-          : String(humanComment || "").trim();
-      const submitScores = gradingView === "ai" ? aiScores : teacherScores;
-      const submitTotalScore =
-        (Number.isNaN(Number(submitScores.claimsScore)) ? 0 : Number(submitScores.claimsScore || 0)) +
-        (Number.isNaN(Number(submitScores.groundsScore)) ? 0 : Number(submitScores.groundsScore || 0)) +
-        (Number.isNaN(Number(submitScores.rebuttalsScore)) ? 0 : Number(submitScores.rebuttalsScore || 0));
-      const detailsForSplit =
-        gradingView === "ai"
-          ? normalizeFeedbackBlock(aiSectionsForSubmit?.details)
-          : normalizeFeedbackBlock(parseAiReply(humanComment).sections?.details);
-      const detailComments = extractDetailedCommentItems(detailsForSplit);
+      const teacherCommentForStorage = String(humanComment || "").trim();
+      const aiCommentForStorage =
+        buildEnglishFeedbackFromSections(aiSectionsForSubmit) || String(aiComment || "").trim();
+      const teacherTotalScore = computeTotalFromScores(teacherScores);
+      const aiTotalScore = computeTotalFromScores(aiScores);
+      const teacherDetailsForSplit = normalizeFeedbackBlock(parseAiReply(teacherCommentForStorage).sections?.details);
+      const aiDetailsForSplit = normalizeFeedbackBlock(aiSectionsForSubmit?.details);
+      const teacherDetailComments = extractDetailedCommentItems(teacherDetailsForSplit);
+      const aiDetailComments = extractDetailedCommentItems(aiDetailsForSplit);
 
       const notePayload = JSON.stringify({
-        humanComment: feedbackTextForTeacherField,
-        aiComment,
-        claimsScore: submitScores.claimsScore,
-        groundsScore: submitScores.groundsScore,
-        rebuttalsScore: submitScores.rebuttalsScore,
-        claimsComment: detailComments.claimsComment,
-        groundsComment: detailComments.groundsComment,
-        rebuttalsComment: detailComments.rebuttalsComment,
-        totalScore: submitTotalScore,
+        teacherComment: teacherCommentForStorage,
+        humanComment: teacherCommentForStorage,
+        aiComment: aiCommentForStorage,
+        aiTotalScore,
+        aiClaimsScore: aiScores.claimsScore,
+        aiGroundsScore: aiScores.groundsScore,
+        aiRebuttalsScore: aiScores.rebuttalsScore,
+        aiClaimsComment: aiDetailComments.claimsComment,
+        aiGroundsComment: aiDetailComments.groundsComment,
+        aiRebuttalsComment: aiDetailComments.rebuttalsComment,
+        claimsScore: teacherScores.claimsScore,
+        groundsScore: teacherScores.groundsScore,
+        rebuttalsScore: teacherScores.rebuttalsScore,
+        claimsComment: teacherDetailComments.claimsComment,
+        groundsComment: teacherDetailComments.groundsComment,
+        rebuttalsComment: teacherDetailComments.rebuttalsComment,
+        totalScore: teacherTotalScore,
+        teacherTotalScore,
+        teacherDetailComments,
+        aiDetailComments,
         gradingNotifiedAt: new Date().toISOString(),
         gradingView,
         teacherScores,
         aiScores,
       });
 
-      await updateNoteToNotion({
+      const updatePayload = {
         studentName: submitStudentName,
         className: submitClassName,
         theme: submitTheme,
         noteContent: notePayload,
         essayContent,
-        totalScore: submitTotalScore,
-        humanComment: feedbackTextForTeacherField,
-        aiComment,
-        claimsScore: submitScores.claimsScore,
-        groundsScore: submitScores.groundsScore,
-        rebuttalsScore: submitScores.rebuttalsScore,
-        claimsComment: detailComments.claimsComment,
-        groundsComment: detailComments.groundsComment,
-        rebuttalsComment: detailComments.rebuttalsComment,
-      });
+      };
+
+      if (isTeacherGradingSubmit) {
+        Object.assign(updatePayload, {
+          totalScore: teacherTotalScore,
+          humanComment: teacherCommentForStorage,
+          claimsScore: teacherScores.claimsScore,
+          groundsScore: teacherScores.groundsScore,
+          rebuttalsScore: teacherScores.rebuttalsScore,
+          claimsComment: teacherDetailComments.claimsComment,
+          groundsComment: teacherDetailComments.groundsComment,
+          rebuttalsComment: teacherDetailComments.rebuttalsComment,
+        });
+      } else {
+        Object.assign(updatePayload, {
+          aiComment: aiCommentForStorage,
+          aiTotalScore,
+          aiClaimsScore: aiScores.claimsScore,
+          aiGroundsScore: aiScores.groundsScore,
+          aiRebuttalsScore: aiScores.rebuttalsScore,
+          aiClaimsComment: aiDetailComments.claimsComment,
+          aiGroundsComment: aiDetailComments.groundsComment,
+          aiRebuttalsComment: aiDetailComments.rebuttalsComment,
+        });
+      }
+
+      await updateNoteToNotion(updatePayload);
 
       showSnackbar("Submitted successfully.", "success");
     } catch (error) {

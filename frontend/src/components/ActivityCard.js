@@ -236,8 +236,8 @@ const notionApiBases = [
 const Item = styled(Card, {
     shouldForwardProp: (prop) => prop !== 'status',
 })(({ theme, status }) => ({
-    // backgroundColor: status === 'completed' ? '#DFEDD7' : '#D1E7FB',
-    backgroundColor: status === 'completed' ? '#a3a3a3' : '#ededed',
+    backgroundColor: status === 'completed' ? '#DFEDD7' : '#D1E7FB',
+    // backgroundColor: status === 'completed' ? '#a3a3a3' : '#ededed',
     border: 'none',
     borderRadius: '12px',
     ...theme.typography.body2,

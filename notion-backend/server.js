@@ -1656,8 +1656,23 @@ const GRADING_FIELD_CONFIGS = [
         allowedTypes: ['rich_text', 'title'],
     },
     {
+        inputKey: 'aiComment',
+        aliases: ['AI評語', 'AI 評語', 'AI Feedback', 'AIFeedback', 'AI Comment', 'AIComment'],
+        allowedTypes: ['rich_text', 'title'],
+    },
+    {
+        inputKey: 'aiTotalScore',
+        aliases: ['AI總分', 'AI 總分', 'AI Total Score', 'AITotalScore'],
+        allowedTypes: ['number', 'rich_text', 'select', 'status'],
+    },
+    {
         inputKey: 'claimsScore',
         aliases: ['Claims分數', 'Claims 分數', 'Claims Score', 'Claims score', 'ClaimsScore'],
+        allowedTypes: ['number', 'rich_text', 'select', 'status'],
+    },
+    {
+        inputKey: 'aiClaimsScore',
+        aliases: ['AI Claims分數', 'AI Claims 分數', 'AI Claims Score', 'AIClaimsScore'],
         allowedTypes: ['number', 'rich_text', 'select', 'status'],
     },
     {
@@ -1666,8 +1681,18 @@ const GRADING_FIELD_CONFIGS = [
         allowedTypes: ['rich_text', 'title'],
     },
     {
+        inputKey: 'aiClaimsComment',
+        aliases: ['AI Claims評語', 'AI Claims 評語', 'AI Claims Comment', 'AIClaimsComment'],
+        allowedTypes: ['rich_text', 'title'],
+    },
+    {
         inputKey: 'groundsScore',
         aliases: ['Grounds分數', 'Grounds 分數', 'Grounds Score', 'Grounds score', 'GroundsScore'],
+        allowedTypes: ['number', 'rich_text', 'select', 'status'],
+    },
+    {
+        inputKey: 'aiGroundsScore',
+        aliases: ['AI Ground分數', 'AI Ground 分數', 'AI Grounds分數', 'AI Grounds 分數', 'AI Ground Score', 'AIGroundScore', 'AI Grounds Score', 'AIGroundsScore'],
         allowedTypes: ['number', 'rich_text', 'select', 'status'],
     },
     {
@@ -1676,13 +1701,28 @@ const GRADING_FIELD_CONFIGS = [
         allowedTypes: ['rich_text', 'title'],
     },
     {
+        inputKey: 'aiGroundsComment',
+        aliases: ['AI Ground評語', 'AI Ground 評語', 'AI Grounds評語', 'AI Grounds 評語', 'AI Ground Comment', 'AIGroundComment', 'AI Grounds Comment', 'AIGroundsComment'],
+        allowedTypes: ['rich_text', 'title'],
+    },
+    {
         inputKey: 'rebuttalsScore',
         aliases: ['Rebuttals分數', 'Rebuttals 分數', 'Rebuttals Score', 'Rebuttals score', 'RebuttalsScore'],
         allowedTypes: ['number', 'rich_text', 'select', 'status'],
     },
     {
+        inputKey: 'aiRebuttalsScore',
+        aliases: ['AI Rebuttal分數', 'AI Rebuttal 分數', 'AI Rebuttals分數', 'AI Rebuttals 分數', 'AI Rebuttal Score', 'AIRebuttalScore', 'AI Rebuttals Score', 'AIRebuttalsScore'],
+        allowedTypes: ['number', 'rich_text', 'select', 'status'],
+    },
+    {
         inputKey: 'rebuttalsComment',
         aliases: ['Rebuttals評語', 'Rebuttals 評語', 'Rebuttals Comment', 'Rebuttals comment', 'RebuttalsFeedback', 'Rebuttals回饋'],
+        allowedTypes: ['rich_text', 'title'],
+    },
+    {
+        inputKey: 'aiRebuttalsComment',
+        aliases: ['AI Rebuttal評語', 'AI Rebuttal 評語', 'AI Rebuttals評語', 'AI Rebuttals 評語', 'AI Rebuttal Comment', 'AIRebuttalComment', 'AI Rebuttals Comment', 'AIRebuttalsComment'],
         allowedTypes: ['rich_text', 'title'],
     },
     {
@@ -2276,6 +2316,10 @@ app.get('/api/get-essay/:studentName', async (req, res) => {
             getDisplayValueByAliases(properties, ['教師評語']),
             parsedNote?.humanComment
         );
+        const aiFeedback = pickFirstNonEmptyValue(
+            getDisplayValueByAliases(properties, ['AI評語', 'AI 評語', 'AI Feedback', 'AIFeedback', 'AI Comment', 'AIComment']),
+            parsedNote?.aiComment
+        );
         const teacherMessage = pickFirstNonEmptyValue(
             getDisplayValueByAliases(properties, [
                 '\u7559\u8a00\u6b04\u4f4d',
@@ -2291,29 +2335,66 @@ app.get('/api/get-essay/:studentName', async (req, res) => {
             getDisplayValueByAliases(properties, ['Claims分數']),
             parsedNote?.claimsScore
         );
+        const aiClaimsScore = pickFirstNonEmptyValue(
+            getDisplayValueByAliases(properties, ['AI Claims分數', 'AI Claims 分數', 'AI Claims Score', 'AIClaimsScore']),
+            parsedNote?.aiClaimsScore,
+            parsedNote?.aiScores?.claimsScore
+        );
         const claimsComment = pickFirstNonEmptyValue(
             getDisplayValueByAliases(properties, ['Claims評語']),
             parsedNote?.claimsComment
+        );
+        const aiClaimsComment = pickFirstNonEmptyValue(
+            getDisplayValueByAliases(properties, ['AI Claims評語', 'AI Claims 評語', 'AI Claims Comment', 'AIClaimsComment']),
+            parsedNote?.aiClaimsComment,
+            parsedNote?.aiDetailComments?.claimsComment
         );
         const groundsScore = pickFirstNonEmptyValue(
             getDisplayValueByAliases(properties, ['Grounds分數']),
             parsedNote?.groundsScore
         );
+        const aiGroundsScore = pickFirstNonEmptyValue(
+            getDisplayValueByAliases(properties, ['AI Ground分數', 'AI Ground 分數', 'AI Grounds分數', 'AI Grounds 分數', 'AI Ground Score', 'AIGroundScore', 'AI Grounds Score', 'AIGroundsScore']),
+            parsedNote?.aiGroundsScore,
+            parsedNote?.aiScores?.groundsScore
+        );
         const groundsComment = pickFirstNonEmptyValue(
             getDisplayValueByAliases(properties, ['Grounds評語']),
             parsedNote?.groundsComment
+        );
+        const aiGroundsComment = pickFirstNonEmptyValue(
+            getDisplayValueByAliases(properties, ['AI Ground評語', 'AI Ground 評語', 'AI Grounds評語', 'AI Grounds 評語', 'AI Ground Comment', 'AIGroundComment', 'AI Grounds Comment', 'AIGroundsComment']),
+            parsedNote?.aiGroundsComment,
+            parsedNote?.aiDetailComments?.groundsComment
         );
         const rebuttalsScore = pickFirstNonEmptyValue(
             getDisplayValueByAliases(properties, ['Rebuttals分數']),
             parsedNote?.rebuttalsScore
         );
+        const aiRebuttalsScore = pickFirstNonEmptyValue(
+            getDisplayValueByAliases(properties, ['AI Rebuttal分數', 'AI Rebuttal 分數', 'AI Rebuttals分數', 'AI Rebuttals 分數', 'AI Rebuttal Score', 'AIRebuttalScore', 'AI Rebuttals Score', 'AIRebuttalsScore']),
+            parsedNote?.aiRebuttalsScore,
+            parsedNote?.aiScores?.rebuttalsScore
+        );
         const rebuttalsComment = pickFirstNonEmptyValue(
             getDisplayValueByAliases(properties, ['Rebuttals評語']),
             parsedNote?.rebuttalsComment
         );
+        const aiRebuttalsComment = pickFirstNonEmptyValue(
+            getDisplayValueByAliases(properties, ['AI Rebuttal評語', 'AI Rebuttal 評語', 'AI Rebuttals評語', 'AI Rebuttals 評語', 'AI Rebuttal Comment', 'AIRebuttalComment', 'AI Rebuttals Comment', 'AIRebuttalsComment']),
+            parsedNote?.aiRebuttalsComment,
+            parsedNote?.aiDetailComments?.rebuttalsComment
+        );
         const totalScore = pickFirstNonEmptyValue(
             getDisplayValueByAliases(properties, ['總分']),
             parsedNote?.totalScore
+        );
+        const aiTotalScore = pickFirstNonEmptyValue(
+            getDisplayValueByAliases(properties, ['AI總分', 'AI 總分', 'AI Total Score', 'AITotalScore']),
+            parsedNote?.aiTotalScore,
+            pickFirstNonEmptyValue(parsedNote?.aiScores?.claimsScore, '') !== '' || pickFirstNonEmptyValue(parsedNote?.aiScores?.groundsScore, '') !== '' || pickFirstNonEmptyValue(parsedNote?.aiScores?.rebuttalsScore, '') !== ''
+                ? String((Number(parsedNote?.aiScores?.claimsScore || 0) + Number(parsedNote?.aiScores?.groundsScore || 0) + Number(parsedNote?.aiScores?.rebuttalsScore || 0)))
+                : ''
         );
 
         const submissionStatus = normalizeSubmissionStatus(
@@ -2340,14 +2421,23 @@ app.get('/api/get-essay/:studentName', async (req, res) => {
                 chatHistory: safeJsonParse(chatHistoryContent, []),
                 outlineContent,
                 teacherFeedback,
+                aiFeedback,
+                aiComment: aiFeedback,
                 teacherMessage,
                 claimsScore,
+                aiClaimsScore,
                 claimsComment,
+                aiClaimsComment,
                 groundsScore,
+                aiGroundsScore,
                 groundsComment,
+                aiGroundsComment,
                 rebuttalsScore,
+                aiRebuttalsScore,
                 rebuttalsComment,
+                aiRebuttalsComment,
                 totalScore,
+                aiTotalScore,
                 submissionStatus,
             },
             matchedBy,

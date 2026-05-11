@@ -72,6 +72,7 @@ export default function ClassManage() {
   const [isEditClassOpen, setIsEditClassOpen] = useState(false);
   const [editActivityId, setEditActivityId] = useState(null);
   const [editClassName, setEditClassName] = useState("");
+  const [editDeadline, setEditDeadline] = useState("");
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteActivityId, setDeleteActivityId] = useState(null);
@@ -288,13 +289,16 @@ export default function ClassManage() {
   };
 
   const openEditClassDialog = (row) => {
+    const targetActivity = activities.find((activity) => activity.id === row.activityId);
     setEditActivityId(row.activityId);
     setEditClassName(row.className);
+    setEditDeadline(formatDateValue(targetActivity?.endDate) || row.deadline || "");
     setIsEditClassOpen(true);
   };
 
   const handleEditClassName = async () => {
     const trimmedClassName = editClassName.trim();
+    const targetActivity = activities.find((activity) => activity.id === editActivityId);
     if (!editActivityId) {
       alert("Missing activityId.");
       return;
@@ -303,19 +307,32 @@ export default function ClassManage() {
       alert("Please enter a class name.");
       return;
     }
+    if (!editDeadline) {
+      alert("Please choose a deadline.");
+      return;
+    }
+    const startDateValue = formatDateValue(targetActivity?.startDate);
+    if (startDateValue && editDeadline < startDateValue) {
+      alert("Deadline cannot be earlier than start date.");
+      return;
+    }
 
     try {
       await requestWithFallback({
         method: "put",
         path: `activities/${editActivityId}`,
-        data: { title: trimmedClassName },
+        data: {
+          title: trimmedClassName,
+          endDate: new Date(`${editDeadline}T12:00:00`).toISOString(),
+        },
       });
       setIsEditClassOpen(false);
       setEditActivityId(null);
+      setEditDeadline("");
       await fetchActivities();
     } catch (error) {
       console.error("Failed to rename class:", error);
-      alert("Failed to rename class.");
+      alert("Failed to update class.");
     }
   };
 
@@ -673,6 +690,15 @@ export default function ClassManage() {
             fullWidth
             value={editClassName}
             onChange={(event) => setEditClassName(event.target.value)}
+          />
+          <TextField
+            margin="dense"
+            label="Deadline"
+            type="date"
+            fullWidth
+            value={editDeadline}
+            onChange={(event) => setEditDeadline(event.target.value)}
+            InputLabelProps={{ shrink: true }}
           />
         </DialogContent>
         <DialogActions>
