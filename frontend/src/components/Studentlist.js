@@ -171,13 +171,21 @@ const resolveDisplayedGradeRaw = ({ item, essayData }) => {
   return teacherScore || aiScore;
 };
 
-const fetchNotionRowsByClass = async (className) => {
+const getNotionApiBaseCandidates = (preferredBase = "") => {
+  const normalizedPreferredBase = String(preferredBase || "").replace(/\/+$/, "");
+  const orderedBases = [
+    normalizedPreferredBase,
+    ...notionApiBases.map((base) => String(base || "").replace(/\/+$/, "")),
+  ];
+  return [...new Set(orderedBases.filter(Boolean))];
+};
+
+const fetchNotionRowsByClass = async (className, { theme = "" } = {}) => {
   let lastError = null;
   const token = localStorage.getItem("jwtToken");
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-  for (const base of notionApiBases) {
-    const normalizedBase = String(base || "").replace(/\/+$/, "");
+  for (const normalizedBase of getNotionApiBaseCandidates()) {
     if (!normalizedBase) continue;
 
     try {
@@ -186,13 +194,14 @@ const fetchNotionRowsByClass = async (className) => {
         {
           timeout: 12000,
           headers,
+          params: theme ? { theme } : undefined,
           withCredentials: false,
         }
       );
 
       const rows = response?.data?.data;
       if (response?.data?.success && Array.isArray(rows)) {
-        return rows;
+        return { rows, apiBase: normalizedBase };
       }
     } catch (error) {
       lastError = error;
@@ -202,17 +211,52 @@ const fetchNotionRowsByClass = async (className) => {
   throw lastError || new Error("Failed to fetch students from Notion");
 };
 
-const fetchEssayByScope = async ({ studentName, className, theme }) => {
+const fetchStudentProgressRowsByClass = async (className, { theme = "", page = 1, pageSize = 200 } = {}) => {
+  let lastError = null;
+  const token = localStorage.getItem("jwtToken");
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+  for (const normalizedBase of getNotionApiBaseCandidates()) {
+    if (!normalizedBase) continue;
+    try {
+      const response = await axios.get(
+        `${normalizedBase}/api/get-student-progress-by-class/${encodeURIComponent(className)}`,
+        {
+          timeout: 15000,
+          headers,
+          params: {
+            ...(theme ? { theme } : {}),
+            page,
+            pageSize,
+          },
+          withCredentials: false,
+        }
+      );
+
+      const rows = response?.data?.data;
+      if (response?.data?.success && Array.isArray(rows)) {
+        return {
+          rows,
+          pagination: response?.data?.pagination || null,
+          apiBase: normalizedBase,
+        };
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("Failed to fetch student progress batch");
+};
+
+const fetchEssayByScope = async ({ studentName, className, theme, preferredBase = "" }) => {
   if (!studentName || !className || !theme) return {};
 
   let lastError = null;
   const token = localStorage.getItem("jwtToken");
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-  for (const base of notionApiBases) {
-    const normalizedBase = String(base || "").replace(/\/+$/, "");
-    if (!normalizedBase) continue;
-
+  for (const normalizedBase of getNotionApiBaseCandidates(preferredBase)) {
     try {
       const response = await axios.get(`${normalizedBase}/api/get-essay/${encodeURIComponent(studentName)}`, {
         timeout: 12000,
@@ -231,6 +275,110 @@ const fetchEssayByScope = async ({ studentName, className, theme }) => {
     console.warn(`Failed to fetch essay scope for ${studentName}:`, lastError?.message || lastError);
   }
   return {};
+};
+
+const mapWithConcurrency = async (items, limit, mapper) => {
+  const normalizedLimit = Math.max(1, Number(limit) || 1);
+  if (!Array.isArray(items) || items.length === 0) return [];
+  const results = new Array(items.length);
+  let currentIndex = 0;
+
+  const worker = async () => {
+    while (true) {
+      const index = currentIndex;
+      currentIndex += 1;
+      if (index >= items.length) return;
+      results[index] = await mapper(items[index], index);
+    }
+  };
+
+  const workerCount = Math.min(normalizedLimit, items.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
+};
+
+const toTimestamp = (value) => {
+  if (!value) return 0;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+};
+
+const dedupeRowsByStudentAndTheme = (rows = [], fallbackTheme = "") => {
+  const map = new Map();
+  rows.forEach((item, index) => {
+    const studentName = String(item?.studentName || "").trim();
+    const theme = item?.theme || fallbackTheme || "-";
+    const key = `${normalizeText(studentName)}::${normalizeText(theme)}`;
+    if (!key || key === "::") return;
+
+    const existing = map.get(key);
+    const currentTime = toTimestamp(item?.submissionDate);
+    const existingTime = toTimestamp(existing?.item?.submissionDate);
+    if (!existing || currentTime >= existingTime) {
+      map.set(key, { item, index });
+    }
+  });
+  return [...map.values()];
+};
+
+const createStudentRow = ({ item, index, selectedTopicName, selectedClassName, essayData = {} }) => {
+  const theme = item?.theme || selectedTopicName || "-";
+  const studentName = item?.studentName || "-";
+  const progress = getProgressData({
+    kfAnalysisContent: essayData?.kfAnalysisContent || "",
+    outlineContent: essayData?.outlineContent || "",
+    essayContent: essayData?.essayContent || "",
+    submissionStatus: item?.submissionStatus || essayData?.submissionStatus || "",
+  });
+
+  return {
+    rowId: `${item?.studentName || "unknown"}-${item?.submissionDate || index}`,
+    name: studentName,
+    theme,
+    submissionTime: formatSubmissionTime(item?.submissionDate),
+    progressPercent: progress.percent,
+    progressCompletedByStep: progress.completedByStep,
+    gradeRaw: resolveDisplayedGradeRaw({ item, essayData }),
+    className: selectedClassName,
+  };
+};
+
+const createStudentRowFromBatchItem = ({ item, index, selectedTopicName, selectedClassName }) => {
+  const theme = item?.theme || selectedTopicName || "-";
+  const studentName = item?.studentName || item?.name || "-";
+  const fallbackProgress = getProgressData({
+    kfAnalysisContent: item?.kfAnalysisContent || "",
+    outlineContent: item?.outlineContent || "",
+    essayContent: item?.essayContent || "",
+    submissionStatus: item?.submissionStatus || "",
+  });
+  const progressCompletedByStep =
+    Array.isArray(item?.progressCompletedByStep) && item.progressCompletedByStep.length > 0
+      ? item.progressCompletedByStep.map((step) => Boolean(step))
+      : fallbackProgress.completedByStep;
+
+  return {
+    rowId: item?.rowId || `${studentName}-${item?.submissionDate || index}`,
+    name: studentName,
+    theme,
+    submissionTime: formatSubmissionTime(item?.submissionDate),
+    progressPercent:
+      typeof item?.progressPercent === "number"
+        ? item.progressPercent
+        : progressCompletedByStep.filter(Boolean).length * 25,
+    progressCompletedByStep,
+    gradeRaw:
+      item?.gradeRaw ||
+      resolveDisplayedGradeRaw({
+        item: {
+          ...item,
+          totalScore: item?.teacherTotalScore || item?.totalScore || "",
+          aiTotalScore: item?.aiTotalScore || "",
+        },
+        essayData: item || {},
+      }),
+    className: selectedClassName,
+  };
 };
 
 const getProgressData = ({ kfAnalysisContent = "", outlineContent = "", essayContent = "", submissionStatus = "" } = {}) => {
@@ -326,6 +474,8 @@ export default function Studentlist() {
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchRows = async () => {
       if (!selectedClassName || selectedClassName === "-") {
         setLoadError("Missing class name.");
@@ -337,54 +487,120 @@ export default function Studentlist() {
       setLoadError("");
 
       try {
-        const notionRows = await fetchNotionRowsByClass(selectedClassName);
         const shouldFilterByTopic = selectedTopicName && selectedTopicName !== "-";
+        try {
+          const { rows: batchRows } = await fetchStudentProgressRowsByClass(selectedClassName, {
+            theme: shouldFilterByTopic ? selectedTopicName : "",
+            page: 1,
+            pageSize: 200,
+          });
+
+          const mappedBatchRows = batchRows.map((item, index) =>
+            createStudentRowFromBatchItem({
+              item,
+              index,
+              selectedTopicName,
+              selectedClassName,
+            })
+          );
+
+          if (!cancelled) {
+            setRows(mappedBatchRows);
+          }
+          return;
+        } catch (batchError) {
+          console.warn("Batch student progress API unavailable, falling back to legacy flow:", batchError?.message || batchError);
+        }
+
+        const { rows: notionRows, apiBase } = await fetchNotionRowsByClass(selectedClassName, {
+          theme: shouldFilterByTopic ? selectedTopicName : "",
+        });
         const filteredRowsByTopic = shouldFilterByTopic
           ? notionRows.filter((item) => normalizeText(item?.theme) === normalizeText(selectedTopicName))
           : notionRows;
+        const dedupedRows = dedupeRowsByStudentAndTheme(filteredRowsByTopic, selectedTopicName);
 
-        const mappedRows = await Promise.all(
-          filteredRowsByTopic.map(async (item, index) => {
-            const theme = item?.theme || selectedTopicName || "-";
-            const studentName = item?.studentName || "-";
-            const essayData = await fetchEssayByScope({
-              studentName,
-              className: selectedClassName,
-              theme,
-            });
-            const progress = getProgressData({
-              kfAnalysisContent: essayData?.kfAnalysisContent || "",
-              outlineContent: essayData?.outlineContent || "",
-              essayContent: essayData?.essayContent || "",
-              submissionStatus: item?.submissionStatus || "",
-            });
-
-            return {
-              rowId: `${item?.studentName || "unknown"}-${item?.submissionDate || index}`,
-              name: studentName,
-              theme,
-              submissionTime: formatSubmissionTime(item?.submissionDate),
-              progressPercent: progress.percent,
-              progressCompletedByStep: progress.completedByStep,
-              gradeRaw: resolveDisplayedGradeRaw({ item, essayData }),
-            };
+        const initialRows = dedupedRows.map(({ item, index }) =>
+          createStudentRow({
+            item,
+            index,
+            selectedTopicName,
+            selectedClassName,
           })
         );
 
-        setRows(mappedRows);
+        if (!cancelled) {
+          setRows(initialRows);
+          setIsLoading(false);
+        }
+
+        if (dedupedRows.length === 0) return;
+
+        const essayCache = new Map();
+        const enrichedRows = await mapWithConcurrency(dedupedRows, 6, async ({ item, index }) => {
+          const theme = item?.theme || selectedTopicName || "-";
+          const studentName = item?.studentName || "-";
+          const cacheKey = `${normalizeText(studentName)}::${normalizeText(selectedClassName)}::${normalizeText(theme)}`;
+
+          if (!essayCache.has(cacheKey)) {
+            essayCache.set(
+              cacheKey,
+              fetchEssayByScope({
+                studentName,
+                className: selectedClassName,
+                theme,
+                preferredBase: apiBase,
+              })
+            );
+          }
+
+          const essayData = await essayCache.get(cacheKey);
+          return createStudentRow({
+            item,
+            index,
+            selectedTopicName,
+            selectedClassName,
+            essayData,
+          });
+        });
+
+        if (!cancelled) {
+          setRows(enrichedRows);
+        }
       } catch (error) {
         console.error("Failed to fetch Notion student rows:", error);
-        setLoadError("Failed to fetch student records from Notion.");
-        setRows([]);
+        if (!cancelled) {
+          setLoadError("Failed to fetch student records from Notion.");
+          setRows([]);
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchRows();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedClassName, selectedTopicName]);
 
   const tableRows = useMemo(() => rows, [rows]);
+  const studentListForNavigation = useMemo(() => {
+    const seen = new Set();
+    const orderedNames = [];
+    tableRows.forEach((row) => {
+      const name = String(row?.name || "").trim();
+      if (!name) return;
+      const key = normalizeText(name);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      orderedNames.push(name);
+    });
+    return orderedNames;
+  }, [tableRows]);
 
   return (
     <div>
@@ -447,6 +663,7 @@ export default function Studentlist() {
                               studentName: student.name,
                               className: selectedClassName,
                               theme: student.theme || selectedTopicName,
+                              studentList: studentListForNavigation,
                             },
                           })
                         }

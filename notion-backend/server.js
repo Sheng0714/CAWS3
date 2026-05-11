@@ -2034,6 +2034,199 @@ const getLoginDateCountsFromProperties = (properties = {}) => {
     return parseLoginDateCounts(rawValue);
 };
 
+const STUDENT_NAME_FIELD_ALIASES = ['\u5b78\u751f\u59d3\u540d', 'Student Name', 'studentName'];
+const CLASS_NAME_FIELD_ALIASES = ['\u73ed\u7d1a', 'Class', 'Class Name', 'className'];
+const THEME_FIELD_ALIASES = ['\u4e3b\u984c', 'Theme', 'theme'];
+const NOTE_CONTENT_FIELD_ALIASES = ['\u7b46\u8a18\u5340'];
+const ESSAY_CONTENT_FIELD_ALIASES = ['\u8b70\u8ad6\u6587\u5167\u5bb9'];
+const KF_ANALYSIS_FIELD_ALIASES = ['KF\u6458\u8981'];
+const OUTLINE_FIELD_ALIASES = ['\u5beb\u4f5c\u5927\u7db1'];
+const SUBMISSION_STATUS_FIELD_ALIASES = ['\u662f\u5426\u7e73\u4ea4', '\u7e73\u4ea4\u72c0\u614b', '\u63d0\u4ea4\u72c0\u614b', 'Submission Status', 'SubmissionStatus', 'Submitted'];
+const TEACHER_FEEDBACK_FIELD_ALIASES = ['\u6559\u5e2b\u8a55\u8a9e'];
+const AI_FEEDBACK_FIELD_ALIASES = ['AI\u8a55\u8a9e', 'AI \u8a55\u8a9e', 'AI Feedback', 'AIFeedback', 'AI Comment', 'AIComment'];
+const TEACHER_TOTAL_SCORE_FIELD_ALIASES = ['\u7e3d\u5206', 'Total Score', 'TotalScore', 'Score'];
+const AI_TOTAL_SCORE_FIELD_ALIASES = ['AI\u7e3d\u5206', 'AI \u7e3d\u5206', 'AI Total Score', 'AITotalScore', 'AIScore', 'AI Score'];
+const STUDENT_PROGRESS_ALLOWED_FILTER_TYPES = ['title', 'rich_text', 'select', 'status'];
+
+const normalizeTextForCompare = (value) => String(value ?? '').trim().toLowerCase();
+
+const hasMeaningfulText = (value) => {
+    if (typeof value !== 'string') return false;
+    const normalized = value
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return normalized.length > 0;
+};
+
+const normalizeScoreValue = (value) => {
+    if (value === null || value === undefined) return '';
+    const raw = String(value).trim();
+    if (!raw || raw === '-') return '';
+    if (raw.toLowerCase() === 'not graded') return '';
+    return raw;
+};
+
+const isZeroScore = (value) => {
+    const normalized = normalizeScoreValue(value);
+    if (normalized === '') return false;
+    const numeric = Number(normalized);
+    return !Number.isNaN(numeric) && numeric === 0;
+};
+
+const resolveDisplayedGradeRaw = ({ teacherScore = '', aiScore = '', teacherFeedback = '', aiFeedback = '', gradingView = '' } = {}) => {
+    const normalizedTeacherScore = normalizeScoreValue(teacherScore);
+    const normalizedAiScore = normalizeScoreValue(aiScore);
+    const normalizedTeacherFeedback = normalizeTextForCompare(teacherFeedback);
+    const normalizedAiFeedback = normalizeTextForCompare(aiFeedback);
+    const normalizedGradingView = normalizeTextForCompare(gradingView);
+
+    if (normalizedGradingView === 'ai') return normalizedAiScore || normalizedTeacherScore;
+    if (normalizedGradingView === 'teacher') return normalizedTeacherScore || normalizedAiScore;
+
+    const teacherSeemsUnfilled = !normalizedTeacherFeedback && (normalizedTeacherScore === '' || isZeroScore(normalizedTeacherScore));
+    if (normalizedAiScore !== '' && (teacherSeemsUnfilled || normalizedAiFeedback)) {
+        return normalizedAiScore;
+    }
+
+    return normalizedTeacherScore || normalizedAiScore;
+};
+
+const createEqualsFilterByType = (propertyName, propertyType, value) => {
+    switch (propertyType) {
+        case 'title':
+            return { property: propertyName, title: { equals: value } };
+        case 'select':
+            return { property: propertyName, select: { equals: value } };
+        case 'status':
+            return { property: propertyName, status: { equals: value } };
+        case 'rich_text':
+        default:
+            return { property: propertyName, rich_text: { equals: value } };
+    }
+};
+
+const toTimestamp = (value) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+};
+
+const dedupeStudentProgressRows = (rows = []) => {
+    const latestMap = new Map();
+    rows.forEach((row) => {
+        const key = `${normalizeTextForCompare(row?.studentName)}::${normalizeTextForCompare(row?.theme)}`;
+        if (!key || key === '::') return;
+        const current = latestMap.get(key);
+        if (!current) {
+            latestMap.set(key, row);
+            return;
+        }
+
+        const currentTs = toTimestamp(current?.lastEditedTime || current?.submissionDate);
+        const incomingTs = toTimestamp(row?.lastEditedTime || row?.submissionDate);
+        if (incomingTs >= currentTs) {
+            latestMap.set(key, row);
+        }
+    });
+
+    return [...latestMap.values()].sort((a, b) => {
+        const left = toTimestamp(a?.lastEditedTime || a?.submissionDate);
+        const right = toTimestamp(b?.lastEditedTime || b?.submissionDate);
+        return right - left;
+    });
+};
+
+const queryAllNotionRowsByFilter = async (filter) => {
+    const allResults = [];
+    let startCursor = undefined;
+
+    while (true) {
+        const response = await notion.databases.query({
+            database_id: NOTION_DATABASE_ID,
+            filter,
+            page_size: 100,
+            start_cursor: startCursor,
+        });
+
+        const results = Array.isArray(response?.results) ? response.results : [];
+        allResults.push(...results);
+        if (!response?.has_more || !response?.next_cursor) {
+            break;
+        }
+        startCursor = response.next_cursor;
+    }
+
+    return allResults;
+};
+
+const buildStudentProgressRecord = ({ page, fallbackClassName = '' }) => {
+    const properties = page?.properties || {};
+    const noteContent = getDisplayValueByAliases(properties, NOTE_CONTENT_FIELD_ALIASES);
+    const parsedNote = safeJsonParse(noteContent, {});
+
+    const studentName = getDisplayValueByAliases(properties, STUDENT_NAME_FIELD_ALIASES) || '\u672a\u77e5\u5b78\u751f';
+    const className = getDisplayValueByAliases(properties, CLASS_NAME_FIELD_ALIASES) || fallbackClassName || '';
+    const theme = getDisplayValueByAliases(properties, THEME_FIELD_ALIASES) || '\u672a\u77e5\u4e3b\u984c';
+    const submissionStatus = normalizeSubmissionStatus(
+        pickFirstNonEmptyValue(
+            getDisplayValueByAliases(properties, SUBMISSION_STATUS_FIELD_ALIASES),
+            parsedNote?.submissionStatus
+        )
+    );
+
+    const essayContent = getDisplayValueByAliases(properties, ESSAY_CONTENT_FIELD_ALIASES);
+    const kfAnalysisContent = getDisplayValueByAliases(properties, KF_ANALYSIS_FIELD_ALIASES);
+    const outlineContent = getDisplayValueByAliases(properties, OUTLINE_FIELD_ALIASES);
+
+    const teacherFeedback = pickFirstNonEmptyValue(
+        getDisplayValueByAliases(properties, TEACHER_FEEDBACK_FIELD_ALIASES),
+        parsedNote?.humanComment
+    );
+    const aiFeedback = pickFirstNonEmptyValue(
+        getDisplayValueByAliases(properties, AI_FEEDBACK_FIELD_ALIASES),
+        parsedNote?.aiComment
+    );
+    const teacherTotalScore = pickFirstNonEmptyValue(
+        getDisplayValueByAliases(properties, TEACHER_TOTAL_SCORE_FIELD_ALIASES),
+        parsedNote?.totalScore
+    );
+    const aiTotalScore = pickFirstNonEmptyValue(
+        getDisplayValueByAliases(properties, AI_TOTAL_SCORE_FIELD_ALIASES),
+        parsedNote?.aiTotalScore
+    );
+    const gradingView = normalizeTextForCompare(parsedNote?.gradingView);
+
+    const progressCompletedByStep = [
+        true,
+        hasMeaningfulText(kfAnalysisContent),
+        hasMeaningfulText(outlineContent),
+        hasMeaningfulText(essayContent) || isSubmittedStatusYes(submissionStatus),
+    ];
+    const progressPercent = progressCompletedByStep.filter(Boolean).length * 25;
+
+    return {
+        rowId: `${studentName}-${page?.id || page?.created_time || 'unknown'}`,
+        studentName,
+        className,
+        theme,
+        submissionDate: page?.created_time || '',
+        lastEditedTime: page?.last_edited_time || '',
+        submissionStatus,
+        progressCompletedByStep,
+        progressPercent,
+        teacherTotalScore: normalizeScoreValue(teacherTotalScore),
+        aiTotalScore: normalizeScoreValue(aiTotalScore),
+        gradeRaw: resolveDisplayedGradeRaw({
+            teacherScore: teacherTotalScore,
+            aiScore: aiTotalScore,
+            teacherFeedback,
+            aiFeedback,
+            gradingView,
+        }),
+    };
+};
+
 async function resolveLoginCountPropertyOrThrow() {
     const databaseProperties = await getDatabasePropertiesWithCache();
     const lookup = buildPropertyLookup(databaseProperties);
@@ -2885,6 +3078,89 @@ app.get('/api/get-students-by-class/:className', async (req, res) => {
         res.status(500).json({
             success: false,
             error: error.message || '無法從 Notion 獲取資料，請檢查伺服器日誌',
+        });
+    }
+});
+
+app.get('/api/get-student-progress-by-class/:className', async (req, res) => {
+    const normalizedClassName = normalizeLookupValue(req.params?.className);
+    const requestedTheme = normalizeLookupValue(req.query?.theme);
+    const page = Math.max(1, Number.parseInt(String(req.query?.page || '1'), 10) || 1);
+    const pageSize = Math.min(200, Math.max(1, Number.parseInt(String(req.query?.pageSize || '50'), 10) || 50));
+
+    if (!normalizedClassName) {
+        return res.status(400).json({
+            success: false,
+            error: 'Missing required parameter: className',
+        });
+    }
+
+    try {
+        const databaseProperties = await getDatabasePropertiesWithCache();
+        const lookup = buildPropertyLookup(databaseProperties);
+
+        const resolvedClassField =
+            resolvePropertyConfig(lookup, CLASS_NAME_FIELD_ALIASES, STUDENT_PROGRESS_ALLOWED_FILTER_TYPES) || {
+                name: '\u73ed\u7d1a',
+                definition: { type: 'rich_text' },
+            };
+        const resolvedThemeField =
+            resolvePropertyConfig(lookup, THEME_FIELD_ALIASES, STUDENT_PROGRESS_ALLOWED_FILTER_TYPES) || {
+                name: '\u4e3b\u984c',
+                definition: { type: 'rich_text' },
+            };
+
+        const filters = [
+            createEqualsFilterByType(
+                resolvedClassField.name,
+                resolvedClassField.definition?.type || 'rich_text',
+                normalizedClassName
+            ),
+        ];
+
+        if (requestedTheme) {
+            filters.push(
+                createEqualsFilterByType(
+                    resolvedThemeField.name,
+                    resolvedThemeField.definition?.type || 'rich_text',
+                    requestedTheme
+                )
+            );
+        }
+
+        const notionPages = await queryAllNotionRowsByFilter(filters.length === 1 ? filters[0] : { and: filters });
+        const rawRows = notionPages.map((pageRecord) =>
+            buildStudentProgressRecord({
+                page: pageRecord,
+                fallbackClassName: normalizedClassName,
+            })
+        );
+        const themeFilteredRows = requestedTheme
+            ? rawRows.filter((item) => normalizeLookupValue(item?.theme) === requestedTheme)
+            : rawRows;
+        const dedupedRows = dedupeStudentProgressRows(themeFilteredRows);
+
+        const totalItems = dedupedRows.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        const safePage = Math.min(page, totalPages);
+        const startIndex = (safePage - 1) * pageSize;
+        const pagedRows = dedupedRows.slice(startIndex, startIndex + pageSize);
+
+        return res.json({
+            success: true,
+            data: pagedRows,
+            pagination: {
+                page: safePage,
+                pageSize,
+                totalItems,
+                totalPages,
+            },
+        });
+    } catch (error) {
+        console.error('Failed to fetch student progress batch:', error);
+        return res.status(500).json({
+            success: false,
+            error: error?.message || 'Failed to fetch student progress',
         });
     }
 });

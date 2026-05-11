@@ -47,6 +47,45 @@ const normalizeScopeValue = (value) => String(value ?? "").replace(/\u3000/g, " 
 const pickLatestRow = (rows) =>
   [...rows].sort((a, b) => new Date(b?.submissionDate || 0).getTime() - new Date(a?.submissionDate || 0).getTime())[0];
 
+const normalizeStudentList = (list) => {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set();
+  const normalized = [];
+  list.forEach((item) => {
+    const student = String(item || "").trim();
+    if (!student) return;
+    const key = normalizeScopeValue(student);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    normalized.push(student);
+  });
+  return normalized;
+};
+
+const buildStudentListFromRows = (rows, topicName) => {
+  if (!Array.isArray(rows) || rows.length === 0) return [];
+
+  const latestByStudent = new Map();
+  rows.forEach((row) => {
+    const rowName = String(row?.studentName || "").trim();
+    if (!rowName) return;
+    if (normalizeScopeValue(row?.theme) !== normalizeScopeValue(topicName)) return;
+
+    const key = normalizeScopeValue(rowName);
+    const rowTime = new Date(row?.submissionDate || 0).getTime();
+    const existing = latestByStudent.get(key);
+    const existingTime = new Date(existing?.submissionDate || 0).getTime();
+    if (!existing || rowTime >= existingTime) {
+      latestByStudent.set(key, row);
+    }
+  });
+
+  return [...latestByStudent.values()]
+    .sort((a, b) => new Date(b?.submissionDate || 0).getTime() - new Date(a?.submissionDate || 0).getTime())
+    .map((item) => String(item?.studentName || "").trim())
+    .filter(Boolean);
+};
+
 const fetchStudentsByClassFromNotion = async (className) => {
   const token = localStorage.getItem("jwtToken");
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -588,11 +627,16 @@ export default function CorrectEssays() {
     location.state?.studentName || localStorage.getItem("selectedStudentName") || "Harry";
   const className = location.state?.className || localStorage.getItem("activityTitle") || "Class A";
   const topicName = location.state?.theme || location.state?.topicName || localStorage.getItem("groupName") || "-";
+  const incomingStudentList = useMemo(
+    () => normalizeStudentList(location.state?.studentList),
+    [location.state?.studentList]
+  );
 
   const [essayContent, setEssayContent] = useState("");
   const [kfAnalysisContent, setKfAnalysisContent] = useState("");
   const [chatHistoryContent, setChatHistoryContent] = useState([]);
   const [outlineContent, setOutlineContent] = useState("");
+  const [studentList, setStudentList] = useState(() => incomingStudentList);
   const [matchedScope, setMatchedScope] = useState({
     className: "",
     studentName: "",
@@ -610,6 +654,12 @@ export default function CorrectEssays() {
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
   const [gradingView, setGradingView] = useState("teacher");
+
+  useEffect(() => {
+    if (incomingStudentList.length > 0) {
+      setStudentList(incomingStudentList);
+    }
+  }, [incomingStudentList]);
 
   const activeScores = gradingView === "teacher" ? teacherScores : aiScores;
   const { claimsScore, groundsScore, rebuttalsScore } = activeScores;
@@ -629,6 +679,14 @@ export default function CorrectEssays() {
     if (!aiComment) return null;
     return parseAiReply(aiComment).sections;
   }, [aiFeedbackSections, aiComment]);
+  const resolvedCurrentStudentName = matchedScope.studentName || studentName;
+  const currentStudentIndex = useMemo(() => {
+    const currentKey = normalizeScopeValue(resolvedCurrentStudentName);
+    if (!currentKey || studentList.length === 0) return -1;
+    return studentList.findIndex((item) => normalizeScopeValue(item) === currentKey);
+  }, [studentList, resolvedCurrentStudentName]);
+  const hasPrevStudent = currentStudentIndex > 0;
+  const hasNextStudent = currentStudentIndex >= 0 && currentStudentIndex < studentList.length - 1;
 
   const handleOverallCommentChange = (value) => {
     if (gradingView === "teacher") {
@@ -658,6 +716,23 @@ export default function CorrectEssays() {
     setOutlineContent("");
   };
 
+  const handleSwitchStudent = (step) => {
+    if (!step || studentList.length === 0 || currentStudentIndex < 0) return;
+    const targetIndex = currentStudentIndex + step;
+    if (targetIndex < 0 || targetIndex >= studentList.length) return;
+    const targetStudentName = studentList[targetIndex];
+
+    navigate("/CorrectEssays", {
+      replace: true,
+      state: {
+        studentName: targetStudentName,
+        className,
+        theme: topicName,
+        studentList,
+      },
+    });
+  };
+
   useEffect(() => {
     const fetchEssay = async () => {
       if (!studentName || !className || !topicName || topicName === "-") {
@@ -685,6 +760,12 @@ export default function CorrectEssays() {
         }
         if (!Array.isArray(rows) || rows.length === 0) {
           throw lastClassError || new Error("No Notion rows found for class");
+        }
+        if (incomingStudentList.length === 0) {
+          const fallbackStudentList = buildStudentListFromRows(rows, topicName);
+          if (fallbackStudentList.length > 0) {
+            setStudentList(fallbackStudentList);
+          }
         }
 
         const matchedRows = rows.filter(
@@ -1046,6 +1127,27 @@ export default function CorrectEssays() {
             <div className="ce-info-row">
               <span className="ce-info-label">Student</span>
               <span className="ce-info-value">{matchedScope.studentName || "-"}</span>
+            </div>
+            <div className="ce-student-switch">
+              <button
+                type="button"
+                className="ce-switch-button"
+                onClick={() => handleSwitchStudent(-1)}
+                disabled={!hasPrevStudent || isLoading}
+              >
+                Previous
+              </button>
+              <span className="ce-switch-status">
+                {currentStudentIndex >= 0 ? `${currentStudentIndex + 1}` : "-"} / {studentList.length || "-"}
+              </span>
+              <button
+                type="button"
+                className="ce-switch-button"
+                onClick={() => handleSwitchStudent(1)}
+                disabled={!hasNextStudent || isLoading}
+              >
+                Next
+              </button>
             </div>
           </div>
 
