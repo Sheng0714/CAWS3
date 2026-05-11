@@ -590,6 +590,9 @@ export default function CorrectEssays() {
   const topicName = location.state?.theme || location.state?.topicName || localStorage.getItem("groupName") || "-";
 
   const [essayContent, setEssayContent] = useState("");
+  const [kfAnalysisContent, setKfAnalysisContent] = useState("");
+  const [chatHistoryContent, setChatHistoryContent] = useState([]);
+  const [outlineContent, setOutlineContent] = useState("");
   const [matchedScope, setMatchedScope] = useState({
     className: "",
     studentName: "",
@@ -650,6 +653,9 @@ export default function CorrectEssays() {
     setAiFeedbackSections(null);
     setTeacherScores(createEmptyScoreSet());
     setAiScores(createEmptyScoreSet());
+    setKfAnalysisContent("");
+    setChatHistoryContent([]);
+    setOutlineContent("");
   };
 
   useEffect(() => {
@@ -733,6 +739,9 @@ export default function CorrectEssays() {
         });
 
         setEssayContent(data.essayContent || "");
+        setKfAnalysisContent(String(data.kfAnalysisContent || ""));
+        setChatHistoryContent(Array.isArray(data.chatHistory) ? data.chatHistory : []);
+        setOutlineContent(String(data.outlineContent || ""));
 
         const teacherFeedbackFromDb = String(data?.teacherFeedback || data?.humanComment || "").trim();
         const aiFeedbackFromDb = String(data?.aiFeedback || data?.aiComment || "").trim();
@@ -975,6 +984,9 @@ export default function CorrectEssays() {
         theme: submitTheme,
         noteContent: notePayload,
         essayContent,
+        kfAnalysisContent,
+        chatHistory: chatHistoryContent,
+        outlineContent,
       };
 
       if (isTeacherGradingSubmit) {
