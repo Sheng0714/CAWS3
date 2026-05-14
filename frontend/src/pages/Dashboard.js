@@ -27,6 +27,13 @@ const TOPIC_OPTIONS = [
 
 const TASK_LABELS = ['Topic Understanding', 'Research Collection', 'Group Discussion', 'Argument Building', 'Presentation'];
 const TREND_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+const LOGIN_TREND_RANGE_OPTIONS = [
+  { value: '7d', label: '最近七天', days: 7 },
+  { value: '14d', label: '最近14天', days: 14 },
+  { value: '30d', label: '最近一個月', days: 30 },
+  { value: 'all', label: '全部', days: null },
+];
+const DEFAULT_LOGIN_TREND_RANGE = LOGIN_TREND_RANGE_OPTIONS[0].value;
 const NOTION_API_BASES = [
   process.env.REACT_APP_NOTION_API_BASE_URL,
   '/notion-api',
@@ -371,28 +378,69 @@ const formatDateKey = (dateLike) => {
   return `${year}-${month}-${day}`;
 };
 
-const getWeekStartMonday = (dateLike = new Date()) => {
-  const base = new Date(dateLike);
-  base.setHours(0, 0, 0, 0);
-  const mondayBasedDay = (base.getDay() + 6) % 7;
-  base.setDate(base.getDate() - mondayBasedDay);
-  return base;
+const parseDateKeyToDate = (dateKey) => {
+  if (typeof dateKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return null;
+  const date = new Date(`${dateKey}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const buildCurrentWeekLoginTrendRows = (dateLike = new Date()) => {
-  const weekStart = getWeekStartMonday(dateLike);
-  return WEEKDAY_LABELS.map((label, index) => {
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + index);
-    return {
-      day: label,
-      date: formatDateKey(date),
+const formatMonthDayLabel = (dateLike) => {
+  const date = new Date(dateLike);
+  if (Number.isNaN(date.getTime())) return '-';
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${month}/${day}`;
+};
+
+const resolveLoginTrendRangeDays = (rangeValue) => {
+  const found = LOGIN_TREND_RANGE_OPTIONS.find((item) => item.value === rangeValue);
+  return found?.days ?? 7;
+};
+
+const buildLoginTrendRowsByRange = (dateCountMap = {}, rangeValue = DEFAULT_LOGIN_TREND_RANGE, dateLike = new Date()) => {
+  const today = new Date(dateLike);
+  today.setHours(0, 0, 0, 0);
+  const validKeys = Object.keys(dateCountMap || {})
+    .filter((dateKey) => Boolean(parseDateKeyToDate(dateKey)))
+    .sort((a, b) => parseDateKeyToDate(a).getTime() - parseDateKeyToDate(b).getTime());
+
+  const rangeDays = resolveLoginTrendRangeDays(rangeValue);
+  let startDate = new Date(today);
+  if (rangeValue === 'all' && validKeys.length > 0) {
+    startDate = parseDateKeyToDate(validKeys[0]);
+  } else {
+    const days = rangeDays || 7;
+    startDate.setDate(today.getDate() - days + 1);
+  }
+
+  if (Number.isNaN(startDate.getTime()) || startDate.getTime() > today.getTime()) {
+    startDate = new Date(today);
+  }
+
+  const rows = [];
+  const cursor = new Date(startDate);
+  while (cursor.getTime() <= today.getTime()) {
+    const dateKey = formatDateKey(cursor);
+    const weekdayIndex = (cursor.getDay() + 6) % 7;
+    rows.push({
+      day: formatMonthDayLabel(cursor),
+      weekday: WEEKDAY_LABELS[weekdayIndex],
+      date: dateKey,
+      count: toNonNegativeInteger(dateCountMap?.[dateKey]),
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  if (rows.length > 0) return rows;
+  return [
+    {
+      day: formatMonthDayLabel(today),
+      weekday: WEEKDAY_LABELS[(today.getDay() + 6) % 7],
+      date: formatDateKey(today),
       count: 0,
-    };
-  });
+    },
+  ];
 };
-
-const buildEmptyLoginTrendRows = () => buildCurrentWeekLoginTrendRows();
 
 const formatDeadlineDisplay = (value) => {
   if (!value) return '未設定';
@@ -926,12 +974,13 @@ export default function Dashboard() {
   const [kfIdeaCategoryCountsByGroup, setKfIdeaCategoryCountsByGroup] = useState({});
   const [selectedKfIdeaGroup, setSelectedKfIdeaGroup] = useState('');
   const [kfContextRawText, setKfContextRawText] = useState('');
-  const [loginTrendRows, setLoginTrendRows] = useState([]);
+  const [loginTrendDateCountMap, setLoginTrendDateCountMap] = useState({});
   const [loginTrendTotalStudents, setLoginTrendTotalStudents] = useState(0);
   const [classTopicRows, setClassTopicRows] = useState([]);
   const [topicDeadlineByClass, setTopicDeadlineByClass] = useState({});
   const [isLoginTrendLoading, setIsLoginTrendLoading] = useState(false);
   const [loginTrendError, setLoginTrendError] = useState('');
+  const [selectedLoginTrendRange, setSelectedLoginTrendRange] = useState(DEFAULT_LOGIN_TREND_RANGE);
   const [selectedSectionFilter, setSelectedSectionFilter] = useState(DASHBOARD_SECTION_FILTERS[0].value);
 
   const apiBaseUrls = useMemo(() => {
@@ -1059,9 +1108,12 @@ export default function Dashboard() {
     () => buildClassData(selectedClassOption, selectedTopicOption),
     [selectedClassOption, selectedTopicOption]
   );
-  const displayedLoginTrendRows = loginTrendRows.length > 0
-    ? loginTrendRows
-    : buildEmptyLoginTrendRows();
+  const displayedLoginTrendRows = useMemo(
+    () => buildLoginTrendRowsByRange(loginTrendDateCountMap, selectedLoginTrendRange),
+    [loginTrendDateCountMap, selectedLoginTrendRange]
+  );
+  const selectedLoginTrendRangeLabel =
+    LOGIN_TREND_RANGE_OPTIONS.find((item) => item.value === selectedLoginTrendRange)?.label || '最近七天';
   const loginTrendPlotTop = 10;
   const loginTrendPlotBottom = 94;
   const loginTrendPlotHeight = loginTrendPlotBottom - loginTrendPlotTop;
@@ -1265,7 +1317,7 @@ export default function Dashboard() {
       const notionClassName = resolveNotionClassName(selectedClassOption, selectedDashboardClassCode);
       const selectedThemeName = String(selectedTopicOption?.label || '').trim();
       if (!notionClassName) {
-        setLoginTrendRows(buildEmptyLoginTrendRows());
+        setLoginTrendDateCountMap({});
         setLoginTrendTotalStudents(0);
         setClassTopicRows([]);
         setLoginTrendError('Class name is missing. Cannot load login trend.');
@@ -1340,30 +1392,23 @@ export default function Dashboard() {
             .filter(Boolean)
         ).size;
 
-        const weekRows = buildCurrentWeekLoginTrendRows();
-        const weekCountMap = weekRows.reduce((acc, row) => {
-          acc[row.date] = 0;
-          return acc;
-        }, {});
+        const dateCountMap = {};
 
         scopedRows.forEach((item) => {
           const rawDateCounts = item?.loginDateCounts && typeof item.loginDateCounts === 'object'
             ? item.loginDateCounts
             : {};
           Object.entries(rawDateCounts).forEach(([dateKey, count]) => {
-            if (!Object.prototype.hasOwnProperty.call(weekCountMap, dateKey)) return;
-            weekCountMap[dateKey] += toNonNegativeInteger(count);
+            const normalizedDate = parseDateKeyToDate(dateKey);
+            if (!normalizedDate) return;
+            const normalizedDateKey = formatDateKey(normalizedDate);
+            dateCountMap[normalizedDateKey] = (dateCountMap[normalizedDateKey] || 0) + toNonNegativeInteger(count);
           });
         });
 
-        const mappedTrendRows = weekRows.map((row) => ({
-          ...row,
-          count: toNonNegativeInteger(weekCountMap[row.date]),
-        }));
-
         if (!isCancelled) {
           setClassTopicRows(scopedRowsWithProgress);
-          setLoginTrendRows(mappedTrendRows);
+          setLoginTrendDateCountMap(dateCountMap);
           setLoginTrendTotalStudents(uniqueStudentCount);
           if (scopedRows.length === 0) {
             setLoginTrendError(`No Notion records found for class "${notionClassName}" and topic "${selectedThemeName || '-'}".`);
@@ -1373,7 +1418,7 @@ export default function Dashboard() {
         console.error('Failed to load real login trend:', error);
         if (!isCancelled) {
           setClassTopicRows([]);
-          setLoginTrendRows(buildEmptyLoginTrendRows());
+          setLoginTrendDateCountMap({});
           setLoginTrendTotalStudents(0);
           setLoginTrendError('Failed to load login counts from Notion.');
         }
@@ -1928,9 +1973,37 @@ export default function Dashboard() {
 
           {showSystemCard && (
             <article style={{ ...cardStyle, gridColumn: '1 / -1' }}>
-            <h2 style={blockTitleStyle}>Class Login Trend</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <h2 style={{ ...blockTitleStyle, margin: 0 }}>Class Login Trend</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <label htmlFor="login-trend-range-filter" style={{ color: '#1F4060', fontSize: '13px', fontWeight: 700 }}>
+                  篩選
+                </label>
+                <select
+                  id="login-trend-range-filter"
+                  value={selectedLoginTrendRange}
+                  onChange={(event) => setSelectedLoginTrendRange(event.target.value)}
+                  style={{
+                    minWidth: '130px',
+                    height: '34px',
+                    borderRadius: '9px',
+                    border: '1px solid #cdd8e6',
+                    padding: '0 10px',
+                    fontSize: '13px',
+                    color: '#1B314A',
+                    backgroundColor: '#fff',
+                  }}
+                >
+                  {LOGIN_TREND_RANGE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <p style={{ margin: '10px 0 0', color: '#4E6377', fontSize: '13px', textAlign: 'center' }}>
-              Class "{selectedClassOption.label}" topic "{selectedTopicOption.label}" weekly average daily logins: {averageLoginCount}
+              Class "{selectedClassOption.label}" topic "{selectedTopicOption.label}" {selectedLoginTrendRangeLabel}平均每日登入次數：{averageLoginCount}
             </p>
             <p style={{ margin: '8px 0 0', color: '#5C7187', fontSize: '13px', textAlign: 'center' }}>
               Students: {loginTrendTotalStudents} | Total login counts: {totalLoginCount}
@@ -1990,7 +2063,7 @@ export default function Dashboard() {
                     const x = displayedLoginTrendRows.length <= 1 ? 50 : ((index + 0.5) / displayedLoginTrendRows.length) * 100;
                     const clampedCount = Math.min(loginTrendYAxisMax, Math.max(loginTrendYAxisMin, item.count));
                     const y = loginTrendPlotBottom - (((clampedCount - loginTrendYAxisMin) / loginTrendRange) * loginTrendPlotHeight);
-                    return <circle key={`${item.day}-${index}`} cx={x} cy={y} r="2.1" fill="#2F80ED" />;
+                    return <circle key={`${item.date}-${index}`} cx={x} cy={y} r="2.1" fill="#2F80ED" />;
                   })}
                 </svg>
                 <div
@@ -2002,7 +2075,7 @@ export default function Dashboard() {
                   }}
                 >
                   {displayedLoginTrendRows.map((item) => (
-                    <div key={`axis-${item.day}`} style={{ textAlign: 'center', color: '#5C7187', fontSize: '12px' }}>
+                    <div key={`axis-${item.date}`} style={{ textAlign: 'center', color: '#5C7187', fontSize: '12px' }}>
                       {item.day}
                     </div>
                   ))}
@@ -2013,7 +2086,7 @@ export default function Dashboard() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                   <thead>
                     <tr style={{ background: '#F4F8FC' }}>
-                      <th style={{ padding: '10px', color: '#1F4060', textAlign: 'left' }}>Weekday</th>
+                      <th style={{ padding: '10px', color: '#1F4060', textAlign: 'left' }}>Date</th>
                       <th style={{ padding: '10px', color: '#1F4060', textAlign: 'right' }}>Login Count</th>
                       <th style={{ padding: '10px', color: '#1F4060', textAlign: 'right' }}>Share</th>
                     </tr>
@@ -2024,7 +2097,7 @@ export default function Dashboard() {
                       const rate = Math.round((item.count / denominator) * 100);
                       return (
                         <tr key={`login-row-${item.day}-${item.date || 'no-date'}`} style={{ borderTop: '1px solid #EDF2F7' }}>
-                          <td style={{ padding: '10px', color: '#234562' }}>{item.day}</td>
+                          <td style={{ padding: '10px', color: '#234562' }}>{`${item.day} (${item.weekday})`}</td>
                           <td style={{ padding: '10px', color: '#234562', textAlign: 'right', fontWeight: 700 }}>{item.count}</td>
                           <td style={{ padding: '10px', color: '#5A7086', textAlign: 'right' }}>{rate}%</td>
                         </tr>

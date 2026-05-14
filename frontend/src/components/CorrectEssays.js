@@ -13,6 +13,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../components/Navbar_Student";
 import questionIcon from "../assets/question.png";
+import copyIcon from "../assets/複製.png";
 import "./CorrectEssays.css";
 
 const apiAxios = axios.create({
@@ -648,6 +649,7 @@ export default function CorrectEssays() {
 
   const [teacherScores, setTeacherScores] = useState(createEmptyScoreSet);
   const [aiScores, setAiScores] = useState(createEmptyScoreSet);
+  const [manualTotalScore, setManualTotalScore] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -664,7 +666,7 @@ export default function CorrectEssays() {
   const activeScores = gradingView === "teacher" ? teacherScores : aiScores;
   const { claimsScore, groundsScore, rebuttalsScore } = activeScores;
 
-  const totalScore = useMemo(() => {
+  const argumentScore = useMemo(() => {
     return computeTotalFromScores({ claimsScore, groundsScore, rebuttalsScore });
   }, [claimsScore, groundsScore, rebuttalsScore]);
   const displayEssayContent = useMemo(() => normalizeEssayContentForDisplay(essayContent), [essayContent]);
@@ -711,6 +713,7 @@ export default function CorrectEssays() {
     setAiFeedbackSections(null);
     setTeacherScores(createEmptyScoreSet());
     setAiScores(createEmptyScoreSet());
+    setManualTotalScore("");
     setKfAnalysisContent("");
     setChatHistoryContent([]);
     setOutlineContent("");
@@ -731,6 +734,38 @@ export default function CorrectEssays() {
         studentList,
       },
     });
+  };
+
+  const handleCopyEssayContent = async () => {
+    const contentToCopy = displayEssayContent.trim();
+    if (!contentToCopy) {
+      showSnackbar("No essay content to copy.", "warning");
+      return;
+    }
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(contentToCopy);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = contentToCopy;
+        textarea.setAttribute("readonly", "true");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const copied = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        if (!copied) {
+          throw new Error("execCommand copy failed");
+        }
+      }
+      showSnackbar("Essay copied to clipboard.", "success");
+    } catch (error) {
+      console.error("Copy essay failed:", error);
+      showSnackbar("Copy failed. Please copy manually.", "error");
+    }
   };
 
   useEffect(() => {
@@ -846,6 +881,8 @@ export default function CorrectEssays() {
         setAiFeedbackSections(null);
         setTeacherScores(topLevelScores);
         setAiScores(aiTopLevelScores);
+        const totalScoreFromDb = String(data?.totalScore ?? "").trim();
+        setManualTotalScore(totalScoreFromDb);
 
         const rawNote = data.noteContent || "";
         if (rawNote) {
@@ -893,6 +930,14 @@ export default function CorrectEssays() {
                   ? legacyScores
                   : createEmptyScoreSet()
             );
+            if (!totalScoreFromDb) {
+              const parsedTotalScore = String(
+                parsed?.finalTotalScore ?? parsed?.teacherTotalScore ?? ""
+              ).trim();
+              if (parsedTotalScore) {
+                setManualTotalScore(parsedTotalScore);
+              }
+            }
           } catch {
             // Keep database column values as source of truth when note JSON is invalid.
           }
@@ -1014,6 +1059,10 @@ export default function CorrectEssays() {
       showSnackbar("Missing class/topic/student context.", "error");
       return;
     }
+    if (gradingView === "teacher" && !String(manualTotalScore || "").trim()) {
+      showSnackbar("Total Score is required before submit.", "error");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -1025,7 +1074,8 @@ export default function CorrectEssays() {
       const teacherCommentForStorage = String(humanComment || "").trim();
       const aiCommentForStorage =
         buildEnglishFeedbackFromSections(aiSectionsForSubmit) || String(aiComment || "").trim();
-      const teacherTotalScore = computeTotalFromScores(teacherScores);
+      const teacherArgumentScore = String(computeTotalFromScores(teacherScores));
+      const teacherTotalScore = String(manualTotalScore || "").trim();
       const aiTotalScore = computeTotalFromScores(aiScores);
       const teacherDetailsForSplit = normalizeFeedbackBlock(parseAiReply(teacherCommentForStorage).sections?.details);
       const aiDetailsForSplit = normalizeFeedbackBlock(aiSectionsForSubmit?.details);
@@ -1049,8 +1099,11 @@ export default function CorrectEssays() {
         claimsComment: teacherDetailComments.claimsComment,
         groundsComment: teacherDetailComments.groundsComment,
         rebuttalsComment: teacherDetailComments.rebuttalsComment,
+        argumentScore: teacherArgumentScore,
         totalScore: teacherTotalScore,
         teacherTotalScore,
+        finalTotalScore: teacherTotalScore,
+        teacherArgumentScore,
         teacherDetailComments,
         aiDetailComments,
         gradingNotifiedAt: new Date().toISOString(),
@@ -1069,6 +1122,7 @@ export default function CorrectEssays() {
 
       if (isTeacherGradingSubmit) {
         Object.assign(updatePayload, {
+          argumentScore: teacherArgumentScore,
           totalScore: teacherTotalScore,
           humanComment: teacherCommentForStorage,
           claimsScore: teacherScores.claimsScore,
@@ -1152,7 +1206,19 @@ export default function CorrectEssays() {
           </div>
 
           <div className="ce-essay-card">
-            <div className="ce-card-title">Argumentative Essay</div>
+            <div className="ce-card-title ce-card-title-with-action">
+              <span>Argumentative Essay</span>
+              <button
+                type="button"
+                className="ce-copy-button"
+                onClick={handleCopyEssayContent}
+                disabled={isLoading || !displayEssayContent.trim()}
+                aria-label="複製文章內容"
+                title="複製文章內容"
+              >
+                <img src={copyIcon} alt="複製" className="ce-copy-button-image" />
+              </button>
+            </div>
             <div className="ce-essay-content">
               {isLoading ? (
                 <div className="ce-loading-wrapper">
@@ -1232,7 +1298,7 @@ export default function CorrectEssays() {
                 className="ce-overall-feedback"
               />
             )}
-            <div className="ce-subtitle ce-score-subtitle">Scores</div>
+            <div className="ce-subtitle ce-score-subtitle">Argument Scores</div>
             <div className="ce-score-list">
               <div className="ce-score-row">
                 <div className="ce-score-label">Claims</div>
@@ -1328,13 +1394,32 @@ export default function CorrectEssays() {
             </div>
 
             <div className="ce-total-row">
-              <span className="ce-total-label">Total Score</span>
-              <TextField
-                size="small"
-                value={totalScore}
-                inputProps={{ readOnly: true }}
-                sx={scoreFieldSx}
-              />
+              <div className="ce-total-item">
+                <span className="ce-total-label">Argument Score</span>
+                <TextField
+                  size="small"
+                  value={argumentScore}
+                  inputProps={{ readOnly: true }}
+                  sx={scoreFieldSx}
+                />
+              </div>
+              <div className="ce-total-item">
+                <span className="ce-total-label">Total Score</span>
+                <TextField
+                  size="small"
+                  value={manualTotalScore}
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    if (/^\d*\.?\d*$/.test(nextValue)) {
+                      setManualTotalScore(nextValue);
+                    }
+                  }}
+                  
+                  disabled={gradingView !== "teacher"}
+                  inputProps={{ inputMode: "decimal", min: 0 }}
+                  sx={scoreFieldSx}
+                />
+              </div>
             </div>
           </div>
 

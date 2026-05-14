@@ -49,6 +49,29 @@ const fetchEssayFromNotion = async ({ studentName, className, theme }) => {
 
 const normalizeFieldValue = (value) => (value === null || value === undefined ? '' : String(value));
 
+const toNumericScoreOrEmpty = (value) => {
+  const raw = normalizeFieldValue(value).trim();
+  if (!raw || raw === '-') return '';
+  const numberMatch = raw.match(/-?\d+(?:\.\d+)?/);
+  if (!numberMatch) return '';
+  const parsed = Number(numberMatch[0]);
+  if (Number.isNaN(parsed)) return '';
+  return Number.isInteger(parsed) ? String(parsed) : String(parsed);
+};
+
+const computeArgumentScoreFromParts = (claims, grounds, rebuttals) => {
+  const claimsNum = Number(toNumericScoreOrEmpty(claims));
+  const groundsNum = Number(toNumericScoreOrEmpty(grounds));
+  const rebuttalsNum = Number(toNumericScoreOrEmpty(rebuttals));
+  if (Number.isNaN(claimsNum) || Number.isNaN(groundsNum) || Number.isNaN(rebuttalsNum)) return '';
+  return String(claimsNum + groundsNum + rebuttalsNum);
+};
+
+const formatScoreWithScale = (value, scale) => {
+  const numericText = toNumericScoreOrEmpty(value);
+  return numericText ? `${numericText}/${scale}` : '-';
+};
+
 const normalizeEssayText = (content) => {
   if (!content) return '';
 
@@ -91,14 +114,16 @@ const WritingArea = () => {
   const [groundsText, setGroundsText] = useState('');
   const [rebuttalsCount, setRebuttalsCount] = useState('');
   const [rebuttalsText, setRebuttalsText] = useState('');
-  const [score, setScore] = useState('');
+  const [argumentScore, setArgumentScore] = useState('');
+  const [totalScore, setTotalScore] = useState('');
   const [aiClaimsCount, setAiClaimsCount] = useState('');
   const [aiClaimsText, setAiClaimsText] = useState('');
   const [aiGroundsCount, setAiGroundsCount] = useState('');
   const [aiGroundsText, setAiGroundsText] = useState('');
   const [aiRebuttalsCount, setAiRebuttalsCount] = useState('');
   const [aiRebuttalsText, setAiRebuttalsText] = useState('');
-  const [aiScore, setAiScore] = useState('');
+  const [aiArgumentScore, setAiArgumentScore] = useState('');
+  const [aiTotalScore, setAiTotalScore] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -140,14 +165,16 @@ const WritingArea = () => {
       setGroundsText('');
       setRebuttalsCount('');
       setRebuttalsText('');
-      setScore('');
+      setArgumentScore('');
+      setTotalScore('');
       setAiClaimsCount('');
       setAiClaimsText('');
       setAiGroundsCount('');
       setAiGroundsText('');
       setAiRebuttalsCount('');
       setAiRebuttalsText('');
-      setAiScore('');
+      setAiArgumentScore('');
+      setAiTotalScore('');
 
       try {
         const notionData = await fetchEssayFromNotion({
@@ -175,14 +202,36 @@ const WritingArea = () => {
         setGroundsText(normalizeFieldValue(notionData?.groundsComment));
         setRebuttalsCount(normalizeFieldValue(notionData?.rebuttalsScore));
         setRebuttalsText(normalizeFieldValue(notionData?.rebuttalsComment));
-        setScore(normalizeFieldValue(notionData?.totalScore));
+        const resolvedArgumentScore =
+          normalizeFieldValue(notionData?.argumentScore) ||
+          normalizeFieldValue(notionData?.teacherArgumentScore) ||
+          computeArgumentScoreFromParts(
+            notionData?.claimsScore,
+            notionData?.groundsScore,
+            notionData?.rebuttalsScore
+          );
+        setArgumentScore(normalizeFieldValue(resolvedArgumentScore));
+        setTotalScore(normalizeFieldValue(notionData?.totalScore));
         setAiClaimsCount(normalizeFieldValue(notionData?.aiClaimsScore));
         setAiClaimsText(normalizeFieldValue(notionData?.aiClaimsComment));
         setAiGroundsCount(normalizeFieldValue(notionData?.aiGroundsScore));
         setAiGroundsText(normalizeFieldValue(notionData?.aiGroundsComment));
         setAiRebuttalsCount(normalizeFieldValue(notionData?.aiRebuttalsScore));
         setAiRebuttalsText(normalizeFieldValue(notionData?.aiRebuttalsComment));
-        setAiScore(normalizeFieldValue(notionData?.aiTotalScore));
+        const resolvedAiArgumentScore =
+          normalizeFieldValue(notionData?.aiArgumentScore) ||
+          normalizeFieldValue(notionData?.aiTotalScore) ||
+          computeArgumentScoreFromParts(
+            notionData?.aiClaimsScore,
+            notionData?.aiGroundsScore,
+            notionData?.aiRebuttalsScore
+          );
+        setAiArgumentScore(normalizeFieldValue(resolvedAiArgumentScore));
+        setAiTotalScore(
+          normalizeFieldValue(
+            notionData?.aiTotalScore100 || notionData?.aiOverallScore || ''
+          )
+        );
       } catch (error) {
         if (!mounted) return;
         if (error?.code !== 'NOT_FOUND') {
@@ -211,7 +260,8 @@ const WritingArea = () => {
   const activeGroundsText = feedbackView === 'teacher' ? groundsText : aiGroundsText;
   const activeRebuttalsCount = feedbackView === 'teacher' ? rebuttalsCount : aiRebuttalsCount;
   const activeRebuttalsText = feedbackView === 'teacher' ? rebuttalsText : aiRebuttalsText;
-  const activeTotalScore = feedbackView === 'teacher' ? score : aiScore;
+  const activeArgumentScore = feedbackView === 'teacher' ? argumentScore : aiArgumentScore;
+  const activeTotalScore = feedbackView === 'teacher' ? totalScore : (aiTotalScore || totalScore);
   const feedbackEmptyText =
     feedbackView === 'teacher' ? 'No teacher feedback available yet.' : 'No AI feedback available yet.';
 
@@ -307,7 +357,10 @@ const WritingArea = () => {
           </div>
 
           <div className="fbs-footer">
-            <div className="fbs-total-score">{`Total Score: ${activeTotalScore || '-'}`}</div>
+            <div className="fbs-score-group">
+              <div className="fbs-total-score">{`Argument Score: ${formatScoreWithScale(activeArgumentScore, 8)}`}</div>
+              <div className="fbs-total-score">{`Total Score: ${formatScoreWithScale(activeTotalScore, 100)}`}</div>
+            </div>
             <Button variant="outlined" onClick={() => navigate(-1)} className="fbs-back-btn">
               Back
             </Button>

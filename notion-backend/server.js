@@ -1647,8 +1647,13 @@ let cachedDatabasePropertiesFetchedAt = 0;
 
 const GRADING_FIELD_CONFIGS = [
     {
+        inputKey: 'argumentScore',
+        aliases: ['Argument Score', 'ArgumentScore', '總分', 'Score', 'Total Score', 'TotalScore'],
+        allowedTypes: ['number', 'rich_text', 'select', 'status'],
+    },
+    {
         inputKey: 'totalScore',
-        aliases: ['總分', '總分數', 'Score', 'Total Score', 'TotalScore'],
+        aliases: ['分數', '總分數', 'Total Score', 'TotalScore', 'Score'],
         allowedTypes: ['number', 'rich_text', 'select', 'status'],
     },
     {
@@ -2044,7 +2049,8 @@ const OUTLINE_FIELD_ALIASES = ['\u5beb\u4f5c\u5927\u7db1'];
 const SUBMISSION_STATUS_FIELD_ALIASES = ['\u662f\u5426\u7e73\u4ea4', '\u7e73\u4ea4\u72c0\u614b', '\u63d0\u4ea4\u72c0\u614b', 'Submission Status', 'SubmissionStatus', 'Submitted'];
 const TEACHER_FEEDBACK_FIELD_ALIASES = ['\u6559\u5e2b\u8a55\u8a9e'];
 const AI_FEEDBACK_FIELD_ALIASES = ['AI\u8a55\u8a9e', 'AI \u8a55\u8a9e', 'AI Feedback', 'AIFeedback', 'AI Comment', 'AIComment'];
-const TEACHER_TOTAL_SCORE_FIELD_ALIASES = ['\u7e3d\u5206', 'Total Score', 'TotalScore', 'Score'];
+const ARGUMENT_SCORE_FIELD_ALIASES = ['Argument Score', 'ArgumentScore', '\u7e3d\u5206', 'Score'];
+const TEACHER_TOTAL_SCORE_FIELD_ALIASES = ['\u5206\u6578', '\u7e3d\u5206\u6578', 'Total Score', 'TotalScore', 'Score'];
 const AI_TOTAL_SCORE_FIELD_ALIASES = ['AI\u7e3d\u5206', 'AI \u7e3d\u5206', 'AI Total Score', 'AITotalScore', 'AIScore', 'AI Score'];
 const STUDENT_PROGRESS_ALLOWED_FILTER_TYPES = ['title', 'rich_text', 'select', 'status'];
 
@@ -2187,8 +2193,14 @@ const buildStudentProgressRecord = ({ page, fallbackClassName = '' }) => {
         getDisplayValueByAliases(properties, AI_FEEDBACK_FIELD_ALIASES),
         parsedNote?.aiComment
     );
+    const argumentScore = pickFirstNonEmptyValue(
+        getDisplayValueByAliases(properties, ARGUMENT_SCORE_FIELD_ALIASES),
+        parsedNote?.argumentScore,
+        parsedNote?.teacherArgumentScore
+    );
     const teacherTotalScore = pickFirstNonEmptyValue(
         getDisplayValueByAliases(properties, TEACHER_TOTAL_SCORE_FIELD_ALIASES),
+        parsedNote?.finalTotalScore,
         parsedNote?.totalScore
     );
     const aiTotalScore = pickFirstNonEmptyValue(
@@ -2215,6 +2227,7 @@ const buildStudentProgressRecord = ({ page, fallbackClassName = '' }) => {
         submissionStatus,
         progressCompletedByStep,
         progressPercent,
+        argumentScore: normalizeScoreValue(argumentScore),
         teacherTotalScore: normalizeScoreValue(teacherTotalScore),
         aiTotalScore: normalizeScoreValue(aiTotalScore),
         gradeRaw: resolveDisplayedGradeRaw({
@@ -2579,8 +2592,13 @@ app.get('/api/get-essay/:studentName', async (req, res) => {
             parsedNote?.aiRebuttalsComment,
             parsedNote?.aiDetailComments?.rebuttalsComment
         );
+        const argumentScore = pickFirstNonEmptyValue(
+            getDisplayValueByAliases(properties, ARGUMENT_SCORE_FIELD_ALIASES),
+            parsedNote?.argumentScore
+        );
         const totalScore = pickFirstNonEmptyValue(
-            getDisplayValueByAliases(properties, ['總分']),
+            getDisplayValueByAliases(properties, TEACHER_TOTAL_SCORE_FIELD_ALIASES),
+            parsedNote?.finalTotalScore,
             parsedNote?.totalScore
         );
         const aiTotalScore = pickFirstNonEmptyValue(
@@ -2630,6 +2648,7 @@ app.get('/api/get-essay/:studentName', async (req, res) => {
                 aiRebuttalsScore,
                 rebuttalsComment,
                 aiRebuttalsComment,
+                argumentScore,
                 totalScore,
                 aiTotalScore,
                 submissionStatus,
@@ -2997,8 +3016,14 @@ app.get('/api/get-students-by-class/:className', async (req, res) => {
             const noteContent = getDisplayValueByAliases(properties, ['筆記區']);
             const parsedNote = safeJsonParse(noteContent, {});
             const totalScore = pickFirstNonEmptyValue(
-                getDisplayValueByAliases(properties, ['總分']),
+                getDisplayValueByAliases(properties, TEACHER_TOTAL_SCORE_FIELD_ALIASES),
+                parsedNote?.finalTotalScore,
                 parsedNote?.totalScore
+            );
+            const argumentScore = pickFirstNonEmptyValue(
+                getDisplayValueByAliases(properties, ARGUMENT_SCORE_FIELD_ALIASES),
+                parsedNote?.argumentScore,
+                parsedNote?.teacherArgumentScore
             );
             const submissionStatus = normalizeSubmissionStatus(
                 pickFirstNonEmptyValue(
@@ -3012,6 +3037,7 @@ app.get('/api/get-students-by-class/:className', async (req, res) => {
                 studentName: getDisplayValueByAliases(properties, ['學生姓名']) || '未知學生',
                 submissionDate: page.created_time || '尚未繳交',
                 submissionStatus,
+                argumentScore: argumentScore || '',
                 totalScore: totalScore || '',
                 claimsScore: pickFirstNonEmptyValue(
                     getDisplayValueByAliases(properties, ['Claims分數', 'Claims Score', 'Claims score', 'ClaimsScore']),

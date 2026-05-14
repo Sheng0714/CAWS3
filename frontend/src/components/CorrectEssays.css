@@ -109,6 +109,35 @@
   letter-spacing: 0.02em;
 }
 
+.ce-card-title-with-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ce-copy-button {
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ce-copy-button-image {
+  display: block;
+  width: 16px;
+  height: auto;
+}
+
+.ce-copy-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .ce-essay-content {
   flex: 1;
   min-height: 380px;
@@ -252,10 +281,16 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 10px;
+  gap: 18px;
   padding-top: 12px;
   margin-top: 10px;
   border-top: 1px solid #deE6ef;
+}
+
+.ce-total-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .ce-total-label {
@@ -302,10 +337,25 @@
     flex: 1;
   }
 
+  .ce-card-title-with-action {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .ce-score-row {
     grid-template-columns: 1fr;
     gap: 6px;
     align-items: stretch;
+  }
+
+  .ce-total-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .ce-total-item {
+    justify-content: space-between;
   }
 
   .ce-footer-actions {

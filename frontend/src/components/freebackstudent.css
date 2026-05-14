@@ -208,6 +208,12 @@
   color: #253d57;
 }
 
+.fbs-score-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .fbs-back-btn.MuiButton-root {
   text-transform: none;
   border-radius: 8px;
@@ -255,5 +261,11 @@
   .fbs-detail-head {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .fbs-score-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
 }

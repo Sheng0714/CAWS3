@@ -82,7 +82,7 @@ const formatSubmissionTime = (value) => {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
 };
 
-const formatGradeOutOfEight = (value) => {
+const formatArgumentScoreOutOfEight = (value) => {
   if (value === null || value === undefined) return "Not graded";
   const raw = String(value).trim();
   if (!raw || raw === "-") return "Not graded";
@@ -106,69 +106,105 @@ const firstAvailableScore = (values = []) => {
   return "";
 };
 
-const isZeroScore = (value) => {
-  const normalized = normalizeScoreValue(value);
-  if (normalized === "") return false;
-  const numeric = Number(normalized);
-  return !Number.isNaN(numeric) && numeric === 0;
+const parseScoreParts = (value) => {
+  const raw = normalizeScoreValue(value);
+  if (!raw) return null;
+
+  const slashMatch = raw.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)$/);
+  if (slashMatch) {
+    const numeric = Number(slashMatch[1]);
+    const scale = Number(slashMatch[2]);
+    if (Number.isNaN(numeric) || Number.isNaN(scale)) return null;
+    return { raw, numeric, scale };
+  }
+
+  const numeric = Number(raw);
+  if (Number.isNaN(numeric)) return null;
+  return { raw, numeric, scale: null };
 };
 
-const parseGradingView = (source = {}) => {
-  const direct = normalizeText(source?.gradingView);
-  if (direct === "teacher" || direct === "ai") return direct;
+const isLikelyArgumentScore = (value) => {
+  const parsed = parseScoreParts(value);
+  if (!parsed) return false;
+  if (parsed.scale !== null) return parsed.scale <= 8;
+  return parsed.numeric >= 0 && parsed.numeric <= 8;
+};
 
-  const rawNote = source?.noteContent;
-  if (typeof rawNote !== "string" || !rawNote.trim()) return "";
-  try {
-    const parsed = JSON.parse(rawNote);
-    const fromNote = normalizeText(parsed?.gradingView);
-    if (fromNote === "teacher" || fromNote === "ai") return fromNote;
-  } catch {
-    // Ignore invalid note JSON; fallback logic will handle score selection.
+const isLikelyTotalScore = (value) => {
+  const parsed = parseScoreParts(value);
+  if (!parsed) return false;
+  if (parsed.scale !== null) return parsed.scale >= 100;
+  return parsed.numeric > 8;
+};
+
+const pickFirstMatchingScore = (values = [], predicate = () => true) => {
+  for (const value of values) {
+    if (!predicate(value)) continue;
+    const normalized = normalizeScoreValue(value);
+    if (normalized) return normalized;
   }
   return "";
 };
 
-const resolveDisplayedGradeRaw = ({ item, essayData }) => {
-  const teacherScore = firstAvailableScore([
-    essayData?.teacherTotalScore,
-    essayData?.totalScore,
-    item?.teacherTotalScore,
-    item?.totalScore,
-    item?.TotalScore,
-    item?.["總分"],
-    item?.grade,
-    item?.Grade,
-    item?.score,
-    item?.Score,
-    item?.grading,
-    item?.Grading,
+const resolveArgumentScoreRaw = ({ item, essayData }) => {
+  const teacherArgumentScore = firstAvailableScore([
+    essayData?.argumentScore,
+    essayData?.teacherArgumentScore,
+    item?.argumentScore,
+    item?.teacherArgumentScore,
   ]);
-  const aiScore = firstAvailableScore([
-    essayData?.aiTotalScore,
-    item?.aiTotalScore,
-    item?.AITotalScore,
-    item?.aiScore,
-    item?.AIScore,
-  ]);
+  if (teacherArgumentScore) return teacherArgumentScore;
 
-  const teacherFeedback = normalizeText(
-    essayData?.teacherFeedback || essayData?.humanComment || item?.teacherFeedback || item?.humanComment
+  const legacyTeacherArgumentScore = pickFirstMatchingScore(
+    [
+      essayData?.teacherTotalScore,
+      essayData?.totalScore,
+      item?.teacherTotalScore,
+      item?.totalScore,
+      item?.TotalScore,
+      item?.["總分"],
+      item?.grade,
+      item?.Grade,
+      item?.score,
+      item?.Score,
+      item?.grading,
+      item?.Grading,
+    ],
+    isLikelyArgumentScore
   );
-  const aiFeedback = normalizeText(
-    essayData?.aiFeedback || essayData?.aiComment || item?.aiFeedback || item?.aiComment
+  if (legacyTeacherArgumentScore) return legacyTeacherArgumentScore;
+
+  const aiArgumentScore = pickFirstMatchingScore(
+    [
+      essayData?.aiTotalScore,
+      item?.aiTotalScore,
+      item?.AITotalScore,
+      item?.aiScore,
+      item?.AIScore,
+    ],
+    isLikelyArgumentScore
+  );
+  return aiArgumentScore;
+};
+
+const resolveTotalScoreRaw = ({ item, essayData }) =>
+  pickFirstMatchingScore(
+    [
+      essayData?.totalScore,
+      essayData?.finalTotalScore,
+      item?.teacherTotalScore,
+      item?.totalScore,
+      item?.TotalScore,
+      item?.["分數"],
+    ],
+    isLikelyTotalScore
   );
 
-  const gradingView = parseGradingView(essayData) || parseGradingView(item);
-  if (gradingView === "ai") return aiScore || teacherScore;
-  if (gradingView === "teacher") return teacherScore || aiScore;
-
-  const teacherSeemsUnfilled = !teacherFeedback && (teacherScore === "" || isZeroScore(teacherScore));
-  if (aiScore !== "" && (teacherSeemsUnfilled || aiFeedback)) {
-    return aiScore;
-  }
-
-  return teacherScore || aiScore;
+const formatTotalScoreOutOfHundred = (value) => {
+  const parsed = parseScoreParts(value);
+  if (!parsed) return "Not graded";
+  const numericText = Number.isInteger(parsed.numeric) ? String(parsed.numeric) : String(parsed.numeric);
+  return `${numericText}/100`;
 };
 
 const getNotionApiBaseCandidates = (preferredBase = "") => {
@@ -338,7 +374,8 @@ const createStudentRow = ({ item, index, selectedTopicName, selectedClassName, e
     submissionTime: formatSubmissionTime(item?.submissionDate),
     progressPercent: progress.percent,
     progressCompletedByStep: progress.completedByStep,
-    gradeRaw: resolveDisplayedGradeRaw({ item, essayData }),
+    argumentScoreRaw: resolveArgumentScoreRaw({ item, essayData }),
+    totalScoreRaw: resolveTotalScoreRaw({ item, essayData }),
     className: selectedClassName,
   };
 };
@@ -367,16 +404,16 @@ const createStudentRowFromBatchItem = ({ item, index, selectedTopicName, selecte
         ? item.progressPercent
         : progressCompletedByStep.filter(Boolean).length * 25,
     progressCompletedByStep,
-    gradeRaw:
-      item?.gradeRaw ||
-      resolveDisplayedGradeRaw({
-        item: {
-          ...item,
-          totalScore: item?.teacherTotalScore || item?.totalScore || "",
-          aiTotalScore: item?.aiTotalScore || "",
-        },
+    argumentScoreRaw:
+      resolveArgumentScoreRaw({
+        item,
         essayData: item || {},
-      }),
+      }) || "",
+    totalScoreRaw:
+      resolveTotalScoreRaw({
+        item,
+        essayData: item || {},
+      }) || "",
     className: selectedClassName,
   };
 };
@@ -630,14 +667,15 @@ export default function Studentlist() {
                 <StyledTableHeadCell>Submission Time</StyledTableHeadCell>
                 <StyledTableHeadCell>Grading</StyledTableHeadCell>
                 <StyledTableHeadCell>Message</StyledTableHeadCell>
-                <StyledTableHeadCell>Grade</StyledTableHeadCell>
+                <StyledTableHeadCell>Argument Score</StyledTableHeadCell>
+                <StyledTableHeadCell>Total Score</StyledTableHeadCell>
               </TableRow>
             </TableHead>
 
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <StyledTableCell colSpan={6}>
+                  <StyledTableCell colSpan={7}>
                     <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px" }}>
                       <CircularProgress size={20} />
                       <span>Loading...</span>
@@ -687,7 +725,7 @@ export default function Studentlist() {
                     </StyledTableCell>
                     <StyledTableCell>
                       {(() => {
-                        const gradeText = formatGradeOutOfEight(student.gradeRaw);
+                        const gradeText = formatArgumentScoreOutOfEight(student.argumentScoreRaw);
                         const isNotGraded = gradeText === "Not graded";
                         return (
                           <span style={{ color: isNotGraded ? "#d32f2f" : "inherit", fontWeight: isNotGraded ? 700 : 400 }}>
@@ -696,11 +734,22 @@ export default function Studentlist() {
                         );
                       })()}
                     </StyledTableCell>
+                    <StyledTableCell>
+                      {(() => {
+                        const totalText = formatTotalScoreOutOfHundred(student.totalScoreRaw);
+                        const isNotGraded = totalText === "Not graded";
+                        return (
+                          <span style={{ color: isNotGraded ? "#d32f2f" : "inherit", fontWeight: isNotGraded ? 700 : 400 }}>
+                            {totalText}
+                          </span>
+                        );
+                      })()}
+                    </StyledTableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <StyledTableCell colSpan={6}>{loadError || "No records found for this class/topic."}</StyledTableCell>
+                  <StyledTableCell colSpan={7}>{loadError || "No records found for this class/topic."}</StyledTableCell>
                 </TableRow>
               )}
             </TableBody>
