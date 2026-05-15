@@ -18,6 +18,7 @@ import axios from "axios";
 import Navbar from "../components/Navbar_Student";
 import gradingIcon from "../assets/grading.png";
 import messageIcon from "../assets/message.png";
+import exportIcon from "../assets/export.png";
 
 const StyledTableContainer = styled(TableContainer)({
   margin: "20px auto",
@@ -205,6 +206,87 @@ const formatTotalScoreOutOfHundred = (value) => {
   if (!parsed) return "Not graded";
   const numericText = Number.isInteger(parsed.numeric) ? String(parsed.numeric) : String(parsed.numeric);
   return `${numericText}/100`;
+};
+
+const sanitizeFileName = (value) => {
+  const fallback = "ClassReport";
+  const normalized = String(value || "").trim();
+  if (!normalized) return fallback;
+  return normalized.replace(/[\\/:*?"<>|]/g, "_");
+};
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const toPlainTextForExport = (value) => {
+  if (typeof value !== "string") return "";
+  if (typeof window === "undefined" || typeof window.DOMParser === "undefined") {
+    return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  const parser = new window.DOMParser();
+  const document = parser.parseFromString(value, "text/html");
+  return (document?.body?.textContent || "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+\n/g, "\n")
+    .replace(/\n\s+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+
+const toSingleCellEssayText = (value) =>
+  toPlainTextForExport(value)
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\n+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+const normalizeExportValue = (value) => {
+  const normalized = normalizeScoreValue(value);
+  return normalized || "Not graded";
+};
+
+const downloadExcelReport = ({ headers = [], rows = [], fileName = "ClassReport" }) => {
+  const headerHtml = headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("");
+  const bodyHtml = rows
+    .map(
+      (row) =>
+        `<tr>${row
+          .map((cell) => `<td style="white-space: pre-wrap;">${escapeHtml(cell).replace(/\n/g, "<br/>")}</td>`)
+          .join("")}</tr>`
+    )
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+</head>
+<body>
+  <table border="1">
+    <thead><tr>${headerHtml}</tr></thead>
+    <tbody>${bodyHtml}</tbody>
+  </table>
+</body>
+</html>`;
+
+  const blob = new Blob(["\ufeff", html], {
+    type: "application/vnd.ms-excel;charset=utf-8;",
+  });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${sanitizeFileName(fileName)}.xls`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  window.URL.revokeObjectURL(url);
 };
 
 const getNotionApiBaseCandidates = (preferredBase = "") => {
@@ -508,6 +590,7 @@ export default function Studentlist() {
 
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
@@ -639,6 +722,58 @@ export default function Studentlist() {
     return orderedNames;
   }, [tableRows]);
 
+  const handleExportToExcel = async () => {
+    if (!tableRows.length) return;
+
+    setIsExporting(true);
+    try {
+      const enrichedRows = await mapWithConcurrency(tableRows, 6, async (student) => {
+        const essayData = await fetchEssayByScope({
+          studentName: student.name,
+          className: selectedClassName,
+          theme: student.theme || selectedTopicName,
+        });
+
+        return [
+          student.className || selectedClassName || "-",
+          student.theme || selectedTopicName || "-",
+          student.name || "-",
+          toSingleCellEssayText(essayData?.essayContent || ""),
+          normalizeExportValue(essayData?.claimsScore),
+          normalizeExportValue(essayData?.groundsScore),
+          normalizeExportValue(essayData?.rebuttalsScore),
+          normalizeExportValue(essayData?.aiClaimsScore),
+          normalizeExportValue(essayData?.aiGroundsScore),
+          normalizeExportValue(essayData?.aiRebuttalsScore),
+          normalizeExportValue(essayData?.totalScore || student.totalScoreRaw),
+        ];
+      });
+
+      downloadExcelReport({
+        headers: [
+          "班級",
+          "主題",
+          "姓名",
+          "作文內容",
+          "老師 Claims Score",
+          "老師 Ground Score",
+          "老師 Rebuttal Score",
+          "AI Claims Score",
+          "AI Ground Score",
+          "AI Rebuttal Score",
+          "總分",
+        ],
+        rows: enrichedRows,
+        fileName: selectedClassName || "ClassReport",
+      });
+    } catch (error) {
+      console.error("Failed to export Excel report:", error);
+      window.alert("匯出 Excel 失敗，請稍後再試。");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div>
       <Navbar />
@@ -653,9 +788,20 @@ export default function Studentlist() {
               Topic: {selectedTopicName}
             </Typography>
           </div>
-          <Typography variant="h6" style={{ fontWeight: 700, whiteSpace: "nowrap", alignSelf: "flex-start", marginTop: "40px" }}>
-            Total: {tableRows.length}
-          </Typography>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", marginTop: "34px" }}>
+            <StyledButton
+              variant="contained"
+              onClick={handleExportToExcel}
+              disabled={isLoading || isExporting || tableRows.length === 0}
+              style={{ display: "flex", alignItems: "center", whiteSpace: "nowrap" }}
+            >
+              <img src={exportIcon} alt="export" style={{ width: "20px", height: "20px", marginRight: "6px" }} />
+              {isExporting ? "Exporting..." : "Export to Excel"}
+            </StyledButton>
+            <Typography variant="h6" style={{ fontWeight: 700, whiteSpace: "nowrap", alignSelf: "center" }}>
+              Total: {tableRows.length}
+            </Typography>
+          </div>
         </div>
 
         <StyledTableContainer component={Paper}>

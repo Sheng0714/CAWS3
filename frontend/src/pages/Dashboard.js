@@ -2054,7 +2054,7 @@ export default function Dashboard() {
                   <polyline
                     fill="none"
                     stroke="#2F80ED"
-                    strokeWidth="2.8"
+                    strokeWidth="1.4"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     points={loginTrendPolylinePoints}
@@ -2063,7 +2063,7 @@ export default function Dashboard() {
                     const x = displayedLoginTrendRows.length <= 1 ? 50 : ((index + 0.5) / displayedLoginTrendRows.length) * 100;
                     const clampedCount = Math.min(loginTrendYAxisMax, Math.max(loginTrendYAxisMin, item.count));
                     const y = loginTrendPlotBottom - (((clampedCount - loginTrendYAxisMin) / loginTrendRange) * loginTrendPlotHeight);
-                    return <circle key={`${item.date}-${index}`} cx={x} cy={y} r="2.1" fill="#2F80ED" />;
+                    return <circle key={`${item.date}-${index}`} cx={x} cy={y} r="1.5" fill="#2F80ED" />;
                   })}
                 </svg>
                 <div
