@@ -83,14 +83,6 @@ const formatSubmissionTime = (value) => {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
 };
 
-const formatArgumentScoreOutOfEight = (value) => {
-  if (value === null || value === undefined) return "Not graded";
-  const raw = String(value).trim();
-  if (!raw || raw === "-") return "Not graded";
-  if (raw.includes("/")) return raw;
-  return `${raw}/8`;
-};
-
 const normalizeScoreValue = (value) => {
   if (value === null || value === undefined) return "";
   const raw = String(value).trim();
@@ -147,7 +139,7 @@ const pickFirstMatchingScore = (values = [], predicate = () => true) => {
   return "";
 };
 
-const resolveArgumentScoreRaw = ({ item, essayData }) => {
+const resolveTeacherArgumentScoreRaw = ({ item, essayData }) => {
   const teacherArgumentScore = firstAvailableScore([
     essayData?.argumentScore,
     essayData?.teacherArgumentScore,
@@ -160,6 +152,7 @@ const resolveArgumentScoreRaw = ({ item, essayData }) => {
     [
       essayData?.teacherTotalScore,
       essayData?.totalScore,
+      essayData?.finalTotalScore,
       item?.teacherTotalScore,
       item?.totalScore,
       item?.TotalScore,
@@ -175,18 +168,27 @@ const resolveArgumentScoreRaw = ({ item, essayData }) => {
   );
   if (legacyTeacherArgumentScore) return legacyTeacherArgumentScore;
 
-  const aiArgumentScore = pickFirstMatchingScore(
+  return "";
+};
+
+const resolveAiArgumentScoreRaw = ({ item, essayData }) =>
+  firstAvailableScore([
+    essayData?.aiTotalScore,
+    item?.aiTotalScore,
+    item?.AITotalScore,
+  ]) ||
+  firstAvailableScore([
+    essayData?.aiArgumentScore,
+    item?.aiArgumentScore,
+    item?.AIArgumentScore,
+  ]) ||
+  pickFirstMatchingScore(
     [
-      essayData?.aiTotalScore,
-      item?.aiTotalScore,
-      item?.AITotalScore,
       item?.aiScore,
       item?.AIScore,
     ],
     isLikelyArgumentScore
   );
-  return aiArgumentScore;
-};
 
 const resolveTotalScoreRaw = ({ item, essayData }) =>
   pickFirstMatchingScore(
@@ -206,6 +208,23 @@ const formatTotalScoreOutOfHundred = (value) => {
   if (!parsed) return "Not graded";
   const numericText = Number.isInteger(parsed.numeric) ? String(parsed.numeric) : String(parsed.numeric);
   return `${numericText}/100`;
+};
+
+const formatArgumentScorePairPart = (value) => {
+  const normalized = normalizeScoreValue(value);
+  if (!normalized) return "-";
+  const parsed = parseScoreParts(normalized);
+  if (!parsed) return normalized;
+  if (parsed.scale !== null && parsed.scale !== 8) return normalized;
+  const numericText = Number.isInteger(parsed.numeric) ? String(parsed.numeric) : String(parsed.numeric);
+  return `${numericText}/8`;
+};
+
+const formatArgumentScoreTeacherAi = (teacherValue, aiValue) => {
+  const teacherText = formatArgumentScorePairPart(teacherValue);
+  const aiText = formatArgumentScorePairPart(aiValue);
+  if (teacherText === "-" && aiText === "-") return "Not graded";
+  return `${teacherText} / ${aiText}`;
 };
 
 const sanitizeFileName = (value) => {
@@ -456,7 +475,8 @@ const createStudentRow = ({ item, index, selectedTopicName, selectedClassName, e
     submissionTime: formatSubmissionTime(item?.submissionDate),
     progressPercent: progress.percent,
     progressCompletedByStep: progress.completedByStep,
-    argumentScoreRaw: resolveArgumentScoreRaw({ item, essayData }),
+    teacherArgumentScoreRaw: resolveTeacherArgumentScoreRaw({ item, essayData }),
+    aiArgumentScoreRaw: resolveAiArgumentScoreRaw({ item, essayData }),
     totalScoreRaw: resolveTotalScoreRaw({ item, essayData }),
     className: selectedClassName,
   };
@@ -486,8 +506,13 @@ const createStudentRowFromBatchItem = ({ item, index, selectedTopicName, selecte
         ? item.progressPercent
         : progressCompletedByStep.filter(Boolean).length * 25,
     progressCompletedByStep,
-    argumentScoreRaw:
-      resolveArgumentScoreRaw({
+    teacherArgumentScoreRaw:
+      resolveTeacherArgumentScoreRaw({
+        item,
+        essayData: item || {},
+      }) || "",
+    aiArgumentScoreRaw:
+      resolveAiArgumentScoreRaw({
         item,
         essayData: item || {},
       }) || "",
@@ -813,7 +838,7 @@ export default function Studentlist() {
                 <StyledTableHeadCell>Submission Time</StyledTableHeadCell>
                 <StyledTableHeadCell>Grading</StyledTableHeadCell>
                 <StyledTableHeadCell>Message</StyledTableHeadCell>
-                <StyledTableHeadCell>Argument Score</StyledTableHeadCell>
+                <StyledTableHeadCell>Argument Score (Teacher/AI)</StyledTableHeadCell>
                 <StyledTableHeadCell>Total Score</StyledTableHeadCell>
               </TableRow>
             </TableHead>
@@ -871,7 +896,10 @@ export default function Studentlist() {
                     </StyledTableCell>
                     <StyledTableCell>
                       {(() => {
-                        const gradeText = formatArgumentScoreOutOfEight(student.argumentScoreRaw);
+                        const gradeText = formatArgumentScoreTeacherAi(
+                          student.teacherArgumentScoreRaw,
+                          student.aiArgumentScoreRaw
+                        );
                         const isNotGraded = gradeText === "Not graded";
                         return (
                           <span style={{ color: isNotGraded ? "#d32f2f" : "inherit", fontWeight: isNotGraded ? 700 : 400 }}>

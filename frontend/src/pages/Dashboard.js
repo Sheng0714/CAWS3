@@ -7,6 +7,15 @@ import url from '../url.json';
 import context1142BUrl from '../contexts/1142B.txt';
 import context1142CUrl from '../contexts/1142C.txt';
 import context1142HUrl from '../contexts/1142H.txt';
+import context1142BDashboardUrl from '../contexts/1142Bdashboard.txt';
+import context1142CDashboardUrl from '../contexts/1142Cdashboard.txt';
+import context1142HDashboardUrl from '../contexts/1142Hdashboard.txt';
+import context1142BQuestionsUrl from '../contexts/1142Bquestions.txt';
+import context1142CQuestionsUrl from '../contexts/1142Cquestions.txt';
+import context1142HQuestionsUrl from '../contexts/1142Hquestions.txt';
+import context1142BHistoryUrl from '../contexts/1142Bhistory.txt';
+import context1142CHistoryUrl from '../contexts/1142Chistory.txt';
+import context1142HHistoryUrl from '../contexts/1142Hhistory.txt';
 
 const FALLBACK_CLASSES = [
   { value: '701', label: 'Class 701' },
@@ -47,6 +56,22 @@ const DASHBOARD_CONTEXT_BY_CLASS = {
   '1142C': context1142CUrl,
   '1142H': context1142HUrl,
 };
+const DASHBOARD_ACCURACY_CONTEXT_BY_CLASS = {
+  '1142B': context1142BDashboardUrl,
+  '1142C': context1142CDashboardUrl,
+  '1142H': context1142HDashboardUrl,
+};
+const DASHBOARD_QUESTIONS_CONTEXT_BY_CLASS = {
+  '1142B': context1142BQuestionsUrl,
+  '1142C': context1142CQuestionsUrl,
+  '1142H': context1142HQuestionsUrl,
+};
+const DASHBOARD_HISTORY_CONTEXT_BY_CLASS = {
+  '1142B': context1142BHistoryUrl,
+  '1142C': context1142CHistoryUrl,
+  '1142H': context1142HHistoryUrl,
+};
+const QUIZ_QUESTIONS_PER_SESSION = 11;
 const RAGFLOW_DASHBOARD_AGENT_ID = '927247da462711f18b61a61716fb138a';
 const RAGFLOW_API_KEY = 'ragflow-E5MjJlMmFlMWMxMTExZjFiZjJkYTYxNz';
 const RAGFLOW_API_SERVER = 'https://wu-ragflow.zeabur.app';
@@ -61,8 +86,8 @@ const DASHBOARD_SECTION_FILTERS = [
   { value: 'learning', label: '班級學習狀況' },
   { value: 'kf', label: 'KF論證狀況' },
   { value: 'system', label: '系統使用狀況' },
-  { value: 'mastery', label: '答題掌握狀況' },
-  { value: 'focus', label: '需重點關注對象' },
+  { value: 'mastery', label: '答題正確狀況' },
+  
 ];
 const KF_IDEA_CATEGORY_CONFIGS = [
   { key: 'myIdea', label: 'My idea', pattern: /my\s*idea/gi, color: '#4A90E2' },
@@ -403,10 +428,13 @@ const buildLoginTrendRowsByRange = (dateCountMap = {}, rangeValue = DEFAULT_LOGI
   const validKeys = Object.keys(dateCountMap || {})
     .filter((dateKey) => Boolean(parseDateKeyToDate(dateKey)))
     .sort((a, b) => parseDateKeyToDate(a).getTime() - parseDateKeyToDate(b).getTime());
+  const firstActiveDateKey = validKeys.find((dateKey) => toNonNegativeInteger(dateCountMap?.[dateKey]) >= 1) || '';
 
   const rangeDays = resolveLoginTrendRangeDays(rangeValue);
   let startDate = new Date(today);
-  if (rangeValue === 'all' && validKeys.length > 0) {
+  if ((rangeValue === 'all' || rangeValue === '30d') && firstActiveDateKey) {
+    startDate = parseDateKeyToDate(firstActiveDateKey);
+  } else if (rangeValue === 'all' && validKeys.length > 0) {
     startDate = parseDateKeyToDate(validKeys[0]);
   } else {
     const days = rangeDays || 7;
@@ -440,6 +468,15 @@ const buildLoginTrendRowsByRange = (dateCountMap = {}, rangeValue = DEFAULT_LOGI
       count: 0,
     },
   ];
+};
+
+const buildXAxisLabelVisibility = (rows = [], preferredMaxLabels = 10) => {
+  const total = Array.isArray(rows) ? rows.length : 0;
+  if (total <= 0) return [];
+  if (total <= preferredMaxLabels) return rows.map(() => true);
+
+  const step = Math.max(1, Math.ceil(total / preferredMaxLabels));
+  return rows.map((_, index) => index === 0 || index === total - 1 || index % step === 0);
 };
 
 const formatDeadlineDisplay = (value) => {
@@ -551,6 +588,33 @@ const buildArgumentPieBackground = (counts) => {
   )`;
 };
 
+const buildConicGradientFromSegments = (segments, fallbackColor = '#ECF2F8') => {
+  const safeSegments = Array.isArray(segments) ? segments : [];
+  const total = safeSegments.reduce((sum, segment) => sum + Math.max(0, Number(segment?.value || 0)), 0);
+  if (total <= 0) {
+    return {
+      total: 0,
+      gradient: fallbackColor,
+      percentages: safeSegments.map(() => 0),
+    };
+  }
+
+  let cursor = 0;
+  const percentages = safeSegments.map((segment) => ((Math.max(0, Number(segment?.value || 0)) / total) * 100));
+  const parts = safeSegments.map((segment, index) => {
+    const pct = percentages[index];
+    const start = cursor;
+    cursor += pct;
+    return `${segment.color} ${start}% ${cursor}%`;
+  });
+
+  return {
+    total,
+    gradient: `conic-gradient(${parts.join(', ')})`,
+    percentages,
+  };
+};
+
 const normalizeGroupId = (value) => {
   const normalized = String(value || '').trim().toUpperCase();
   return /^G\d+$/.test(normalized) ? normalized : '';
@@ -594,6 +658,162 @@ const extractJsonText = (rawText) => {
   if (arrayLike?.[0]) return arrayLike[0];
 
   return '';
+};
+
+const parseClassAverageAccuracyFromDashboardText = (rawText) => {
+  const text = String(rawText || '');
+  const match = text.match(/班級平均正確率\s*[：:]\s*([0-9]+(?:\.[0-9]+)?)\s*%?/);
+  if (!match?.[1]) return null;
+  const parsed = Number(match[1]);
+  if (!Number.isFinite(parsed)) return null;
+  return Math.max(0, Math.min(100, parsed));
+};
+
+const formatPercentNumber = (value) => {
+  if (!Number.isFinite(value)) return '0';
+  if (Number.isInteger(value)) return String(value);
+  return value.toFixed(2).replace(/\.?0+$/, '');
+};
+
+const parseQuizQuestionTitle = (content, questionNo) => {
+  const source = String(content || '');
+  if (!source) return `第${questionNo}題`;
+  const cleanupQuestionStem = (raw) => {
+    const text = String(raw || '').trim();
+    if (!text) return '';
+    return text
+      .replace(/\\n/g, '\n')
+      .split(/\r?\nA\.\s|\\nA\.\s/i)[0]
+      .split(/\sA\.\s/i)[0]
+      .trim();
+  };
+
+  const directMatch = source.match(new RegExp(`\\(${questionNo}\\.\\)\\s*([^\\n\\r]+)`, 'i'));
+  if (directMatch?.[1]) {
+    const stem = cleanupQuestionStem(directMatch[1]);
+    if (stem) return stem;
+  }
+  const fallbackLine = source.split(/\r?\n/).map((line) => line.trim()).find(Boolean);
+  const fallbackStem = cleanupQuestionStem(fallbackLine);
+  return fallbackStem || `第${questionNo}題`;
+};
+
+const parseSessionStudentMapFromHistoryText = (rawText) => {
+  const lines = String(rawText || '').split(/\r?\n/);
+  const sessionToStudent = new Map();
+  let currentStudent = '';
+
+  lines.forEach((line) => {
+    const studentMatch = line.match(/^\s*學生\s*:\s*(.+?)\s*$/);
+    if (studentMatch?.[1]) {
+      currentStudent = studentMatch[1].trim();
+      return;
+    }
+
+    const sessionMatch = line.match(/"sessionId"\s*:\s*"([^"]+)"/);
+    if (sessionMatch?.[1] && currentStudent) {
+      sessionToStudent.set(sessionMatch[1], currentStudent);
+    }
+  });
+
+  return sessionToStudent;
+};
+
+const parseMasteryMetricsFromQuestionsPayload = (payload, sessionToStudentMap = new Map()) => {
+  const sessions = Array.isArray(payload?.records) ? payload.records : [];
+  const questionNumbers = Array.from({ length: QUIZ_QUESTIONS_PER_SESSION }, (_, index) => index + 1);
+  const wrongByQuestion = new Map(questionNumbers.map((questionNo) => [questionNo, 0]));
+  const wrongStudentsByQuestion = new Map(questionNumbers.map((questionNo) => [questionNo, new Set()]));
+  const questionTitleByNo = new Map();
+  const distributionCounts = { '0-5': 0, '6-9': 0, '10-11': 0 };
+
+  let sessionsWithQuiz = 0;
+  let totalWrong = 0;
+
+  sessions.forEach((session) => {
+    const messages = Array.isArray(session?.messages) ? session.messages : [];
+    const sessionId = String(session?.sessionId || '');
+    const studentName = String(sessionToStudentMap.get(sessionId) || '').trim();
+    let wrongInSession = 0;
+    let seenQuizPrompt = false;
+
+    for (let index = 0; index < messages.length - 2; index += 1) {
+      const prompt = messages[index];
+      const answer = messages[index + 1];
+      const feedback = messages[index + 2];
+
+      const promptRole = String(prompt?.role || '').trim().toLowerCase();
+      const answerRole = String(answer?.role || '').trim().toLowerCase();
+      const feedbackRole = String(feedback?.role || '').trim().toLowerCase();
+      if (promptRole !== 'assistant' || answerRole !== 'user' || feedbackRole !== 'assistant') continue;
+
+      const answerValue = String(answer?.content || '').trim().toUpperCase();
+      if (!['A', 'B', 'C'].includes(answerValue)) continue;
+
+      const promptText = String(prompt?.content || '');
+      const questionMatch = promptText.match(/\((\d+)\.\)/);
+      if (!questionMatch?.[1]) continue;
+
+      const questionNo = Number(questionMatch[1]);
+      if (!Number.isInteger(questionNo) || questionNo < 1 || questionNo > QUIZ_QUESTIONS_PER_SESSION) continue;
+
+      const feedbackText = String(feedback?.content || '').toLowerCase();
+      const isWrong = feedbackText.includes('the correct answer is');
+      const isCorrect = feedbackText.startsWith('correct!') || feedbackText.includes('\n\ncorrect!');
+      if (!isWrong && !isCorrect) continue;
+
+      seenQuizPrompt = true;
+      if (!questionTitleByNo.has(questionNo)) {
+        questionTitleByNo.set(questionNo, parseQuizQuestionTitle(promptText, questionNo));
+      }
+
+      if (isWrong) {
+        wrongInSession += 1;
+        wrongByQuestion.set(questionNo, (wrongByQuestion.get(questionNo) || 0) + 1);
+        if (studentName) {
+          wrongStudentsByQuestion.get(questionNo)?.add(studentName);
+        }
+      }
+    }
+
+    if (seenQuizPrompt) {
+      sessionsWithQuiz += 1;
+      totalWrong += wrongInSession;
+      const correctInSession = QUIZ_QUESTIONS_PER_SESSION - Math.min(wrongInSession, QUIZ_QUESTIONS_PER_SESSION);
+
+      if (correctInSession <= 5) distributionCounts['0-5'] += 1;
+      else if (correctInSession <= 9) distributionCounts['6-9'] += 1;
+      else distributionCounts['10-11'] += 1;
+    }
+  });
+
+  const totalQuestions = sessionsWithQuiz * QUIZ_QUESTIONS_PER_SESSION;
+  const totalCorrect = Math.max(0, totalQuestions - totalWrong);
+  const classAccuracyRate = totalQuestions > 0 ? (totalCorrect / totalQuestions) * 100 : 0;
+
+  const perQuestion = questionNumbers.map((questionNo) => {
+    const wrong = wrongByQuestion.get(questionNo) || 0;
+    const correct = Math.max(0, sessionsWithQuiz - wrong);
+    const accuracyRate = sessionsWithQuiz > 0 ? (correct / sessionsWithQuiz) * 100 : 0;
+    return {
+      questionNo,
+      questionText: questionTitleByNo.get(questionNo) || `第${questionNo}題`,
+      correct,
+      wrong,
+      wrongStudents: Array.from(wrongStudentsByQuestion.get(questionNo) || []).sort((a, b) => a.localeCompare(b, 'zh-Hant')),
+      accuracyRate,
+    };
+  });
+
+  return {
+    sessionsWithQuiz,
+    totalQuestions,
+    totalCorrect,
+    totalWrong,
+    classAccuracyRate,
+    distributionCounts,
+    perQuestion,
+  };
 };
 
 const sortGroupIds = (groupIds) => {
@@ -982,6 +1202,10 @@ export default function Dashboard() {
   const [loginTrendError, setLoginTrendError] = useState('');
   const [selectedLoginTrendRange, setSelectedLoginTrendRange] = useState(DEFAULT_LOGIN_TREND_RANGE);
   const [selectedSectionFilter, setSelectedSectionFilter] = useState(DASHBOARD_SECTION_FILTERS[0].value);
+  const [dashboardAccuracyRate, setDashboardAccuracyRate] = useState(null);
+  const [masteryMetrics, setMasteryMetrics] = useState(null);
+  const [masteryMetricsError, setMasteryMetricsError] = useState('');
+  const [isMasteryMetricsLoading, setIsMasteryMetricsLoading] = useState(false);
 
   const apiBaseUrls = useMemo(() => {
     const primaryBaseUrl = normalizeBaseUrl(url.backendHost);
@@ -1102,6 +1326,16 @@ export default function Dashboard() {
   const selectedDashboardContextUrl = selectedDashboardClassCode
     ? DASHBOARD_CONTEXT_BY_CLASS[selectedDashboardClassCode]
     : '';
+  const selectedDashboardAccuracyContextUrl = selectedDashboardClassCode
+    ? DASHBOARD_ACCURACY_CONTEXT_BY_CLASS[selectedDashboardClassCode] || ''
+    : '';
+  const selectedDashboardQuestionsContextUrl = selectedDashboardClassCode
+    ? DASHBOARD_QUESTIONS_CONTEXT_BY_CLASS[selectedDashboardClassCode] || ''
+    : '';
+  const selectedDashboardHistoryContextUrl = selectedDashboardClassCode
+    ? DASHBOARD_HISTORY_CONTEXT_BY_CLASS[selectedDashboardClassCode] || ''
+    : '';
+  const isMasteryClassSupported = Boolean(selectedDashboardQuestionsContextUrl);
   const isTargetClassSelected = Boolean(selectedDashboardClassCode && selectedDashboardContextUrl);
 
   const classData = useMemo(
@@ -1114,9 +1348,15 @@ export default function Dashboard() {
   );
   const selectedLoginTrendRangeLabel =
     LOGIN_TREND_RANGE_OPTIONS.find((item) => item.value === selectedLoginTrendRange)?.label || '最近七天';
-  const loginTrendPlotTop = 10;
-  const loginTrendPlotBottom = 94;
+  const loginTrendChartViewWidth = 100;
+  const loginTrendChartViewHeight = 72;
+  const loginTrendPlotLeft = 8;
+  const loginTrendPlotRight = 97;
+  const loginTrendPlotTop = 8;
+  const loginTrendPlotBottom = 58;
+  const loginTrendXAxisLabelY = 66;
   const loginTrendPlotHeight = loginTrendPlotBottom - loginTrendPlotTop;
+  const loginTrendPlotWidth = loginTrendPlotRight - loginTrendPlotLeft;
   const loginTrendYAxisMin = 0;
   const loginTrendObservedMax = Math.max(0, ...displayedLoginTrendRows.map((item) => toNonNegativeInteger(item.count)));
   const loginTrendAutoMax = Math.max(5, loginTrendObservedMax + 2);
@@ -1135,7 +1375,10 @@ export default function Dashboard() {
   });
   const loginTrendPolylinePoints = displayedLoginTrendRows
     .map((item, index) => {
-      const x = displayedLoginTrendRows.length <= 1 ? 50 : ((index + 0.5) / displayedLoginTrendRows.length) * 100;
+      const x =
+        displayedLoginTrendRows.length <= 1
+          ? loginTrendPlotLeft + loginTrendPlotWidth / 2
+          : loginTrendPlotLeft + (((index + 0.5) / displayedLoginTrendRows.length) * loginTrendPlotWidth);
       const clampedCount = Math.min(loginTrendYAxisMax, Math.max(loginTrendYAxisMin, item.count));
       const y = loginTrendPlotBottom - (((clampedCount - loginTrendYAxisMin) / loginTrendRange) * loginTrendPlotHeight);
       return `${x},${y}`;
@@ -1145,6 +1388,12 @@ export default function Dashboard() {
     displayedLoginTrendRows.reduce((sum, item) => sum + item.count, 0) / Math.max(1, displayedLoginTrendRows.length)
   );
   const totalLoginCount = displayedLoginTrendRows.reduce((sum, item) => sum + item.count, 0);
+  const loginTrendMarkerVisibility = useMemo(
+    () => buildXAxisLabelVisibility(displayedLoginTrendRows, 8),
+    [displayedLoginTrendRows]
+  );
+  const loginTrendMinorPointRadius =
+    displayedLoginTrendRows.length > 24 ? 0.45 : displayedLoginTrendRows.length > 14 ? 0.6 : 0.85;
   const breakdownModelLabel = argumentBreakdown?.model || 'RAGFLOW agent';
   const kfGroupOptions = Array.isArray(argumentBreakdown?.groups) ? argumentBreakdown.groups : [];
   const selectedKfGroupData = kfGroupOptions.find((group) => group.groupId === selectedKfGroup) || kfGroupOptions[0] || null;
@@ -1302,9 +1551,44 @@ export default function Dashboard() {
   const completedAllProgressPercent = classOverviewSummary.students > 0
     ? Math.round((completedAllProgressStudents / classOverviewSummary.students) * 100)
     : 0;
-  const masteryRateDisplay = classOverviewSummary.accuracyRate > 0 ? classOverviewSummary.accuracyRate : 78;
+  const dashboardAccuracyRateValue = Number.isFinite(dashboardAccuracyRate) ? dashboardAccuracyRate : null;
+  const fallbackAccuracyRate = classOverviewSummary.accuracyRate > 0 ? classOverviewSummary.accuracyRate : 78;
+  const answerAccuracyRateDisplay = dashboardAccuracyRateValue ?? fallbackAccuracyRate;
+  const answerAccuracyRateLabel = formatPercentNumber(answerAccuracyRateDisplay);
+  const masteryAccuracyValue = dashboardAccuracyRateValue
+    ?? (Number.isFinite(masteryMetrics?.classAccuracyRate) ? masteryMetrics.classAccuracyRate : fallbackAccuracyRate);
+  const masteryAccuracyLabel = formatPercentNumber(masteryAccuracyValue);
+  const masteryCorrectRate = Math.max(0, Math.min(100, Number(masteryAccuracyValue) || 0));
+  const masteryWrongRate = Math.max(0, 100 - masteryCorrectRate);
+  const masteryAccuracyPie = buildConicGradientFromSegments([
+    { value: masteryCorrectRate, color: '#27AE60' },
+    { value: masteryWrongRate, color: '#F2994A' },
+  ]);
+  const masteryDistribution = masteryMetrics?.distributionCounts || { '0-5': 0, '6-9': 0, '10-11': 0 };
+  const masteryDistributionSegments = [
+    { key: '0-5', label: '學生答對0~5題', value: masteryDistribution['0-5'] || 0, color: '#E74C3C' },
+    { key: '6-9', label: '學生答對6~9題', value: masteryDistribution['6-9'] || 0, color: '#F5A623' },
+    { key: '10-11', label: '學生答對10~11題', value: masteryDistribution['10-11'] || 0, color: '#2F80ED' },
+  ];
+  const masteryDistributionPie = buildConicGradientFromSegments(masteryDistributionSegments);
+  const masteryDistributionTotal = masteryDistributionSegments.reduce((sum, item) => sum + item.value, 0);
+  const masteryPerQuestion = Array.isArray(masteryMetrics?.perQuestion)
+    ? masteryMetrics.perQuestion
+    : Array.from({ length: QUIZ_QUESTIONS_PER_SESSION }, (_, index) => ({
+        questionNo: index + 1,
+        questionText: `第${index + 1}題`,
+        correct: 0,
+        wrong: 0,
+        accuracyRate: 0,
+      }));
   const avgClassScoreDisplay = classOverviewSummary.avgTotal > 0 ? classOverviewSummary.avgTotal.toFixed(1) : '0.0';
-  const showClassOverviewCard = selectedSectionFilter === 'overview' || selectedSectionFilter === 'mastery';
+  const avgArgumentScoreValue = Math.max(
+    0,
+    Math.min(8, classOverviewSummary.avgClaims + classOverviewSummary.avgGrounds + classOverviewSummary.avgRebuttals)
+  );
+  const avgArgumentScoreDisplay = avgArgumentScoreValue > 0 ? avgArgumentScoreValue.toFixed(1) : '0.0';
+  const showClassOverviewCard = selectedSectionFilter === 'overview';
+  const showMasteryCard = selectedSectionFilter === 'mastery';
   const showLearningStatusCard = selectedSectionFilter === 'learning';
   const showFocusCard = selectedSectionFilter === 'focus';
   const showSystemCard = selectedSectionFilter === 'system';
@@ -1435,6 +1719,95 @@ export default function Dashboard() {
       isCancelled = true;
     };
   }, [selectedClassOption, selectedDashboardClassCode, selectedTopicOption]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchDashboardAccuracyRate = async () => {
+      if (!selectedDashboardClassCode || !selectedDashboardAccuracyContextUrl) {
+        setDashboardAccuracyRate(null);
+        return;
+      }
+
+      try {
+        const response = await fetch(selectedDashboardAccuracyContextUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to load ${selectedDashboardClassCode}dashboard.txt (${response.status}).`);
+        }
+        const sourceText = await response.text();
+        const parsedRate = parseClassAverageAccuracyFromDashboardText(sourceText);
+        if (!isCancelled) {
+          setDashboardAccuracyRate(parsedRate);
+        }
+      } catch (error) {
+        console.error(`Failed to parse ${selectedDashboardClassCode} dashboard accuracy:`, error);
+        if (!isCancelled) {
+          setDashboardAccuracyRate(null);
+        }
+      }
+    };
+
+    fetchDashboardAccuracyRate();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedDashboardClassCode, selectedDashboardAccuracyContextUrl]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchMasteryMetrics = async () => {
+      if (!selectedDashboardClassCode || !selectedDashboardQuestionsContextUrl) {
+        setMasteryMetrics(null);
+        setMasteryMetricsError('');
+        setIsMasteryMetricsLoading(false);
+        return;
+      }
+
+      setIsMasteryMetricsLoading(true);
+      setMasteryMetricsError('');
+      try {
+        const [questionsResponse, historyResponse] = await Promise.all([
+          fetch(selectedDashboardQuestionsContextUrl),
+          selectedDashboardHistoryContextUrl ? fetch(selectedDashboardHistoryContextUrl) : Promise.resolve(null),
+        ]);
+
+        if (!questionsResponse.ok) {
+          throw new Error(`Failed to load ${selectedDashboardClassCode}questions.txt (${questionsResponse.status}).`);
+        }
+        const questionsText = await questionsResponse.text();
+        const parsed = JSON.parse(questionsText);
+
+        let sessionToStudentMap = new Map();
+        if (historyResponse?.ok) {
+          const historyText = await historyResponse.text();
+          sessionToStudentMap = parseSessionStudentMapFromHistoryText(historyText);
+        }
+
+        const nextMetrics = parseMasteryMetricsFromQuestionsPayload(parsed, sessionToStudentMap);
+        if (!isCancelled) {
+          setMasteryMetrics(nextMetrics);
+        }
+      } catch (error) {
+        console.error(`Failed to parse ${selectedDashboardClassCode} question metrics:`, error);
+        if (!isCancelled) {
+          setMasteryMetrics(null);
+          setMasteryMetricsError('答題統計資料讀取失敗。');
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsMasteryMetricsLoading(false);
+        }
+      }
+    };
+
+    fetchMasteryMetrics();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedDashboardClassCode, selectedDashboardQuestionsContextUrl, selectedDashboardHistoryContextUrl]);
 
   useEffect(() => {
     if (kfGroupOptions.length === 0) {
@@ -1835,18 +2208,18 @@ export default function Dashboard() {
 	                  </div>
 	
 		                  <div style={{ background: '#D7F0E2', borderRadius: '12px', padding: '16px 14px', width: '260px', height: '260px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', justifySelf: 'center', boxSizing: 'border-box' }}>
-		                    <p style={{ margin: 0, color: '#40607D', fontSize: '20px', fontWeight: 700, textAlign: 'center' }}>答題掌握率</p>
-			                    <div style={{ marginTop: '14px', color: '#294865', textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-			                      <div style={{ fontSize: '22px', fontWeight: 700, lineHeight: 1.2 }}>{`${classOverviewSummary.accuracyRate}%`}</div>
-			                      <div style={{ fontSize: '14px', lineHeight: 1.3 }}>{'(總共11道題目)'}</div>
-			                    </div>
-		                  </div>
+			                    <p style={{ margin: 0, color: '#40607D', fontSize: '20px', fontWeight: 700, textAlign: 'center' }}>答題正確率</p>
+				                    <div style={{ marginTop: '14px', color: '#294865', textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+				                      <div style={{ fontSize: '22px', fontWeight: 700, lineHeight: 1.2 }}>{`${answerAccuracyRateLabel}%`}</div>
+				                      <div style={{ fontSize: '14px', lineHeight: 1.3 }}>{'(總共11道題目)'}</div>
+				                    </div>
+			                  </div>
 	
 		                  <div style={{ background: '#FFFFCE', borderRadius: '12px', padding: '16px 14px', width: '260px', height: '260px', justifySelf: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', boxSizing: 'border-box' }}>
 	                    <p style={{ margin: 0, color: '#40607D', fontSize: '20px', fontWeight: 700, textAlign: 'center' }}>平均學習成績</p>
 	                    <div style={{ marginTop: '14px', display: 'grid', gap: '8px' }}>
 	                      {[
-	                        { label: '平均總分', value: classOverviewSummary.avgTotal, max: 8, color: '#2F80ED' },
+	                        { label: '平均總分', value: classOverviewSummary.avgTotal, max: 100, color: '#2F80ED' },
 	                        { label: '平均 Claims', value: classOverviewSummary.avgClaims, max: 2, color: '#4A90E2' },
 	                        { label: '平均 Grounds', value: classOverviewSummary.avgGrounds, max: 4, color: '#27AE60' },
 	                        { label: '平均 Rebuttals', value: classOverviewSummary.avgRebuttals, max: 2, color: '#F2994A' },
@@ -1875,11 +2248,175 @@ export default function Dashboard() {
 	                  </div>
                 </div>
               )}
+	            </article>
+	          )}
+
+          {showMasteryCard && (
+            <article style={{ ...cardStyle, gridColumn: '1 / -1' }}>
+              <h2 style={blockTitleStyle}>答題掌握狀況</h2>
+              {!isMasteryClassSupported && (
+                <p style={{ margin: '14px 0 0', color: '#B45309', fontSize: '14px', textAlign: 'center' }}>
+                  請切換到支援的班級（1142B / 1142C / 1142H）以查看答題正確狀況圖表資料。
+                </p>
+              )}
+              {isMasteryMetricsLoading && (
+                <p style={{ margin: '14px 0 0', color: '#4E6377', fontSize: '14px', textAlign: 'center' }}>載入答題統計中...</p>
+              )}
+              {!isMasteryMetricsLoading && masteryMetricsError && (
+                <p style={{ margin: '14px 0 0', color: '#B45309', fontSize: '14px', textAlign: 'center' }}>{masteryMetricsError}</p>
+              )}
+              {!isMasteryMetricsLoading && !masteryMetricsError && isMasteryClassSupported && (
+                <div style={{ marginTop: '14px', display: 'grid', gap: '14px' }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gap: '14px',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                      alignItems: 'stretch',
+                    }}
+                  >
+                    <div style={{ border: '1px solid #DDE7F2', borderRadius: '14px', padding: '14px', background: '#FCFEFF' }}>
+                      <p style={{ margin: 0, color: '#1F4060', fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>班級平均正確率</p>
+                      <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                        <div
+                          style={{
+                            width: '130px',
+                            height: '130px',
+                            borderRadius: '50%',
+                            background: masteryAccuracyPie.gradient,
+                            position: 'relative',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <div
+                            style={{
+                              position: 'absolute',
+                              inset: '22px',
+                              borderRadius: '50%',
+                              backgroundColor: '#fff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexDirection: 'column',
+                              color: '#1A3A5A',
+                            }}
+                          >
+                            <strong style={{ fontSize: '24px', lineHeight: 1 }}>{masteryAccuracyLabel}%</strong>
+                            <span style={{ fontSize: '11px', color: '#5D748A' }}>Accuracy</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#294865', fontSize: '14px' }}>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#27AE60', display: 'inline-block' }} />
+                            <span>{`答對 ${masteryMetrics?.totalCorrect ?? 0}`}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#294865', fontSize: '14px' }}>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#F2994A', display: 'inline-block' }} />
+                            <span>{`答錯 ${masteryMetrics?.totalWrong ?? 0}`}</span>
+                          </div>
+                          
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ border: '1px solid #DDE7F2', borderRadius: '14px', padding: '14px', background: '#FCFEFF' }}>
+                      <p style={{ margin: 0, color: '#1F4060', fontSize: '18px', fontWeight: 700, textAlign: 'center' }}>答題分布狀況</p>
+                      <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                        <div
+                          style={{
+                            width: '130px',
+                            height: '130px',
+                            borderRadius: '50%',
+                            background: masteryDistributionPie.gradient,
+                            position: 'relative',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <div
+                            style={{
+                              position: 'absolute',
+                              inset: '22px',
+                              borderRadius: '50%',
+                              backgroundColor: '#fff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexDirection: 'column',
+                              color: '#1A3A5A',
+                            }}
+                          >
+                            <strong style={{ fontSize: '24px', lineHeight: 1 }}>{masteryDistributionTotal}</strong>
+                            <span style={{ fontSize: '11px', color: '#5D748A' }}>Sessions</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gap: '8px' }}>
+                          {masteryDistributionSegments.map((segment, index) => {
+                            const pct = masteryDistributionPie.total > 0
+                              ? (masteryDistributionPie.percentages[index] || 0)
+                              : 0;
+                            return (
+                              <div key={segment.key} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#294865', fontSize: '14px' }}>
+                                <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: segment.color, display: 'inline-block' }} />
+                                <span>{`${segment.label}：${segment.value} (${formatPercentNumber(pct)}%)`}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ border: '1px solid #DDE7F2', borderRadius: '14px', padding: '14px', background: '#FCFEFF' }}>
+                    <p style={{ margin: 0, color: '#1F4060', fontSize: '18px', fontWeight: 700 }}>各題答對/答錯比例（11題）</p>
+                    <div style={{ marginTop: '12px', display: 'grid', gap: '10px' }}>
+                      {masteryPerQuestion.map((item) => {
+                        const correct = Number(item.correct || 0);
+                        const wrong = Number(item.wrong || 0);
+                        const wrongStudents = Array.isArray(item.wrongStudents) ? item.wrongStudents : [];
+                        const total = Math.max(1, correct + wrong);
+                        const correctWidth = (correct / total) * 100;
+                        const wrongWidth = 100 - correctWidth;
+                        return (
+                          <div key={`q-${item.questionNo}`} style={{ display: 'grid', gap: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                              <div style={{ display: 'grid', gap: '3px' }}>
+                                <div style={{ color: '#234562', fontSize: '13px', fontWeight: 700 }}>
+                                  {`Q${item.questionNo}. ${item.questionText}`}
+                                </div>
+                                <div style={{ color: '#C0392B', fontSize: '12px', fontWeight: 700 }}>
+                                  {`答錯學生: ${wrongStudents.length > 0 ? wrongStudents.join('、') : '無'}`}
+                                </div>
+                              </div>
+                              <div style={{ color: '#5A7086', fontSize: '12px', flexShrink: 0 }}>
+                                {`答對 ${correct} / 答錯 ${wrong}`}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', width: '100%', height: '14px', borderRadius: '999px', overflow: 'hidden', background: '#EAF1F8' }}>
+                              <div style={{ width: `${correctWidth}%`, background: '#27AE60' }} />
+                              <div style={{ width: `${wrongWidth}%`, background: '#F2994A' }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', color: '#4E6377', fontSize: '12px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#27AE60', display: 'inline-block' }} />
+                        答對
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F2994A', display: 'inline-block' }} />
+                        答錯
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </article>
           )}
 
-          {showLearningStatusCard && (
-            <article style={{ ...cardStyle, gridColumn: '1 / -1' }}>
+	          {showLearningStatusCard && (
+	            <article style={{ ...cardStyle, gridColumn: '1 / -1' }}>
               <h2 style={blockTitleStyle}>班級學習狀況</h2>
               <div
                 style={{
@@ -1906,13 +2443,18 @@ export default function Dashboard() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                    <span style={{ color: '#2D4A64', fontSize: '22px', fontWeight: 600 }}>整體答題掌握率</span>
-                    <span style={{ color: '#D64545', fontSize: '24px', fontWeight: 700 }}>{`${masteryRateDisplay}%`}</span>
+                    <span style={{ color: '#2D4A64', fontSize: '22px', fontWeight: 600 }}>整體答題正確率</span>
+                    <span style={{ color: '#D64545', fontSize: '24px', fontWeight: 700 }}>{`${answerAccuracyRateLabel}%`}</span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
                     <span style={{ color: '#2D4A64', fontSize: '22px', fontWeight: 600 }}>班級平均分數</span>
-                    <span style={{ color: '#173F63', fontSize: '24px', fontWeight: 700 }}>{`${avgClassScoreDisplay}/8`}</span>
+                    <span style={{ color: '#173F63', fontSize: '24px', fontWeight: 700 }}>{`${avgClassScoreDisplay}/100`}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                    <span style={{ color: '#2D4A64', fontSize: '22px', fontWeight: 600 }}>平均論證分數</span>
+                    <span style={{ color: '#173F63', fontSize: '24px', fontWeight: 700 }}>{`${avgArgumentScoreDisplay}/8`}</span>
                   </div>
                 </div>
 
@@ -2018,69 +2560,123 @@ export default function Dashboard() {
                 {loginTrendError}
               </p>
             )}
-            <div
-              style={{
-                marginTop: '14px',
-                display: 'grid',
-                gap: '16px',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                alignItems: 'start',
-              }}
-            >
-              <div style={{ border: '1px solid #E4ECF4', borderRadius: '12px', padding: '12px', background: '#FCFEFF' }}>
-                <svg
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  aria-label="class login line chart"
-                  style={{ width: '100%', height: '250px' }}
-                >
-                  {loginTrendTicks.map((tick) => (
-                    <line key={`grid-${tick.y}`} x1="8" y1={tick.y} x2="100" y2={tick.y} stroke="#E7EEF6" strokeWidth="0.8" />
-                  ))}
-                  <line x1="8" y1={loginTrendPlotTop} x2="8" y2={loginTrendPlotBottom} stroke="#D7E3F0" strokeWidth="0.8" />
-                  {loginTrendTicks.map((tick) => (
-                    <text
-                      key={`tick-${tick.y}`}
-                      x="6.5"
-                      y={tick.y}
-                      textAnchor="end"
-                      dominantBaseline="middle"
-                      fontSize="4.2"
-                      fill="#6B7E92"
-                    >
-                      {tick.value}
-                    </text>
-                  ))}
-                  <polyline
-                    fill="none"
-                    stroke="#2F80ED"
-                    strokeWidth="1.4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    points={loginTrendPolylinePoints}
-                  />
-                  {displayedLoginTrendRows.map((item, index) => {
-                    const x = displayedLoginTrendRows.length <= 1 ? 50 : ((index + 0.5) / displayedLoginTrendRows.length) * 100;
-                    const clampedCount = Math.min(loginTrendYAxisMax, Math.max(loginTrendYAxisMin, item.count));
-                    const y = loginTrendPlotBottom - (((clampedCount - loginTrendYAxisMin) / loginTrendRange) * loginTrendPlotHeight);
-                    return <circle key={`${item.date}-${index}`} cx={x} cy={y} r="1.5" fill="#2F80ED" />;
-                  })}
-                </svg>
-                <div
-                  style={{
-                    marginTop: '8px',
-                    display: 'grid',
-                    gridTemplateColumns: `repeat(${displayedLoginTrendRows.length}, minmax(0, 1fr))`,
-                    gap: '0',
-                  }}
-                >
-                  {displayedLoginTrendRows.map((item) => (
-                    <div key={`axis-${item.date}`} style={{ textAlign: 'center', color: '#5C7187', fontSize: '12px' }}>
-                      {item.day}
-                    </div>
-                  ))}
-                </div>
-              </div>
+	            <div
+	              style={{
+	                marginTop: '14px',
+	                display: 'grid',
+	                gap: '16px',
+	                gridTemplateColumns: 'minmax(520px, 1.45fr) minmax(300px, 1fr)',
+	                alignItems: 'start',
+	              }}
+	            >
+	              <div style={{ border: '1px solid #E4ECF4', borderRadius: '12px', padding: '12px', background: '#FCFEFF' }}>
+	                <div
+	                  style={{
+	                    width: '100%',
+	                    maxWidth: '920px',
+	                    marginInline: 'auto',
+	                    aspectRatio: '16 / 9',
+	                  }}
+	                >
+	                  <svg
+	                    viewBox={`0 0 ${loginTrendChartViewWidth} ${loginTrendChartViewHeight}`}
+	                    preserveAspectRatio="xMidYMid meet"
+	                    aria-label="class login line chart"
+	                    style={{ width: '100%', height: '100%', display: 'block' }}
+	                  >
+	                  {loginTrendTicks.map((tick) => (
+	                    <line
+	                      key={`grid-${tick.y}`}
+	                      x1={loginTrendPlotLeft}
+	                      y1={tick.y}
+	                      x2={loginTrendPlotRight}
+	                      y2={tick.y}
+	                      stroke="#8FA0B0"
+	                      strokeWidth="0.34"
+	                      strokeDasharray="0.8 1"
+	                    />
+	                  ))}
+	                  <line
+	                    x1={loginTrendPlotLeft}
+	                    y1={loginTrendPlotTop}
+	                    x2={loginTrendPlotLeft}
+	                    y2={loginTrendPlotBottom}
+	                    stroke="#1788D6"
+	                    strokeWidth="0.55"
+	                  />
+	                  <line
+	                    x1={loginTrendPlotLeft}
+	                    y1={loginTrendPlotBottom}
+	                    x2={loginTrendPlotRight}
+	                    y2={loginTrendPlotBottom}
+	                    stroke="#1788D6"
+	                    strokeWidth="0.55"
+	                  />
+	                  {loginTrendTicks.map((tick) => (
+	                    <text
+	                      key={`tick-${tick.y}`}
+	                      x={loginTrendPlotLeft - 1.2}
+	                      y={tick.y}
+	                      textAnchor="end"
+	                      dominantBaseline="middle"
+	                      fontSize="3.2"
+	                      fill="#2B5F86"
+	                    >
+	                      {tick.value}
+	                    </text>
+	                  ))}
+	                  <polyline
+	                    fill="none"
+	                    stroke="#1488D3"
+	                    strokeWidth="0.62"
+	                    strokeLinecap="round"
+	                    strokeLinejoin="round"
+	                    points={loginTrendPolylinePoints}
+	                  />
+	                  {displayedLoginTrendRows.map((item, index) => {
+	                    const x =
+	                      displayedLoginTrendRows.length <= 1
+	                        ? loginTrendPlotLeft + loginTrendPlotWidth / 2
+	                        : loginTrendPlotLeft + (((index + 0.5) / displayedLoginTrendRows.length) * loginTrendPlotWidth);
+	                    const clampedCount = Math.min(loginTrendYAxisMax, Math.max(loginTrendYAxisMin, item.count));
+	                    const y = loginTrendPlotBottom - (((clampedCount - loginTrendYAxisMin) / loginTrendRange) * loginTrendPlotHeight);
+	                    return <circle key={`minor-${item.date}-${index}`} cx={x} cy={y} r={loginTrendMinorPointRadius} fill="#1488D3" opacity="0.65" />;
+	                  })}
+	                  {displayedLoginTrendRows.map((item, index) => {
+	                    if (!loginTrendMarkerVisibility[index]) return null;
+	                    const x =
+	                      displayedLoginTrendRows.length <= 1
+	                        ? loginTrendPlotLeft + loginTrendPlotWidth / 2
+	                        : loginTrendPlotLeft + (((index + 0.5) / displayedLoginTrendRows.length) * loginTrendPlotWidth);
+	                    const clampedCount = Math.min(loginTrendYAxisMax, Math.max(loginTrendYAxisMin, item.count));
+	                    const y = loginTrendPlotBottom - (((clampedCount - loginTrendYAxisMin) / loginTrendRange) * loginTrendPlotHeight);
+	                    return (
+	                      <circle key={`major-${item.date}-${index}`} cx={x} cy={y} r="1.85" fill="#1488D3" stroke="#EAF5FF" strokeWidth="0.3" />
+	                    );
+	                  })}
+	                  {displayedLoginTrendRows.map((item, index) => {
+	                    if (!loginTrendMarkerVisibility[index]) return null;
+	                    const x =
+	                      displayedLoginTrendRows.length <= 1
+	                        ? loginTrendPlotLeft + loginTrendPlotWidth / 2
+	                        : loginTrendPlotLeft + (((index + 0.5) / displayedLoginTrendRows.length) * loginTrendPlotWidth);
+	                    return (
+	                      <text
+	                        key={`x-label-${item.date}-${index}`}
+	                        x={x}
+	                        y={loginTrendXAxisLabelY}
+	                        textAnchor="middle"
+	                        dominantBaseline="middle"
+	                        fontSize="3.1"
+	                        fill="#5C7187"
+	                      >
+	                        {item.day}
+	                      </text>
+	                    );
+	                  })}
+	                  </svg>
+	                </div>
+	              </div>
 
               <div style={{ border: '1px solid #E4ECF4', borderRadius: '12px', overflow: 'hidden', background: '#fff' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>

@@ -1298,7 +1298,7 @@ export default function CorrectEssays() {
                 className="ce-overall-feedback"
               />
             )}
-            <div className="ce-subtitle ce-score-subtitle">Argument Scores</div>
+            <div className="ce-subtitle ce-score-subtitle">Argument Component Scores </div>
             <div className="ce-score-list">
               <div className="ce-score-row">
                 <div className="ce-score-label">Claims</div>

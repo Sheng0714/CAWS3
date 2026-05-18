@@ -24,8 +24,11 @@ const containerStyle = {
   padding: "0 20px 30px",
 };
 
-const IN_PROGRESS_COLOR = "rgb(237, 237, 237)";
-const COMPLETED_COLOR = "rgb(163, 163, 163)";
+const IN_PROGRESS_COLOR = '#D1E7FB';
+const COMPLETED_COLOR = '#DFEDD7';
+// const IN_PROGRESS_COLOR = "rgb(237, 237, 237)";
+// const COMPLETED_COLOR = "rgb(163, 163, 163)";
+//backgroundColor: status === 'completed' ? '#DFEDD7' : '#D1E7FB',
 
 const buildAuthConfig = () => {
   const jwtToken = localStorage.getItem("jwtToken");

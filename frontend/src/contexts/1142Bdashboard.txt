@@ -1,0 +1,38 @@
+班級平均正確率
+作答 session 數：30
+總題數：330（30 × 11）
+答對：322
+答錯：8
+班級平均正確率：97.58%
+答題分布狀況（03題、47題、8~11題）
+0~5 題：0 人次
+6~9 題：2 人次
+10~11 題：28 人次
+各題答題正確、答錯數（含題目）
+Q1 What is the purpose of an argumentative essay?：正確 30，答錯 0
+Q2 How many paragraphs do you usually write in an argumentative essay?：正確 30，答錯 0
+Q3 The first paragraph is called?：正確 28，答錯 2
+Q4 What are the elements you have to include in the introduction?：正確 29，答錯 1
+Q5 Suppose you have two arguments in your thesis statement, how many body paragraphs do you need to develop?：正確 28，答錯 2
+Q6 In each body paragraph, what is the first sentence?：正確 29，答錯 1
+Q7 After you develop a topic sentence, what do you need to do?：正確 30，答錯 0
+Q8 After writing two body paragraphs for your two supporting arguments, what should you write next?：正確 28，答錯 2
+Q9 In the counterargument paragraph, what is the most important thing?：正確 30，答錯 0
+Q10 In your concluding paragraph, what is the first thing you have to do?：正確 30，答錯 0
+Q11 What other things can you write in the last paragraph?：正確 30，答錯 0
+
+整體答錯學生（依答錯數）：
+
+王清清：3 題
+段生芹：2 題
+李文清：1 題
+楊上逸：1 題
+劉采瑜：1 題
+各題答錯學生：
+
+第3題：王清清、段生芹
+第4題：王清清
+第5題：王清清、段生芹
+第6題：楊上逸
+第8題：李文清、劉采瑜
+其餘題目（1、2、7、9、10、11）無人答錯。
