@@ -61,6 +61,21 @@ const splitEnvList = (value, fallback) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const isLoginDebugEnabled = () =>
+  String(process.env.LOGIN_DEBUG || "").toLowerCase() === "true";
+
+const maskAccountForLog = (account) => {
+  const value = String(account || "");
+  if (value.length <= 4) return "*".repeat(value.length || 1);
+  return `${value.slice(0, 2)}***${value.slice(-2)}`;
+};
+
+const logLoginDebug = (...args) => {
+  if (isLoginDebugEnabled()) {
+    console.log("[login-debug]", ...args);
+  }
+};
+
 const NOTION_ACCOUNT_FIELD_ALIASES = splitEnvList(
   process.env.NOTION_LOGIN_ACCOUNT_FIELDS,
   "帳號,账号,Account,account,Email,email,信箱,電子信箱"
@@ -184,14 +199,22 @@ const getNotionLoginSchema = async () => {
 
 const findNotionLoginPage = async (account) => {
   const notion = getNotionClient();
-  if (!notion || !account) return null;
+  if (!notion || !account) {
+    logLoginDebug("Notion skipped: missing client or account");
+    return null;
+  }
 
   const schema = await getNotionLoginSchema();
   const accountProperty = getPropertyByAliases(schema, NOTION_ACCOUNT_FIELD_ALIASES);
   if (!accountProperty) {
     console.warn("Notion login account field not found. Expected one of:", NOTION_ACCOUNT_FIELD_ALIASES.join(", "));
+    logLoginDebug("Available Notion fields:", Object.keys(schema || {}).join(", "));
     return null;
   }
+  logLoginDebug(
+    "Using Notion account field:",
+    `${accountProperty.name} (${accountProperty.property?.type || "unknown"})`
+  );
 
   const filter = buildNotionEqualsFilter(
     accountProperty.name,
@@ -205,6 +228,11 @@ const findNotionLoginPage = async (account) => {
       filter,
       page_size: 1,
     });
+    logLoginDebug(
+      "Notion account query result:",
+      response.results?.length ? "matched" : "not matched",
+      maskAccountForLog(account)
+    );
     return response.results?.[0] || null;
   }
 
@@ -213,7 +241,7 @@ const findNotionLoginPage = async (account) => {
     page_size: 100,
   });
 
-  return (
+  const page = (
     response.results.find((page) => {
       const pageAccount = getDisplayValueFromNotionProperty(
         getPropertyByAliases(page?.properties, NOTION_ACCOUNT_FIELD_ALIASES)?.property
@@ -221,25 +249,52 @@ const findNotionLoginPage = async (account) => {
       return pageAccount === account;
     }) || null
   );
+  logLoginDebug(
+    "Notion account fallback scan result:",
+    page ? "matched" : "not matched",
+    maskAccountForLog(account)
+  );
+  return page;
 };
 
 const authenticateWithNotion = async ({ account, password }) => {
-  if (!account || !password || !getNotionClient()) return null;
+  if (!account || !password || !getNotionClient()) {
+    logLoginDebug("Notion auth skipped: missing account, password, or Notion env");
+    return null;
+  }
 
   const page = await findNotionLoginPage(account);
-  if (!page) return null;
+  if (!page) {
+    logLoginDebug("Notion auth failed: account not found", maskAccountForLog(account));
+    return null;
+  }
 
   const properties = page.properties || {};
   const passwordProperty = getPropertyByAliases(properties, NOTION_PASSWORD_FIELD_ALIASES);
+  if (!passwordProperty) {
+    logLoginDebug("Notion auth failed: password field not found");
+    return null;
+  }
+  logLoginDebug(
+    "Using Notion password field:",
+    `${passwordProperty.name} (${passwordProperty.property?.type || "unknown"})`
+  );
   const storedPassword = getDisplayValueFromNotionProperty(passwordProperty?.property);
 
-  if (!storedPassword) return null;
+  if (!storedPassword) {
+    logLoginDebug("Notion auth failed: password field is empty");
+    return null;
+  }
 
   const isPasswordValid = isBcryptHash(storedPassword)
     ? await bcrypt.compare(password, storedPassword)
     : String(password) === storedPassword;
 
-  if (!isPasswordValid) return null;
+  if (!isPasswordValid) {
+    logLoginDebug("Notion auth failed: password mismatch", maskAccountForLog(account));
+    return null;
+  }
+  logLoginDebug("Notion auth success", maskAccountForLog(account));
 
   const accountValue =
     getDisplayValueFromNotionProperty(
