@@ -3,7 +3,7 @@ import axios from "axios";
 import React, { useState } from 'react'
 import { Button, TextField, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Link } from '@mui/material';
 import joinTopicIcon from '../assets/JoinTopic.png';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 
 export const JoinActivityForm = ({ callback_setActivities }) => {
     const userId = localStorage.getItem('userId'); 

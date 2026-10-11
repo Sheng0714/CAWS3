@@ -12,7 +12,7 @@ import {
   FormControl,
   FormLabel,
 } from "@mui/material";
-import url from "../url.json";
+import url from "../utils/urlConfig";
 import config from "../config.json";
 import { Register } from "../components/Register";
 import { Login } from "../components/Login";

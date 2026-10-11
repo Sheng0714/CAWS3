@@ -19,7 +19,7 @@ import { CreateInformation } from './CreateInformation';
 import { CreateFlask } from './CreateFlask';
 import { CreateNote } from './CreateNote';
 import { CreateActivityForm } from './CreateActivityForm';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 
 const drawerWidth = 240;
 

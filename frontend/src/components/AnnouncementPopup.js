@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 import config from '../config.json';
 
 const AnnouncementPopup = ({ groupId, networkRef, open }) => {

@@ -8,7 +8,7 @@ import StudentLeftSidebar from "./StudentLeftSidebar";
 import backIcon from "../assets/back.png";
 import owlWavingGif from "../assets/揮手.gif";
 import config from "../config.json";
-import url from "../url.json";
+import url from "../utils/urlConfig";
 
 const notionApiBases = [
   process.env.REACT_APP_NOTION_API_BASE_URL,
@@ -24,10 +24,10 @@ const containerStyle = {
   padding: "0 20px 30px",
 };
 
-const IN_PROGRESS_COLOR = '#D1E7FB';
-const COMPLETED_COLOR = '#DFEDD7';
-// const IN_PROGRESS_COLOR = "rgb(237, 237, 237)";
-// const COMPLETED_COLOR = "rgb(163, 163, 163)";
+// const IN_PROGRESS_COLOR = '#D1E7FB';
+// const COMPLETED_COLOR = '#DFEDD7';
+const IN_PROGRESS_COLOR = "rgb(237, 237, 237)";
+const COMPLETED_COLOR = "rgb(163, 163, 163)";
 //backgroundColor: status === 'completed' ? '#DFEDD7' : '#D1E7FB',
 
 const buildAuthConfig = () => {

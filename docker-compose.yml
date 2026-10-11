@@ -303,6 +303,8 @@ services:
   backend:
     build:
       context: backend
+    env_file:
+      - ./frontend/.env
     environment:
       DB_TABLENAME: Idea-centered-inquiry
       DB_USERNAME: wulab

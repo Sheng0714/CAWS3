@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, TextField, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Link , IconButton } from '@mui/material';
 import registerImg from '../assets/undraw_mobile_payments_re_7udl.svg';
 import { Login } from './Login';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 import { UploadFile } from '@mui/icons-material'; // Upload icon
 
 export const Register = ({ open, setOpen, setOpenLogin }) => { 

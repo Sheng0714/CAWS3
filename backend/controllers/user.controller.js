@@ -2,6 +2,7 @@ const db = require('../models');
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const readXlsxFile = require("read-excel-file/node");
+const { Client } = require("@notionhq/client");
 
 // Assigning users to the variable User
 const User = db.User;
@@ -52,6 +53,276 @@ const buildDateKeys = (days) => {
   }
 
   return list;
+};
+
+const splitEnvList = (value, fallback) =>
+  String(value || fallback)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const NOTION_ACCOUNT_FIELD_ALIASES = splitEnvList(
+  process.env.NOTION_LOGIN_ACCOUNT_FIELDS,
+  "帳號,账号,Account,account,Email,email,信箱,電子信箱"
+);
+const NOTION_PASSWORD_FIELD_ALIASES = splitEnvList(
+  process.env.NOTION_LOGIN_PASSWORD_FIELDS,
+  "密碼,密码,Password,password"
+);
+const NOTION_NAME_FIELD_ALIASES = splitEnvList(
+  process.env.NOTION_LOGIN_NAME_FIELDS,
+  "姓名,名字,名稱,Name,name,學生姓名,studentName,Student Name"
+);
+const NOTION_SCHOOL_FIELD_ALIASES = splitEnvList(
+  process.env.NOTION_LOGIN_SCHOOL_FIELDS,
+  "學校,学校,School,school"
+);
+const NOTION_CITY_FIELD_ALIASES = splitEnvList(
+  process.env.NOTION_LOGIN_CITY_FIELDS,
+  "城市,縣市,City,city"
+);
+
+const isBcryptHash = (value) => /^\$2[aby]\$\d{2}\$/.test(String(value || ""));
+
+let notionClient;
+let notionLoginSchemaCache;
+
+const getNotionClient = () => {
+  if (!process.env.NOTION_API_KEY || !process.env.NOTION_DATABASE_ID) return null;
+  if (!notionClient) {
+    notionClient = new Client({ auth: process.env.NOTION_API_KEY });
+  }
+  return notionClient;
+};
+
+const normalizePropertyKey = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/\s+/g, "")
+    .toLowerCase();
+
+const getPlainTextFromRichTextArray = (items = []) =>
+  items
+    .map((item) => item?.plain_text || item?.text?.content || "")
+    .join("")
+    .trim();
+
+const getDisplayValueFromNotionProperty = (property) => {
+  if (!property) return "";
+
+  switch (property.type) {
+    case "title":
+      return getPlainTextFromRichTextArray(property.title);
+    case "rich_text":
+      return getPlainTextFromRichTextArray(property.rich_text);
+    case "email":
+      return property.email || "";
+    case "phone_number":
+      return property.phone_number || "";
+    case "url":
+      return property.url || "";
+    case "number":
+      return property.number === null || property.number === undefined ? "" : String(property.number);
+    case "select":
+      return property.select?.name || "";
+    case "formula":
+      return getDisplayValueFromNotionProperty(property.formula);
+    default:
+      return "";
+  }
+};
+
+const getPropertyByAliases = (properties = {}, aliases = []) => {
+  const lookup = new Map(
+    Object.entries(properties).map(([name, property]) => [normalizePropertyKey(name), { name, property }])
+  );
+
+  for (const alias of aliases) {
+    const match = lookup.get(normalizePropertyKey(alias));
+    if (match) return match;
+  }
+
+  return null;
+};
+
+const buildNotionEqualsFilter = (propertyName, propertyType, value) => {
+  if (!propertyName || !propertyType) return null;
+
+  switch (propertyType) {
+    case "title":
+      return { property: propertyName, title: { equals: value } };
+    case "rich_text":
+      return { property: propertyName, rich_text: { equals: value } };
+    case "email":
+      return { property: propertyName, email: { equals: value } };
+    case "phone_number":
+      return { property: propertyName, phone_number: { equals: value } };
+    case "url":
+      return { property: propertyName, url: { equals: value } };
+    case "number": {
+      const numberValue = Number(value);
+      return Number.isFinite(numberValue)
+        ? { property: propertyName, number: { equals: numberValue } }
+        : null;
+    }
+    default:
+      return null;
+  }
+};
+
+const getNotionLoginSchema = async () => {
+  const notion = getNotionClient();
+  if (!notion) return null;
+  if (notionLoginSchemaCache) return notionLoginSchemaCache;
+
+  const database = await notion.databases.retrieve({
+    database_id: process.env.NOTION_DATABASE_ID,
+  });
+  notionLoginSchemaCache = database?.properties || {};
+  return notionLoginSchemaCache;
+};
+
+const findNotionLoginPage = async (account) => {
+  const notion = getNotionClient();
+  if (!notion || !account) return null;
+
+  const schema = await getNotionLoginSchema();
+  const accountProperty = getPropertyByAliases(schema, NOTION_ACCOUNT_FIELD_ALIASES);
+  if (!accountProperty) {
+    console.warn("Notion login account field not found. Expected one of:", NOTION_ACCOUNT_FIELD_ALIASES.join(", "));
+    return null;
+  }
+
+  const filter = buildNotionEqualsFilter(
+    accountProperty.name,
+    accountProperty.property?.type,
+    account
+  );
+
+  if (filter) {
+    const response = await notion.databases.query({
+      database_id: process.env.NOTION_DATABASE_ID,
+      filter,
+      page_size: 1,
+    });
+    return response.results?.[0] || null;
+  }
+
+  const response = await notion.databases.query({
+    database_id: process.env.NOTION_DATABASE_ID,
+    page_size: 100,
+  });
+
+  return (
+    response.results.find((page) => {
+      const pageAccount = getDisplayValueFromNotionProperty(
+        getPropertyByAliases(page?.properties, NOTION_ACCOUNT_FIELD_ALIASES)?.property
+      );
+      return pageAccount === account;
+    }) || null
+  );
+};
+
+const authenticateWithNotion = async ({ account, password }) => {
+  if (!account || !password || !getNotionClient()) return null;
+
+  const page = await findNotionLoginPage(account);
+  if (!page) return null;
+
+  const properties = page.properties || {};
+  const passwordProperty = getPropertyByAliases(properties, NOTION_PASSWORD_FIELD_ALIASES);
+  const storedPassword = getDisplayValueFromNotionProperty(passwordProperty?.property);
+
+  if (!storedPassword) return null;
+
+  const isPasswordValid = isBcryptHash(storedPassword)
+    ? await bcrypt.compare(password, storedPassword)
+    : String(password) === storedPassword;
+
+  if (!isPasswordValid) return null;
+
+  const accountValue =
+    getDisplayValueFromNotionProperty(
+      getPropertyByAliases(properties, NOTION_ACCOUNT_FIELD_ALIASES)?.property
+    ) || account;
+  const name =
+    getDisplayValueFromNotionProperty(
+      getPropertyByAliases(properties, NOTION_NAME_FIELD_ALIASES)?.property
+    ) || accountValue;
+  const school =
+    getDisplayValueFromNotionProperty(
+      getPropertyByAliases(properties, NOTION_SCHOOL_FIELD_ALIASES)?.property
+    ) || "Notion";
+  const city =
+    getDisplayValueFromNotionProperty(
+      getPropertyByAliases(properties, NOTION_CITY_FIELD_ALIASES)?.property
+    ) || "Notion";
+
+  return {
+    account: accountValue,
+    name,
+    school,
+    city,
+    passwordHash: isBcryptHash(storedPassword)
+      ? storedPassword
+      : await bcrypt.hash(password, 10),
+  };
+};
+
+const syncNotionUserToLocalDb = async (notionUser) => {
+  let user = await User.findOne({
+    where: { email: notionUser.account },
+  });
+
+  if (!user) {
+    return User.create({
+      name: notionUser.name,
+      email: notionUser.account,
+      password: notionUser.passwordHash,
+      school: notionUser.school,
+      city: notionUser.city,
+    });
+  }
+
+  user.name = notionUser.name || user.name;
+  user.password = notionUser.passwordHash;
+  user.school = notionUser.school || user.school;
+  user.city = notionUser.city || user.city;
+  await user.save();
+  return user;
+};
+
+const sendLoginSuccess = async (res, user, source = "web") => {
+  try {
+    await LoginHistory.create({
+      userId: user.id,
+      userName: user.name || "",
+      loginAt: new Date(),
+      source,
+    });
+  } catch (loginHistoryError) {
+    console.error("Failed to write login history:", loginHistoryError?.message || loginHistoryError);
+  }
+
+  const authorizedInfo = await getAuthorized(user.id);
+
+  const jwtPayload = { ...user, ...authorizedInfo };
+  console.log("JWT_SECRET:", process.env.JWT_SECRET);
+
+  const token = jwt.sign(jwtPayload, process.env.JWT_SECRET, {
+    expiresIn: 1 * 24 * 60 * 60 * 1000,
+  });
+
+  res.cookie("jwt", token, {
+    maxAge: 1 * 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    secure: true,
+    sameSite: "Strict",
+  });
+
+  const userWithoutPassword = { ...user.dataValues, jwtToken: token };
+  delete userWithoutPassword.password;
+  return res.status(200).send(userWithoutPassword);
 };
 
 
@@ -251,12 +522,27 @@ const getAuthorized = async (userId) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const account = String(req.body?.email || "").trim();
+    const password = String(req.body?.password || "");
+
+    if (!account || !password) {
+      return res.status(401).send("Authentication failed");
+    }
+
+    try {
+      const notionUser = await authenticateWithNotion({ account, password });
+      if (notionUser) {
+        const syncedUser = await syncNotionUserToLocalDb(notionUser);
+        return sendLoginSuccess(res, syncedUser, "notion");
+      }
+    } catch (notionLoginError) {
+      console.error("Notion login failed:", notionLoginError?.message || notionLoginError);
+    }
     
     //find a user by their email
     const user = await User.findOne({
       where: {
-        email: email
+        email: account
       } 
     });
 
@@ -311,6 +597,7 @@ exports.login = async (req, res) => {
     
     // add jwtToken
     const userWithoutPassword = { ...user.dataValues, jwtToken: token };
+    delete userWithoutPassword.password;
 
     
     

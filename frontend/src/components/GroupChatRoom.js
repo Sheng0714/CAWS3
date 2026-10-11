@@ -23,7 +23,7 @@ import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 import io from 'socket.io-client';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 import config from '../config.json';
 // import { socket } from '../utils/Socket';
 import { newMessage } from '../utils/ideaTool';

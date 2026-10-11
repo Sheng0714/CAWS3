@@ -2,13 +2,24 @@ const path = require("path");
 const { Client } = require("../backend/node_modules/@notionhq/client");
 const XLSX = require("../backend/node_modules/xlsx");
 
-const NOTION_API_KEY = process.env.NOTION_API_KEY || "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";
-const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID || "1f534b62aded8081bfb0d8c7cbdeb64c";
+const NOTION_API_KEY =
+  process.env.NOTION_API_KEY || "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";
+const NOTION_DATABASE_ID =
+  process.env.NOTION_DATABASE_ID || "1f534b62aded8081bfb0d8c7cbdeb64c";
 
-const TARGET_CLASS = "114B";
-const TARGET_THEME = "Should nuclear power be used to solve the power shortage in Taiwan?";
-const EXCEL_PATH = "q:/論文進度/收資料學生資料/1141B.xlsx";
+const TARGET_CLASS = process.env.TARGET_CLASS || "114B";
+const TARGET_THEME =
+  process.env.TARGET_THEME || "Should nuclear power be used to solve the power shortage in Taiwan?";
+const EXCEL_PATH =
+  process.env.EXCEL_PATH ||
+  "q:/\u8ad6\u6587\u9032\u5ea6/\u6536\u8cc7\u6599\u5b78\u751f\u8cc7\u6599/1141B.xlsx";
+const TEMPLATE_EXCEL_PATH = process.env.TEMPLATE_EXCEL_PATH || "";
 const TARGET_SHEET = "B";
+
+const FIELD_STUDENT_NAME = "\u5b78\u751f\u59d3\u540d";
+const FIELD_CLASS = "\u73ed\u7d1a";
+const FIELD_THEME = "\u4e3b\u984c";
+const FIELD_ESSAY = "\u8b70\u8ad6\u6587\u5167\u5bb9";
 
 const notion = new Client({ auth: NOTION_API_KEY });
 
@@ -35,13 +46,13 @@ const htmlEntityMap = {
 
 function decodeHtmlEntities(input) {
   let text = String(input ?? "");
-  text = text.replace(/&#(\d+);/g, (_, code) => {
+  text = text.replace(/&#(\d+);/g, (m, code) => {
     const n = Number(code);
-    return Number.isNaN(n) ? _ : String.fromCodePoint(n);
+    return Number.isNaN(n) ? m : String.fromCodePoint(n);
   });
-  text = text.replace(/&#x([0-9a-fA-F]+);/g, (_, code) => {
+  text = text.replace(/&#x([0-9a-fA-F]+);/g, (m, code) => {
     const n = Number.parseInt(code, 16);
-    return Number.isNaN(n) ? _ : String.fromCodePoint(n);
+    return Number.isNaN(n) ? m : String.fromCodePoint(n);
   });
   for (const [entity, value] of Object.entries(htmlEntityMap)) {
     text = text.replace(new RegExp(entity, "g"), value);
@@ -97,11 +108,38 @@ function getPlainTextByProperty(prop) {
   return "";
 }
 
+function toTimestamp(value) {
+  const t = new Date(value || 0).getTime();
+  return Number.isNaN(t) ? 0 : t;
+}
+
+function pickBestPageForStudent(candidates) {
+  if (!Array.isArray(candidates) || candidates.length === 0) return null;
+  const enriched = candidates.map((page) => {
+    const props = page?.properties || {};
+    const essayRaw = getPlainTextByProperty(props[FIELD_ESSAY]);
+    const essayClean = cleanEssayContent(essayRaw);
+    return {
+      page,
+      essayClean,
+      hasEssay: essayClean.length > 0,
+      editedTs: toTimestamp(page?.last_edited_time || page?.created_time),
+      createdTs: toTimestamp(page?.created_time),
+    };
+  });
+  enriched.sort((a, b) => {
+    if (a.hasEssay !== b.hasEssay) return a.hasEssay ? -1 : 1;
+    if (a.editedTs !== b.editedTs) return b.editedTs - a.editedTs;
+    return b.createdTs - a.createdTs;
+  });
+  return enriched[0] || null;
+}
+
 async function queryAllByClassAndTheme() {
   const filter = {
     and: [
-      { property: "班級", rich_text: { equals: TARGET_CLASS } },
-      { property: "主題", rich_text: { equals: TARGET_THEME } },
+      { property: FIELD_CLASS, rich_text: { equals: TARGET_CLASS } },
+      { property: FIELD_THEME, rich_text: { equals: TARGET_THEME } },
     ],
   };
   const rows = [];
@@ -120,81 +158,117 @@ async function queryAllByClassAndTheme() {
   return rows;
 }
 
-function dedupeByLatestStudentName(pages) {
+function groupPagesByStudentName(pages) {
   const map = new Map();
   for (const page of pages) {
     const props = page?.properties || {};
-    const name = normalizeLookup(getPlainTextByProperty(props["學生姓名"]));
-    if (!name) continue;
-    const current = map.get(name);
-    if (!current) {
-      map.set(name, page);
-      continue;
-    }
-    const currentTs = new Date(current?.last_edited_time || current?.created_time || 0).getTime();
-    const incomingTs = new Date(page?.last_edited_time || page?.created_time || 0).getTime();
-    if (incomingTs >= currentTs) map.set(name, page);
+    const studentName = normalizeLookup(getPlainTextByProperty(props[FIELD_STUDENT_NAME]));
+    if (!studentName) continue;
+    if (!map.has(studentName)) map.set(studentName, []);
+    map.get(studentName).push(page);
   }
   return map;
 }
 
-function main() {
-  return queryAllByClassAndTheme()
-    .then((pages) => {
-      const latestByName = dedupeByLatestStudentName(pages);
-      const essayMap = new Map();
+async function main() {
+  try {
+    const pages = await queryAllByClassAndTheme();
+    const pagesByStudent = groupPagesByStudentName(pages);
+    const selectedByStudent = new Map();
 
-      for (const [studentName, page] of latestByName.entries()) {
-        const props = page?.properties || {};
-        const essayRaw = getPlainTextByProperty(props["議論文內容"]);
-        const cleaned = cleanEssayContent(essayRaw);
-        essayMap.set(studentName, cleaned);
-      }
+    for (const [studentName, candidates] of pagesByStudent.entries()) {
+      const best = pickBestPageForStudent(candidates);
+      selectedByStudent.set(studentName, best);
+    }
 
-      const workbook = XLSX.readFile(EXCEL_PATH);
-      const sheetName = workbook.Sheets[TARGET_SHEET] ? TARGET_SHEET : workbook.SheetNames[0];
+    const essayMap = new Map();
+    for (const [studentName, selected] of selectedByStudent.entries()) {
+      const essay = selected?.essayClean || "";
+      essayMap.set(studentName, essay);
+    }
+
+    let workbook;
+    let sheetName = TARGET_SHEET;
+    let rows = [];
+    let createdFromNotion = false;
+
+    if (require("fs").existsSync(EXCEL_PATH)) {
+      workbook = XLSX.readFile(EXCEL_PATH);
+      sheetName = workbook.Sheets[TARGET_SHEET] ? TARGET_SHEET : workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+      rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+    } else {
+      workbook = XLSX.utils.book_new();
+      const headers = ["Name", "Student ID", "", "\u73ed\u7d1a", "\u4e3b\u984c", "\u8b70\u8ad6\u6587\u5167\u5bb9"];
+      rows = [headers];
 
-      const excelNames = new Set();
-      let filledCount = 0;
-
-      for (let i = 1; i < rows.length; i += 1) {
-        const row = rows[i];
-        const studentName = normalizeLookup(row[0]);
-        if (!studentName) continue;
-        excelNames.add(studentName);
-        const essay = essayMap.get(studentName) || "";
-        row[3] = TARGET_CLASS;
-        row[4] = TARGET_THEME;
-        row[5] = essay;
-        if (essay) filledCount += 1;
+      if (TEMPLATE_EXCEL_PATH && require("fs").existsSync(TEMPLATE_EXCEL_PATH)) {
+        const templateWb = XLSX.readFile(TEMPLATE_EXCEL_PATH);
+        const templateSheetName = templateWb.Sheets[TARGET_SHEET]
+          ? TARGET_SHEET
+          : templateWb.SheetNames[0];
+        const templateRows = XLSX.utils.sheet_to_json(templateWb.Sheets[templateSheetName], {
+          header: 1,
+          defval: "",
+        });
+        if (Array.isArray(templateRows) && templateRows.length > 0) {
+          rows[0] = templateRows[0];
+        }
       }
 
-      const extraNotionNames = [...essayMap.keys()].filter((name) => !excelNames.has(name));
-      const missingInNotion = [...excelNames].filter((name) => !essayMap.has(name));
-
-      workbook.Sheets[sheetName] = XLSX.utils.aoa_to_sheet(rows);
-      XLSX.writeFile(workbook, EXCEL_PATH);
-
-      console.log(`Notion rows (raw): ${pages.length}`);
-      console.log(`Notion students (deduped): ${essayMap.size}`);
-      console.log(`Excel rows filled: ${filledCount}`);
-      console.log(`Missing in Notion for Excel names: ${missingInNotion.length}`);
-      if (missingInNotion.length) {
-        console.log(`Missing names: ${missingInNotion.join(", ")}`);
+      const notionNames = [...essayMap.keys()].sort((a, b) => a.localeCompare(b, "zh-Hant"));
+      for (const name of notionNames) {
+        rows.push([name, "", "", TARGET_CLASS, TARGET_THEME, essayMap.get(name) || ""]);
       }
-      console.log(`Extra Notion names not in Excel: ${extraNotionNames.length}`);
-      if (extraNotionNames.length) {
-        console.log(`Extra names: ${extraNotionNames.join(", ")}`);
-      }
-      console.log(`Updated sheet: ${sheetName}`);
-      console.log(`Updated file: ${path.resolve(EXCEL_PATH)}`);
-    })
-    .catch((error) => {
-      console.error("Export failed:", error?.message || error);
-      process.exit(1);
-    });
+      createdFromNotion = true;
+    }
+
+    const excelNames = new Set();
+    let filledCount = 0;
+
+    for (let i = 1; i < rows.length; i += 1) {
+      const row = rows[i];
+      const studentName = normalizeLookup(row[0]);
+      if (!studentName) continue;
+      excelNames.add(studentName);
+      const essay = essayMap.get(studentName) || "";
+      row[3] = TARGET_CLASS;
+      row[4] = TARGET_THEME;
+      row[5] = essay;
+      if (essay) filledCount += 1;
+    }
+
+    const outputSheet = XLSX.utils.aoa_to_sheet(rows);
+    if (workbook.Sheets[sheetName]) {
+      workbook.Sheets[sheetName] = outputSheet;
+    } else {
+      XLSX.utils.book_append_sheet(workbook, outputSheet, sheetName);
+    }
+    XLSX.writeFile(workbook, EXCEL_PATH);
+
+    const missingInNotion = [...excelNames].filter((name) => !essayMap.has(name));
+    const extraNotionNames = [...essayMap.keys()].filter((name) => !excelNames.has(name));
+    const blankAfterSelection = [...excelNames].filter((name) => !normalizeLookup(essayMap.get(name)));
+
+    console.log(`Target class: ${TARGET_CLASS}`);
+    console.log(`Target theme: ${TARGET_THEME}`);
+    console.log(`Notion rows (raw): ${pages.length}`);
+    console.log(`Notion students (all): ${pagesByStudent.size}`);
+    console.log(`Notion students (selected): ${selectedByStudent.size}`);
+    console.log(`Excel rows filled: ${filledCount}`);
+    console.log(`Created workbook from Notion rows: ${createdFromNotion ? "yes" : "no"}`);
+    console.log(`Excel names missing in Notion: ${missingInNotion.length}`);
+    if (missingInNotion.length) console.log(`Missing names: ${missingInNotion.join(", ")}`);
+    console.log(`Extra Notion names not in Excel: ${extraNotionNames.length}`);
+    if (extraNotionNames.length) console.log(`Extra names: ${extraNotionNames.join(", ")}`);
+    console.log(`Excel names still blank after scanning all duplicate pages: ${blankAfterSelection.length}`);
+    if (blankAfterSelection.length) console.log(`Still blank names: ${blankAfterSelection.join(", ")}`);
+    console.log(`Updated sheet: ${sheetName}`);
+    console.log(`Updated file: ${path.resolve(EXCEL_PATH)}`);
+  } catch (error) {
+    console.error("Export failed:", error?.message || error);
+    process.exit(1);
+  }
 }
 
 main();

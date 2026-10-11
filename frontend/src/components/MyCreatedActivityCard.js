@@ -5064,7 +5064,7 @@ import { Button as MuiButton } from '@mui/material';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import { sendMessage } from '../utils/socketTool';
 import { findroomByInfo } from '../utils/findRoomMode';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 import RoomSettingsChatroomIcon from "../assets/RoomSettings/chatroom.png";
 import RoomSettingsPostIcon from "../assets/RoomSettings/posts.png";
 import RoomSettingsMindmapIcon from "../assets/RoomSettings/mindmap.png";

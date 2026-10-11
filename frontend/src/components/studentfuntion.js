@@ -108,7 +108,8 @@ const syncScoringUnlockFromNotion = async () => {
 const getIsCompletedEntry = () =>
   localStorage.getItem("isCompletedActivityEntry") === "true";
 
-const isWritingAreaEntryTemporarilyDisabled = false;
+const temporarilyDisabledEntryIds = new Set([2, 3, 4]);
+const isEntryTemporarilyDisabled = (cardId) => temporarilyDisabledEntryIds.has(cardId);
 
 export default function Studentfuntion() {
   const navigate = useNavigate();
@@ -155,7 +156,7 @@ export default function Studentfuntion() {
   }, [refreshCompletedEntryState, syncScoringUnlockState]);
 
   const handleEnterClick = (id) => {
-    if (isWritingAreaEntryTemporarilyDisabled && id === 3) return;
+    if (isEntryTemporarilyDisabled(id)) return;
     if (isCompletedLockedCard(id)) return;
 
     if (id === 1) {
@@ -259,8 +260,8 @@ export default function Studentfuntion() {
               const isScoringCard = card.id === 4;
               const isScoringLocked = isScoringCard && !isScoringUnlocked;
               const isCompletedLocked = isCompletedLockedCard(card.id);
-              const isWritingAreaLocked = isWritingAreaEntryTemporarilyDisabled && card.id === 3;
-              const isEnterLocked = isScoringLocked || isCompletedLocked || isWritingAreaLocked;
+              const isTemporarilyDisabled = isEntryTemporarilyDisabled(card.id);
+              const isEnterLocked = isScoringLocked || isCompletedLocked || isTemporarilyDisabled;
 
               return (
               <div

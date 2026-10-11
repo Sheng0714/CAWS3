@@ -158,7 +158,7 @@ import { DemoContainer } from '@mui/x-date-pickers/internals/demo';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import createActivityImg from '../assets/undraw_creative_thinking_re_9k71.svg';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 import io from 'socket.io-client';
 
 // 設置 axios 全局攔截器
@@ -266,7 +266,7 @@ export const CreateActivityForm = ({ callback_setActivities }) => {
     
             // 嘗試驗證活動，若失敗仍更新本地狀態
             try {
-                const verifyResponse = await axios.get(`${url.backendHost}/api/api/activities/${newActivity.id}`);
+                const verifyResponse = await axios.get(`${url.backendHost}api/activities/${newActivity.id}`);
                 console.log('活動驗證成功:', verifyResponse.data);
             } catch (verifyError) {
                 if (verifyError.response?.status === 403) {
@@ -278,7 +278,7 @@ export const CreateActivityForm = ({ callback_setActivities }) => {
             }
     
             // 可選：獲取完整列表
-            const activitiesResponse = await axios.get(url.backendHost + '/api/activities');
+            const activitiesResponse = await axios.get(url.backendHost + 'api/activities');
             callback_setActivities(activitiesResponse.data);
     
             setOpen(false);

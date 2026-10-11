@@ -5,7 +5,7 @@ import io from 'socket.io-client';
 import ForumPage_Navbar from './ForumPage_Navbar';
 import Graph from "react-vis-network-graph";
 import { ViewNode } from './ViewNode';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 import { genEdge, genNode } from "../utils/ideaTool";
 
 

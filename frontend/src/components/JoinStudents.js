@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar_Student";
 import backIcon from "../assets/back.png";
 import assistantImage from "../assets/揮手.gif";
-import url from "../url.json";
+import url from "../utils/urlConfig";
 import config from "../config.json";
 
 const containerStyle = {
@@ -272,7 +272,7 @@ import Navbar from "./Navbar_Student";
 import backIcon from "../assets/back.png";
 import assistantImage from "../assets/\u63ee\u624b.gif";
 import clearIcon from "../assets/XX.png";
-import url from "../url.json";
+import url from "../utils/urlConfig";
 import config from "../config.json";
 
 const containerStyle = {

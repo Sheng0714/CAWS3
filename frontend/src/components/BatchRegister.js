@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { UploadFile } from '@mui/icons-material'; // Upload icon
-import url from '../url.json';
+import url from '../utils/urlConfig';
 import config from '../config.json';
 import joinActivityImg from '../assets/undraw_join_re_w1lh.svg';
 

@@ -1,6 +1,6 @@
 {
-  "backendHost": "https://icit.lazyinwork.com/api/",
-  "backupBackendHost": "http://140.115.126.27/",
-  "localBackendHost": "http://localhost:3000/api/",
+  "backendHost": "http://localhost:8000/",
+  "backupBackendHost": "http://localhost:8000/",
+  "localBackendHost": "http://localhost:8000/",
   "socketioHost": "https://icit.lazyinwork.com/"
 }

@@ -277,12 +277,30 @@ const app = express();
 
 // 配置 CORS
 // app.js
-const whitelist = ['http://localhost:3000', 'https://icit.lazyinwork.com', 'http://140.115.126.27'];
+const whitelist = [
+  'https://icit.lazyinwork.com',
+  'http://140.115.126.27',
+  'http://210.240.193.193',
+  'https://210.240.193.193',
+];
+const allowedHostnames = ['localhost', '127.0.0.1', '210.240.193.193'];
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (whitelist.includes(origin)) return true;
+
+  try {
+    const { hostname } = new URL(origin);
+    return allowedHostnames.includes(hostname);
+  } catch (error) {
+    return false;
+  }
+};
 
 const corsOptions = {
   origin: function (origin, callback) {
     console.log('🌐 請求來自 origin:', origin);  // 除錯用途
-    if (!origin || whitelist.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -290,6 +308,7 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 app.use(cors(corsOptions));

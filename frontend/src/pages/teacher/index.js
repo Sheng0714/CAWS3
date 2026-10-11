@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import io from 'socket.io-client';
 import MyCreatedActivityCard from '../../components/MyCreatedActivityCard';
-import url from '../../url.json';
+import url from '../../utils/urlConfig';
 
 
 export default function IndexOfTeacher() {

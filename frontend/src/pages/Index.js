@@ -17,7 +17,7 @@ import {
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import io from 'socket.io-client';
 import ActivityCard from '../components/ActivityCard';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 import { fetchNotificationStatus } from '../services/essayNotificationService';
 import teacherAvatar from '../assets/teacher.png';
 

@@ -162,7 +162,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import { Button, TextField, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Link, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel } from '@mui/material';
 import loginImg from '../assets/undraw_login_re_4vu2.svg';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 
 export const Login = ({ open, setOpen, setOpenRegister }) => { 
     const navigate = useNavigate();

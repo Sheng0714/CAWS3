@@ -72,7 +72,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { styled } from '@mui/material';
 import MyCreatedActivityCard from './MyCreatedActivityCard';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 
 const Container = styled('div')(() => ({
     display: 'flex',
@@ -100,7 +100,7 @@ const ActivityList = () => {
     const fetchActivities = async () => {
         try {
             const userId = localStorage.getItem('userId');
-            const response = await axios.get(`${url.backendHost}/api/activities/myActivity/${userId}`, {
+            const response = await axios.get(`${url.backendHost}api/activities/myActivity/${userId}`, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('jwtToken')}`,
                 },

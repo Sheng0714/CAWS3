@@ -4,7 +4,7 @@ import config from "../../config.json";
 import io from "socket.io-client";
 import ChatroomNavbar from "../../components/ForumMode/NavbarChatroom";
 import { ViewNode } from "../../components/ViewNode";
-import url from "../../url.json";
+import url from "../../utils/urlConfig";
 import { genEdge, genNode } from "../../utils/ideaTool";
 import { useLocation } from "react-router-dom";
 import { Button } from "@mui/material";

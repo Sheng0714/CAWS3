@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Box, Typography, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import axios from 'axios';
 import config from '../config.json';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 import createActivityImg from '../assets/undraw_creative_thinking_re_9k71.svg';
 
 const EditProfileModal = ({ open, onClose }) => {

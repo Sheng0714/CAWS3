@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import NavbarStudent from '../components/Navbar_Student';
 import config from '../config.json';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 import context1142BUrl from '../contexts/1142B.txt';
 import context1142CUrl from '../contexts/1142C.txt';
 import context1142HUrl from '../contexts/1142H.txt';

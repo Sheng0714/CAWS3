@@ -220,7 +220,7 @@ import React from 'react';
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
 import { styled, Card, CardHeader, CardContent, Typography } from '@mui/material';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 import { findroomByInfo } from '../utils/findRoomMode';
 import hasNotificationIcon from '../assets/有通知.png';
 import noNotificationIcon from '../assets/沒通知.png';

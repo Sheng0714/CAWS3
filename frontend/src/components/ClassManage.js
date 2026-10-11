@@ -12,7 +12,7 @@ import settingIcon from "../assets/setting.png";
 import clearIcon from "../assets/XX.png";
 import copyIcon from "../assets/複製.png";
 import config from "../config.json";
-import url from "../url.json";
+import url from "../utils/urlConfig";
 
 const containerStyle = {
   maxWidth: "1200px",

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import config from '../config.json';
 import io from 'socket.io-client';
-import url from '../url.json';
+import url from '../utils/urlConfig';
 
 
 

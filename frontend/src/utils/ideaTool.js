@@ -1,4 +1,4 @@
-import url from '../url.json';
+import url from './urlConfig';
 import config from '../config.json';
 import axios from 'axios';
 import {

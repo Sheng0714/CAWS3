@@ -39,7 +39,7 @@ import { CreateQuestion } from "../CreateQuestion";
 import { CreateInformation } from "../CreateInformation";
 import { CreateFlask } from "../CreateFlask";
 import { CreateNote } from "../CreateNote";
-import url from "../../url.json";
+import url from "../../utils/urlConfig";
 import { ModeContext } from '../../contexts/ModeContext';
 
 

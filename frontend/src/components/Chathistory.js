@@ -5,7 +5,7 @@ import Navbar from "./Navbar_Student";
 import StudentLeftSidebar from "./StudentLeftSidebar";
 import RagflowMarkdown from "./RagflowMarkdown";
 import config from "../config.json";
-import url from "../url.json";
+import url from "../utils/urlConfig";
 import cawsOwl from "../assets/去背.png";
 import sendIcon from "../assets/發送.png";
 import backIcon from "../assets/back.png";

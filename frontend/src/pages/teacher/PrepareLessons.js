@@ -27,7 +27,7 @@ import { EditorState, convertToRaw } from 'draft-js';
 import { Editor } from 'react-draft-wysiwyg';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 import { newNode } from '../../utils/ideaTool';
-import url from '../../url.json';
+import url from '../../utils/urlConfig';
 import draftToHtml from 'draftjs-to-html';
 
 
