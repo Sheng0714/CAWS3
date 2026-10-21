@@ -21,6 +21,7 @@ function loadHandler(options = {}) {
     const notion = {
         databases: { async query(request) {
             calls.query.push(request);
+            if (options.notionQueryError) throw new Error('Notion unavailable');
             if (failTheme && request.filter.and.some((condition) => condition.property === '主題' && condition.rich_text.equals === failTheme)) {
                 failTheme = null;
                 throw Object.assign(new Error('Temporary Notion failure'), { code: 'service_unavailable' });
@@ -30,7 +31,9 @@ function loadHandler(options = {}) {
                 const comparison = condition.title || condition.rich_text;
                 return comparison.is_empty ? !value : value === comparison.equals;
             }));
-            return { results: matches.slice(0, request.page_size), has_more: matches.length > request.page_size };
+            const offset = Number(request.start_cursor) || 0;
+            const next = offset + request.page_size;
+            return { results: matches.slice(offset, next), has_more: matches.length > next, next_cursor: matches.length > next ? String(next) : null };
         } },
         pages: {
             async create(request) {
@@ -105,7 +108,17 @@ function loadHandler(options = {}) {
         await controller.saveJoinedChatHistory({ user: { dataValues: student }, params: { userId }, body }, response);
         return response;
     }
-    return { request, requestChat, calls, pages, joinedScopes: syncModule.exports.joinedScopes };
+    async function readChat(query = { activityId: '1', groupId: '2' }, userId = '42') {
+        const response = {
+            statusCode: 200, headers: {},
+            status(code) { this.statusCode = code; return this; },
+            set(name, value) { this.headers[name] = value; return this; },
+            json(value) { this.body = value; return this; },
+        };
+        await controller.getJoinedChatHistory({ user: { dataValues: student }, params: { userId }, query }, response);
+        return response;
+    }
+    return { request, requestChat, readChat, calls, pages, joinedScopes: syncModule.exports.joinedScopes };
 }
 
 test('the original class-list request fills the account row, includes old topics and is safe to repeat', async () => {
@@ -301,4 +314,59 @@ test('unreadable existing history is preserved and a failed read-back cannot rep
     assert.equal(first.calls.update.length, 0);
     const second = loadHandler({ pages: [chatPage()], failChatReadBack: true });
     assert.equal((await second.requestChat(chatRequest())).statusCode, 502);
+});
+
+test('history reads the authenticated student/class/topic from Notion and returns only chat data', async () => {
+    const page = chatPage([chatSession('stored-only')]);
+    const anotherStudent = chatPage([chatSession('other-student')]);
+    anotherStudent.properties['學生姓名'] = title('Another student');
+    const anotherTopic = chatPage([chatSession('other-topic')]);
+    anotherTopic.properties['主題'] = richText('Another topic');
+    const { readChat, calls } = loadHandler({ pages: [page, anotherStudent, anotherTopic] });
+    const response = await readChat({ activityId: '1', groupId: '2', studentName: 'Another student' });
+    assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+    assert.equal(response.body.data.chatHistory.length, 1);
+    assert.equal(response.body.data.chatHistory[0].sessionId, 'stored-only');
+    assert.deepEqual(Object.keys(response.body.data), ['chatHistory']);
+    assert.equal(response.headers['Cache-Control'], 'no-store');
+    assert.equal(calls.query[0].filter.and[0].title.equals, student.name);
+    assert.equal(calls.create.length + calls.update.length, 0);
+});
+
+test('empty history returns an empty list without creating or updating Notion records', async () => {
+    const { readChat, calls } = loadHandler();
+    const response = await readChat();
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.data.chatHistory.length, 0);
+    assert.equal(calls.create.length + calls.update.length, 0);
+});
+
+test('history reads merge paginated matching records and preserve the longest duplicate session', async () => {
+    const pages = Array.from({ length: 101 }, (_, index) => chatPage([chatSession(`session-${index}`)]));
+    pages[0].properties['聊天歷史紀錄'] = richText(JSON.stringify([chatSession('session-1', ['Question', 'Answer', 'Follow-up', 'New answer'])]));
+    const { readChat, calls } = loadHandler({ pages });
+    const response = await readChat();
+    assert.equal(response.body.data.chatHistory.length, 100);
+    assert.equal(response.body.data.chatHistory.find((session) => session.sessionId === 'session-1').messages.length, 4);
+    assert.equal(calls.query.length, 2);
+    assert.equal(calls.create.length + calls.update.length, 0);
+});
+
+test('history reads reject another user, an unjoined topic and missing scope', async () => {
+    const { readChat, calls } = loadHandler();
+    assert.equal((await readChat(undefined, '99')).statusCode, 403);
+    assert.equal(calls.sql.length, 0);
+    assert.equal((await readChat({ activityId: '1', groupId: '999' })).statusCode, 403);
+    assert.equal((await readChat({})).statusCode, 400);
+    assert.equal(calls.query.length, 0);
+});
+
+test('Notion read failures and corrupt stored JSON return an error instead of an empty history', async () => {
+    assert.equal((await loadHandler({ missingConfig: true }).readChat()).statusCode, 503);
+    assert.equal((await loadHandler({ notionQueryError: true }).readChat()).statusCode, 502);
+    const page = chatPage();
+    page.properties['聊天歷史紀錄'] = richText('Invalid saved JSON');
+    const { readChat, calls } = loadHandler({ pages: [page] });
+    assert.equal((await readChat()).statusCode, 502);
+    assert.equal(calls.create.length + calls.update.length, 0);
 });

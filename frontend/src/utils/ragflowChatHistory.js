@@ -242,6 +242,7 @@ export const upsertRagflowChatSession = (sessionInput) => {
   const now = Date.now();
   const nextSession = {
     sessionId: sessionInput.sessionId,
+    ...(typeof sessionInput.name === 'string' ? { name: sessionInput.name } : {}),
     userToken: getRagflowCurrentUserToken(),
     chatbotEntryMode: sessionInput.chatbotEntryMode || "unknown",
     modeTitle: sessionInput.modeTitle || "",
@@ -291,6 +292,10 @@ export const syncRagflowChatHistoryToNotion = async (scopeInput) => {
     .filter((session) => Array.isArray(session.messages) && session.messages.length > 0)
     .map((session) => ({
       sessionId: session.sessionId,
+      ...(typeof session.name === 'string' ? { name: session.name } : {}),
+      sourceType: session.sourceType,
+      targetId: session.targetId,
+      createdAt: session.createdAt,
       chatbotEntryMode: session.chatbotEntryMode,
       modeTitle: session.modeTitle,
       updatedAt: session.updatedAt,

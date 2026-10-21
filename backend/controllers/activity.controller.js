@@ -1,6 +1,6 @@
 const db = require('../models');
 const { customAlphabet } = require('nanoid');
-const { syncJoinedTopicsToNotion, saveChatHistoryToNotion, normalizeChatHistory } = require('../notion-student-topics');
+const { syncJoinedTopicsToNotion, saveChatHistoryToNotion, getChatHistoryFromNotion, normalizeChatHistory } = require('../notion-student-topics');
 // const activityGroupModel = require('../models/activityGroup.model');
 // const activityModel = require('../models/activity.model');
 
@@ -231,36 +231,58 @@ exports.getJoinedActivitiesByUserId = async (req, res) => {
     }
 };
 
+async function resolveJoinedChatScope(req, input) {
+    const { activityId, groupId, className, theme } = input;
+    const normalize = (value) => String(value ?? '').replace(/\u3000/g, ' ').trim();
+    const hasIds = Boolean(activityId && groupId);
+    if ((!hasIds && (activityId || groupId)) || (!hasIds && (!normalize(className) || !normalize(theme)))) {
+        throw Object.assign(new Error('A class and topic are required.'), { status: 400 });
+    }
+    const memberships = await UserActivityGroup.findAll({
+        where: { UserId: req.params.userId },
+        include: [{ model: ActivityGroup, include: [{ model: Activity }, { model: Group }] }],
+    });
+    const membership = memberships.find((row) => {
+        const activity = row?.ActivityGroup?.Activity;
+        const group = row?.ActivityGroup?.Group;
+        return hasIds
+            ? String(activity?.id) === String(activityId) && String(group?.id) === String(groupId)
+            : normalize(activity?.title) === normalize(className) && normalize(group?.groupName) === normalize(theme);
+    });
+    if (!membership) throw Object.assign(new Error('You have not joined this class topic.'), { status: 403 });
+    return {
+        studentName: req.user.dataValues.name,
+        className: normalize(membership.ActivityGroup.Activity.title),
+        theme: normalize(membership.ActivityGroup.Group.groupName),
+    };
+}
+
+exports.getJoinedChatHistory = async (req, res) => {
+    if (req.user.dataValues.id !== req.params.userId) {
+        return res.status(403).json({ success: false, error: 'You are not authorized to access this resource.' });
+    }
+    try {
+        const scope = await resolveJoinedChatScope(req, req.query);
+        const chatHistory = await getChatHistoryFromNotion(scope);
+        res.set('Cache-Control', 'no-store');
+        return res.json({ success: true, data: { chatHistory } });
+    } catch (error) {
+        return res.status(error.status || 502).json({
+            success: false,
+            error: error.status ? error.message : 'Chat history could not be loaded from Notion. Please retry.',
+        });
+    }
+};
+
 // Save chatbot sessions only for a class/topic joined by the authenticated student.
 exports.saveJoinedChatHistory = async (req, res) => {
     if (req.user.dataValues.id !== req.params.userId) {
         return res.status(403).json({ success: false, error: 'You are not authorized to access this resource.' });
     }
     try {
-        const { activityId, groupId, className, theme, chatHistory } = req.body;
-        const normalize = (value) => String(value ?? '').replace(/\u3000/g, ' ').trim();
-        const hasIds = Boolean(activityId && groupId);
-        if ((!hasIds && (activityId || groupId)) || (!hasIds && (!normalize(className) || !normalize(theme)))) {
-            return res.status(400).json({ success: false, error: 'A class and topic are required.' });
-        }
-        const history = normalizeChatHistory(chatHistory);
-        const memberships = await UserActivityGroup.findAll({
-            where: { UserId: req.params.userId },
-            include: [{ model: ActivityGroup, include: [{ model: Activity }, { model: Group }] }],
-        });
-        const membership = memberships.find((row) => {
-            const activity = row?.ActivityGroup?.Activity;
-            const group = row?.ActivityGroup?.Group;
-            return hasIds
-                ? String(activity?.id) === String(activityId) && String(group?.id) === String(groupId)
-                : normalize(activity?.title) === normalize(className) && normalize(group?.groupName) === normalize(theme);
-        });
-        if (!membership) return res.status(403).json({ success: false, error: 'You have not joined this class topic.' });
-        const data = await saveChatHistoryToNotion({
-            studentName: req.user.dataValues.name,
-            className: normalize(membership.ActivityGroup.Activity.title),
-            theme: normalize(membership.ActivityGroup.Group.groupName),
-        }, history);
+        const history = normalizeChatHistory(req.body.chatHistory);
+        const scope = await resolveJoinedChatScope(req, req.body);
+        const data = await saveChatHistoryToNotion(scope, history);
         return res.json({ success: true, data });
     } catch (error) {
         return res.status(error.status || 502).json({

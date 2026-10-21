@@ -24,6 +24,7 @@ module.exports = app => {
     // Find all user in activity.
     router.get('/myJoined/:userId', authenticateJWT,activities.getJoinedActivitiesByUserId);
     router.post('/myJoined/:userId/chat-history', authenticateJWT, activities.saveJoinedChatHistory);
+    router.get('/myJoined/:userId/chat-history', authenticateJWT, activities.getJoinedChatHistory);
 
     // Clone one activity by id.
     // router.get('/clone/:activityId',authenticateJWT, activities.cloneActivity);

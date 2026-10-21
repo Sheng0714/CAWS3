@@ -134,6 +134,10 @@ function normalizeChatHistory(history) {
         });
         return {
             sessionId: session.sessionId.trim(),
+            ...(typeof session.name === 'string' ? { name: session.name } : {}),
+            ...(typeof session.sourceType === 'string' ? { sourceType: session.sourceType } : {}),
+            ...(typeof session.targetId === 'string' ? { targetId: session.targetId } : {}),
+            ...(Number(session.createdAt) > 0 ? { createdAt: Number(session.createdAt) } : {}),
             chatbotEntryMode: typeof session.chatbotEntryMode === 'string' ? session.chatbotEntryMode : 'unknown',
             modeTitle: typeof session.modeTitle === 'string' ? session.modeTitle : '',
             updatedAt: Number(session.updatedAt) || 0,
@@ -196,4 +200,37 @@ async function saveChatHistoryToNotion(scope, history) {
     });
 }
 
-module.exports = { saveScopeToNotion, joinedScopes, syncJoinedTopicsToNotion, saveChatHistoryToNotion, normalizeChatHistory, mergeChatHistory, chatHistoryRichText };
+async function getChatHistoryFromNotion(scope) {
+    const notion = getNotionClient();
+    let history = [];
+    let cursor;
+    do {
+        const response = await notion.databases.query({
+            database_id: process.env.NOTION_DATABASE_ID,
+            filter: { and: [
+                { property: '學生姓名', title: { equals: scope.studentName } },
+                { property: '班級', rich_text: { equals: scope.className } },
+                { property: '主題', rich_text: { equals: scope.theme } },
+            ] },
+            page_size: 100,
+            ...(cursor ? { start_cursor: cursor } : {}),
+        });
+        for (const page of response.results) {
+            const text = readText(page.properties?.['聊天歷史紀錄']);
+            const sessions = text.trim() ? JSON.parse(text) : [];
+            if (!Array.isArray(sessions) || sessions.some((session) =>
+                !session || !(session.sessionId || session.id) || !Array.isArray(session.messages))) {
+                throw new Error('Stored chat history is not a valid session list.');
+            }
+            history = mergeChatHistory(history, sessions.map((session) => ({
+                ...session,
+                sessionId: String(session.sessionId || session.id),
+                updatedAt: Number(session.updatedAt) || Date.parse(page.last_edited_time) || 0,
+            })));
+        }
+        cursor = response.has_more ? response.next_cursor : undefined;
+    } while (cursor);
+    return history;
+}
+
+module.exports = { saveScopeToNotion, joinedScopes, syncJoinedTopicsToNotion, saveChatHistoryToNotion, getChatHistoryFromNotion, normalizeChatHistory, mergeChatHistory, chatHistoryRichText };

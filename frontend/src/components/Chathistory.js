@@ -7,6 +7,7 @@ import RagflowMarkdown from "./RagflowMarkdown";
 import config from "../config.json";
 import url from "../utils/urlConfig";
 import useNotionChatHistorySync from '../utils/useNotionChatHistorySync';
+import { fetchChatHistoryFromNotion } from '../services/chatHistoryService';
 import cawsOwl from "../assets/去背.png";
 import sendIcon from "../assets/發送.png";
 import backIcon from "../assets/back.png";
@@ -170,6 +171,31 @@ const normalizeRagflowSession = (rawSession, defaults) => {
   };
 };
 
+const normalizeNotionSession = (session) => {
+  const mode = CHATBOT_MODE_CONFIG[session.chatbotEntryMode] ? session.chatbotEntryMode :
+    Object.keys(CHATBOT_MODE_CONFIG).find((key) => CHATBOT_MODE_CONFIG[key].title === session.modeTitle);
+  const modeConfig = CHATBOT_MODE_CONFIG[mode];
+  const sourceType = session.sourceType || modeConfig?.sourceType || '';
+  const targetId = session.targetId || modeConfig?.targetId || '';
+  const createdAt = normalizeTimestamp(session.createdAt, session.messages?.[0]?.created_at, session.updatedAt);
+  return {
+    ...session,
+    sessionId: String(session.sessionId || session.id),
+    chatbotEntryMode: mode || 'unknown',
+    sourceType,
+    targetId,
+    readOnly: !sourceType || !targetId,
+    createdAt,
+    updatedAt: normalizeTimestamp(session.updatedAt, createdAt),
+    messages: session.messages.map((message, index) => ({
+      id: message.id || `${session.sessionId}-message-${index}`,
+      role: normalizeMessageRole(message.role),
+      content: normalizeMessageContent(message),
+      createdAt: normalizeTimestamp(message.created_at, message.createdAt, createdAt),
+    })),
+  };
+};
+
 export default function Studentfuntion() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -183,6 +209,7 @@ export default function Studentfuntion() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [isHistorySending, setIsHistorySending] = useState(false);
   const historyBottomRef = useRef(null);
+  const historyLoadRequest = useRef(0);
 
   const chatbotEntryMode =
     location.state?.chatbotEntryMode || sessionStorage.getItem("chatbotEntryMode") || "unknown";
@@ -246,16 +273,24 @@ export default function Studentfuntion() {
       return [];
     }
 
-    const response = await fetch(buildSessionsUrl(), {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${RAGFLOW_API_KEY}`,
-      },
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    let payload;
+    try {
+      const response = await fetch(buildSessionsUrl(), {
+        method: "GET",
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${RAGFLOW_API_KEY}`,
+        },
+      });
 
-    const payload = await response.json();
-    if (!response.ok || payload?.code !== 0) {
-      throw new Error(payload?.message || `HTTP ${response.status}`);
+      payload = await response.json();
+      if (!response.ok || payload?.code !== 0) {
+        throw new Error(payload?.message || `HTTP ${response.status}`);
+      }
+    } finally {
+      clearTimeout(timeout);
     }
 
     const list = Array.isArray(payload?.data)
@@ -281,6 +316,10 @@ export default function Studentfuntion() {
 
   const loadHistory = useCallback(
     async ({ focusSessionId, fallbackSession } = {}) => {
+      const requestId = ++historyLoadRequest.current;
+      const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+      const isCurrentRequest = () => requestId === historyLoadRequest.current &&
+        userId === (localStorage.getItem('userId') || sessionStorage.getItem('userId'));
       if (!isSupportedEntry) {
         setSessions([]);
         setSelectedSession(null);
@@ -291,41 +330,69 @@ export default function Studentfuntion() {
       setHistoryLoadError("");
 
       try {
-        const loadedSessions = await fetchHistorySessionsFromApi();
+        const stored = await fetchChatHistoryFromNotion(historyScope);
+        if (!isCurrentRequest()) return [];
+        const storedSessions = stored.map(normalizeNotionSession).filter((session) =>
+          session.chatbotEntryMode === chatbotEntryMode || session.chatbotEntryMode === 'unknown');
         const scopedClassName = historyScope.className || className || "";
         const scopedTopicName = historyScope.topicName || topicName || "";
-        const nextSessions = loadedSessions.map((session) => {
-          const saved = upsertRagflowChatSession({
-            ...session,
-            scope: {
-              ...historyScope,
-              className: scopedClassName,
-              topicName: scopedTopicName,
-            },
-          });
-          return { ...session, messages: saved.messages, updatedAt: saved.updatedAt };
-        });
-        setSessions(nextSessions);
-        void syncChatHistory();
+        const displaySessions = (loadedSessions) => {
+          const nextSessions = loadedSessions.map((session) => {
+            const saved = upsertRagflowChatSession({
+              ...session,
+              scope: {
+                ...historyScope,
+                className: scopedClassName,
+                topicName: scopedTopicName,
+              },
+            });
+            return { ...session, messages: saved.messages, updatedAt: saved.updatedAt };
+          }).sort((a, b) => b.updatedAt - a.updatedAt);
+          setSessions(nextSessions);
 
-        if (focusSessionId) {
-          const focused = nextSessions.find((session) => session.sessionId === focusSessionId);
-          setSelectedSession(focused || fallbackSession || null);
+          if (focusSessionId) {
+            const focused = nextSessions.find((session) => session.sessionId === focusSessionId);
+            setSelectedSession(focused || fallbackSession || null);
+          }
+          return nextSessions;
+        };
+
+        // Display saved history before contacting the optional RAGFLOW source.
+        const savedSessions = displaySessions(storedSessions);
+        setIsHistoryLoading(false);
+        try {
+          const upstreamSessions = await fetchHistorySessionsFromApi();
+          if (!isCurrentRequest()) return [];
+          const combined = new Map(savedSessions.map((session) => [session.sessionId, session]));
+          for (const session of upstreamSessions) {
+            const previous = combined.get(session.sessionId);
+            combined.set(session.sessionId, {
+              ...previous, ...session,
+              name: session.name || previous?.name || '',
+              messages: previous?.messages.length > session.messages.length ? previous.messages : session.messages,
+              updatedAt: Math.max(previous?.updatedAt || 0, session.updatedAt || 0),
+              readOnly: false,
+            });
+          }
+          const merged = displaySessions([...combined.values()]);
+          if (upstreamSessions.length) void syncChatHistory();
+          return merged;
+        } catch (error) {
+          // Notion's saved history remains available when RAGFLOW is offline.
+          return savedSessions;
         }
-
-        return nextSessions;
       } catch (error) {
-        console.error("Failed to load RAGFLOW history:", error);
-        setHistoryLoadError(`RAGFLOW history load failed: ${error?.message || "unknown error"}`);
+        if (!isCurrentRequest()) return [];
+        setHistoryLoadError(error?.response?.data?.error || 'Chat history could not be loaded from Notion. Please retry.');
         if (focusSessionId) {
           setSelectedSession(fallbackSession || null);
         }
         return [];
       } finally {
-        setIsHistoryLoading(false);
+        if (isCurrentRequest()) setIsHistoryLoading(false);
       }
     },
-    [fetchHistorySessionsFromApi, isSupportedEntry, historyScope, className, topicName, syncChatHistory]
+    [fetchHistorySessionsFromApi, isSupportedEntry, historyScope, className, topicName, syncChatHistory, chatbotEntryMode]
   );
 
   useEffect(() => {
@@ -368,10 +435,12 @@ export default function Studentfuntion() {
   }, []);
 
   useEffect(() => {
+    setSessions([]);
     setSelectedSession(null);
     setHistoryInput("");
     setHistoryError("");
     loadHistory();
+    return () => { historyLoadRequest.current += 1; };
   }, [loadHistory]);
 
   useEffect(() => {
@@ -382,7 +451,7 @@ export default function Studentfuntion() {
 
   const sendHistoryMessage = async () => {
     const question = historyInput.trim();
-    if (!selectedSession || !question || isHistorySending) {
+    if (!selectedSession || selectedSession.readOnly || !question || isHistorySending) {
       return;
     }
 
@@ -642,12 +711,15 @@ export default function Studentfuntion() {
 
           {isSupportedEntry && isHistoryLoading && (
             <p style={{ marginTop: 0, color: "#334155", fontSize: "16px" }}>
-              Loading RAGFLOW history...
+              Loading saved chat history...
             </p>
           )}
 
           {isSupportedEntry && historyLoadError && (
-            <p style={{ marginTop: 0, color: "#b91c1c", fontSize: "16px" }}>{historyLoadError}</p>
+            <p role="alert" style={{ marginTop: 0, color: "#b91c1c", fontSize: "16px" }}>
+              {historyLoadError}{' '}
+              <button type="button" onClick={() => { void loadHistory(); }}>Retry loading</button>
+            </p>
           )}
 
           {notionSyncError && (
@@ -877,6 +949,7 @@ export default function Studentfuntion() {
               >
                 <textarea
                   value={historyInput}
+                  disabled={selectedSession.readOnly}
                   onChange={(event) => setHistoryInput(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" && !event.shiftKey) {
@@ -884,7 +957,7 @@ export default function Studentfuntion() {
                       sendHistoryMessage();
                     }
                   }}
-                  placeholder="Please enter the content you would like to ask."
+                  placeholder={selectedSession.readOnly ? 'Start a new chat to ask another question.' : 'Please enter the content you would like to ask.'}
                   rows={2}
                   style={{
                     flex: 1,
@@ -902,7 +975,7 @@ export default function Studentfuntion() {
                 <button
                   type="button"
                   onClick={sendHistoryMessage}
-                  disabled={isHistorySending || !historyInput.trim()}
+                  disabled={selectedSession.readOnly || isHistorySending || !historyInput.trim()}
                   style={{
                     width: "40px",
                     height: "40px",
@@ -912,8 +985,8 @@ export default function Studentfuntion() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    cursor: isHistorySending || !historyInput.trim() ? "not-allowed" : "pointer",
-                    opacity: isHistorySending || !historyInput.trim() ? 0.4 : 1,
+                    cursor: selectedSession.readOnly || isHistorySending || !historyInput.trim() ? "not-allowed" : "pointer",
+                    opacity: selectedSession.readOnly || isHistorySending || !historyInput.trim() ? 0.4 : 1,
                   }}
                 >
                   <img src={sendIcon} alt="Send" style={{ width: "40px", height: "40px", objectFit: "contain" }} />

@@ -26,7 +26,9 @@ beforeEach(() => {
   for (const [key, value] of Object.entries({ userId: '42', name: 'Student', activityId: '1', groupId: '2', activityTitle: '1151 Reading and Writing', groupName: 'Nuclear energy' })) {
     localStorage.setItem(key, value);
   }
-  axios.get.mockResolvedValue({ data: { title: '1151 Reading and Writing', Groups: [{ id: 2, groupName: 'Nuclear energy' }] } });
+  axios.get.mockImplementation(async (requestUrl) => requestUrl.endsWith('/chat-history')
+    ? { data: { success: true, data: { chatHistory: [] } } }
+    : { data: { title: '1151 Reading and Writing', Groups: [{ id: 2, groupName: 'Nuclear energy' }] } });
   axios.post.mockResolvedValue({ data: { success: true, data: { sessionCount: 1 } } });
   global.fetch = jest.fn(async (requestUrl) => {
     if (requestUrl.endsWith('/chat-title/generate')) return apiResponse({ title: '' });
@@ -69,4 +71,95 @@ test('opening history backfills existing conversations, and a failed Notion save
   await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   expect(axios.post).toHaveBeenCalledTimes(2);
   expect(axios.post.mock.calls[1][1].chatHistory[0].sessionId).toBe('existing-session');
+});
+
+const storedSession = {
+  sessionId: 'notion-only', name: 'Saved discussion', chatbotEntryMode: 'kf_analysis',
+  createdAt: 1760000000000, updatedAt: 1760000010000,
+  messages: [
+    { role: 'user', content: 'Question saved in Notion', created_at: '2025-10-09T08:53:20Z' },
+    { role: 'assistant', content: 'Answer saved in Notion', created_at: '2025-10-09T08:53:21Z' },
+  ],
+};
+
+function useNotionHistory(sessions = [storedSession]) {
+  axios.get.mockImplementation(async (requestUrl) => requestUrl.endsWith('/chat-history')
+    ? { data: { success: true, data: { chatHistory: sessions } } }
+    : { data: { title: '1151 Reading and Writing', Groups: [{ id: 2, groupName: 'Nuclear energy' }] } });
+}
+
+test('shows Notion-only sessions and both message roles even when RAGFLOW is offline', async () => {
+  useNotionHistory([storedSession, { ...storedSession, sessionId: 'other-mode', name: 'Writing history', chatbotEntryMode: 'writing_analysis' }]);
+  global.fetch.mockRejectedValue(new Error('RAGFLOW is offline'));
+  await act(async () => { render(<Chathistory />); });
+  expect(screen.getByText('Saved discussion')).toBeTruthy();
+  expect(screen.queryByText('Writing history')).toBeNull();
+  expect(screen.queryByRole('alert')).toBeNull();
+  const [, requestOptions] = axios.get.mock.calls.find(([requestUrl]) => requestUrl.endsWith('/chat-history'));
+  expect(requestOptions.params).toEqual({ activityId: '1', groupId: '2', className: '1151 Reading and Writing', theme: 'Nuclear energy' });
+  fireEvent.click(screen.getByText('Saved discussion'));
+  expect(screen.getByText('Question saved in Notion')).toBeTruthy();
+  expect(screen.getByText('Answer saved in Notion')).toBeTruthy();
+  expect(axios.post).not.toHaveBeenCalled();
+});
+
+test('renders Notion history while the optional RAGFLOW request is still pending', async () => {
+  useNotionHistory();
+  let finishUpstream;
+  global.fetch.mockImplementation(() => new Promise((resolve) => { finishUpstream = resolve; }));
+  await act(async () => { render(<Chathistory />); });
+  expect(screen.getByText('Saved discussion')).toBeTruthy();
+  expect(screen.queryByText('Loading saved chat history...')).toBeNull();
+  await act(async () => { finishUpstream(apiResponse({ code: 0, data: [] })); });
+});
+
+test('a Notion load error offers a retry instead of claiming the database history is empty', async () => {
+  let fail = true;
+  axios.get.mockImplementation(async (requestUrl) => {
+    if (!requestUrl.endsWith('/chat-history')) return { data: { title: '1151 Reading and Writing', Groups: [{ id: 2, groupName: 'Nuclear energy' }] } };
+    if (fail) { fail = false; throw new Error('Notion unavailable'); }
+    return { data: { success: true, data: { chatHistory: [storedSession] } } };
+  });
+  global.fetch.mockRejectedValue(new Error('RAGFLOW unavailable'));
+  await act(async () => { render(<Chathistory />); });
+  expect(screen.getByRole('alert').textContent).toContain('could not be loaded from Notion');
+  expect(screen.queryByText('No chat history yet.')).toBeNull();
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Retry loading' })); });
+  expect(screen.getByText('Saved discussion')).toBeTruthy();
+  expect(screen.queryByRole('alert')).toBeNull();
+});
+
+test('continuing a Notion-loaded conversation saves new turns and keeps them through a stale reload', async () => {
+  useNotionHistory();
+  global.fetch.mockImplementation(async (requestUrl) => {
+    if (requestUrl.endsWith('/completions')) return apiResponse({ code: 0, data: { answer: 'New answer after loading from Notion' } });
+    throw new Error('RAGFLOW history unavailable');
+  });
+  await act(async () => { render(<Chathistory />); });
+  fireEvent.click(screen.getByText('Saved discussion'));
+  const input = screen.getByRole('textbox');
+  fireEvent.change(input, { target: { value: 'Follow-up to Notion history' } });
+  await act(async () => { fireEvent.keyDown(input, { key: 'Enter' }); });
+  expect(screen.getByText('New answer after loading from Notion')).toBeTruthy();
+  expect(axios.post.mock.calls[0][1].chatHistory[0].messages.map((message) => message.content)).toEqual([
+    'Question saved in Notion', 'Answer saved in Notion', 'Follow-up to Notion history', 'New answer after loading from Notion',
+  ]);
+});
+
+test('legacy Notion sessions without mode metadata remain readable', async () => {
+  useNotionHistory([{ ...storedSession, chatbotEntryMode: undefined }]);
+  global.fetch.mockRejectedValue(new Error('RAGFLOW history unavailable'));
+  await act(async () => { render(<Chathistory />); });
+  fireEvent.click(screen.getByText('Saved discussion'));
+  expect(screen.getByText('Answer saved in Notion')).toBeTruthy();
+  expect(screen.getByRole('textbox').disabled).toBe(true);
+});
+
+test('an unconfirmed Notion read response is shown as a load error', async () => {
+  axios.get.mockImplementation(async (requestUrl) => requestUrl.endsWith('/chat-history')
+    ? { data: '<html>Wrong route</html>' }
+    : { data: { title: '1151 Reading and Writing', Groups: [{ id: 2, groupName: 'Nuclear energy' }] } });
+  await act(async () => { render(<Chathistory />); });
+  expect(screen.getByRole('button', { name: 'Retry loading' })).toBeTruthy();
+  expect(screen.queryByText('No chat history yet.')).toBeNull();
 });
