@@ -108,7 +108,7 @@ const syncScoringUnlockFromNotion = async () => {
 const getIsCompletedEntry = () =>
   localStorage.getItem("isCompletedActivityEntry") === "true";
 
-const temporarilyDisabledEntryIds = new Set([2, 3, 4]);
+const temporarilyDisabledEntryIds = new Set([3, 4]);
 const isEntryTemporarilyDisabled = (cardId) => temporarilyDisabledEntryIds.has(cardId);
 
 export default function Studentfuntion() {

@@ -116,6 +116,11 @@ const normalizePropertyKey = (value) =>
     .replace(/\s+/g, "")
     .toLowerCase();
 
+const normalizeLoginValue = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
 const getPlainTextFromRichTextArray = (items = []) =>
   items
     .map((item) => item?.plain_text || item?.text?.content || "")
@@ -233,20 +238,25 @@ const findNotionLoginPage = async (account) => {
       response.results?.length ? "matched" : "not matched",
       maskAccountForLog(account)
     );
-    return response.results?.[0] || null;
+    if (response.results?.[0]) return response.results[0];
   }
 
   const response = await notion.databases.query({
     database_id: process.env.NOTION_DATABASE_ID,
     page_size: 100,
   });
+  const normalizedAccount = normalizeLoginValue(account);
+  const sampleAccounts = [];
 
   const page = (
     response.results.find((page) => {
       const pageAccount = getDisplayValueFromNotionProperty(
         getPropertyByAliases(page?.properties, NOTION_ACCOUNT_FIELD_ALIASES)?.property
       );
-      return pageAccount === account;
+      if (sampleAccounts.length < 5 && pageAccount) {
+        sampleAccounts.push(maskAccountForLog(pageAccount));
+      }
+      return normalizeLoginValue(pageAccount) === normalizedAccount;
     }) || null
   );
   logLoginDebug(
@@ -254,6 +264,7 @@ const findNotionLoginPage = async (account) => {
     page ? "matched" : "not matched",
     maskAccountForLog(account)
   );
+  logLoginDebug("Notion account sample values:", sampleAccounts.join(", ") || "(empty)");
   return page;
 };
 

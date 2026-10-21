@@ -30,6 +30,7 @@ const cardData = [
     numberImage: number2,
     featureImage: ICON2,
     title: "Writing Assistant",
+    disabled: true,
     description: [
       "Check your knowledge of argumentative essay structure.",
       "Build your writing outline.",
@@ -40,6 +41,7 @@ const cardData = [
     numberImage: number3,
     featureImage: ICON3,
     title: "Writing Analysis",
+    disabled: true,
     description: [
       "Receive feedback and suggestions before submitting your argumentative essay.",
     ],
@@ -51,6 +53,8 @@ export default function Studentfuntion() {
   const navigate = useNavigate();
 
   const handleEnterClick = (id) => {
+    if (cardData.find((card) => card.id === id)?.disabled) return;
+
     let chatbotEntryMode = "unknown";
     if (id === 1) chatbotEntryMode = "kf_analysis";
     if (id === 2) chatbotEntryMode = "writing_assistant";
@@ -227,17 +231,20 @@ export default function Studentfuntion() {
                 <button
                   type="button"
                   onClick={() => handleEnterClick(card.id)}
+                  disabled={card.disabled}
                   style={{
                     marginTop: "auto",
                     width: "140px",
                     height: "44px",
-                    background: "rgba(204, 149, 101, 0.3)",
+                    background: card.disabled
+                      ? "rgba(148, 163, 184, 0.35)"
+                      : "rgba(204, 149, 101, 0.3)",
                     border: "1.5px solid #000000",
                     borderRadius: "10px",
                     fontSize: "18px",
                     fontWeight: 700,
-                    color: "#111111",
-                    cursor: "pointer",
+                    color: card.disabled ? "#64748b" : "#111111",
+                    cursor: card.disabled ? "not-allowed" : "pointer",
                   }}
                 >
                   ENTER

@@ -2,10 +2,10 @@ const path = require("path");
 const { Client } = require("../backend/node_modules/@notionhq/client");
 const XLSX = require("../backend/node_modules/xlsx");
 
-const NOTION_API_KEY =
-  process.env.NOTION_API_KEY || "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";
-const NOTION_DATABASE_ID =
-  process.env.NOTION_DATABASE_ID || "1f534b62aded8081bfb0d8c7cbdeb64c";
+// const NOTION_API_KEY =
+//   process.env.NOTION_API_KEY || "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";
+// const NOTION_DATABASE_ID =
+//   process.env.NOTION_DATABASE_ID || "1f534b62aded8081bfb0d8c7cbdeb64c";
 
 const TARGET_CLASS = process.env.TARGET_CLASS || "114B";
 const TARGET_THEME =
