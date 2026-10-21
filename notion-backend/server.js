@@ -1470,6 +1470,8 @@ const explicitAllowedOrigins = [
     'http://127.0.0.1',
     'http://140.115.126.27',
     'https://140.115.126.27',
+    'http://210.240.193.193',
+    'https://210.240.193.193',
     ...String(process.env.CORS_ALLOWED_ORIGINS || '')
         .split(',')
         .map((item) => item.trim())
@@ -1480,6 +1482,7 @@ const allowedOriginPatterns = [
     /^https?:\/\/localhost(?::\d+)?$/i,
     /^https?:\/\/127\.0\.0\.1(?::\d+)?$/i,
     /^https?:\/\/140\.115\.126\.27(?::\d+)?$/i,
+    /^https?:\/\/210\.240\.193\.193(?::\d+)?$/i,
 ];
 
 const isOriginAllowed = (origin) => {
@@ -2907,7 +2910,33 @@ app.post('/api/ensure-student-topic', async (req, res) => {
             page_size: 1,
         });
         const existingPage = response.results[0];
-        const page = existingPage || await notion.pages.create({
+        let page = existingPage;
+        let updated = false;
+        if (!page) {
+            const emptyRecords = await notion.databases.query({
+                database_id: NOTION_DATABASE_ID,
+                filter: {
+                    and: [
+                        { property: '學生姓名', title: { equals: studentName } },
+                        { property: '班級', rich_text: { is_empty: true } },
+                        { property: '主題', rich_text: { is_empty: true } },
+                    ],
+                },
+                page_size: 2,
+            });
+            // Only reuse a uniquely matched blank record; retain its account and writing fields.
+            if (emptyRecords.results.length === 1 && !emptyRecords.has_more) {
+                page = await notion.pages.update({
+                    page_id: emptyRecords.results[0].id,
+                    properties: {
+                        '班級': { rich_text: [{ text: { content: className } }] },
+                        '主題': { rich_text: [{ text: { content: theme } }] },
+                    },
+                });
+                updated = true;
+            }
+        }
+        if (!page) page = await notion.pages.create({
             parent: { database_id: NOTION_DATABASE_ID },
             properties: {
                 '學生姓名': { title: [{ text: { content: studentName } }] },
@@ -2918,7 +2947,7 @@ app.post('/api/ensure-student-topic', async (req, res) => {
 
         return res.json({
             success: true,
-            data: { studentName, className, theme, pageId: page.id, created: !existingPage },
+            data: { studentName, className, theme, pageId: page.id, created: !existingPage && !updated, updated },
         });
     } catch (error) {
         console.error('Failed to save joined student topic to Notion:', error?.message || error);

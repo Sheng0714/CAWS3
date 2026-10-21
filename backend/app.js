@@ -309,6 +309,7 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['X-Notion-Sync-Status', 'X-Notion-Synced-Count', 'X-Notion-Failed-Count'],
 };
 
 app.use(cors(corsOptions));

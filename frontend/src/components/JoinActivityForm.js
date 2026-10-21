@@ -4,9 +4,9 @@ import React, { useState } from 'react'
 import { Button, TextField, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Link } from '@mui/material';
 import joinTopicIcon from '../assets/JoinTopic.png';
 import url from '../utils/urlConfig';
-import { ensureStudentTopicInNotion } from '../services/studentTopicService';
+import { fetchJoinedStudentTopics } from '../services/studentTopicService';
 
-export const JoinActivityForm = ({ callback_setActivities }) => {
+export const JoinActivityForm = ({ callback_setActivities, callback_setNotionSyncStatus }) => {
     const userId = localStorage.getItem('userId'); 
     const [open, setOpen] = React.useState(false);
     const [isJoinCodeFocused, setIsJoinCodeFocused] = React.useState(false);
@@ -42,27 +42,16 @@ export const JoinActivityForm = ({ callback_setActivities }) => {
         let hasJoinedTopic = false;
         let shouldReload = false;
         try {
-            const groupRes = await axios.put(
+            await axios.put(
                 `${url.backendHost + config[5].joinActivity}/${encodeURIComponent(joinCode)}/join`,
                 { userId: data.userId }
             );
             hasJoinedTopic = true;
 
-            const fetchData = await axios.get(`${url.backendHost + config[4].myJoinedActivityList}/${data.userId}`);
-            const activities = Array.isArray(fetchData.data) ? fetchData.data : [];
-            callback_setActivities(activities);
-            const joinedActivity = activities.find((activity) =>
-                String(activity?.ActivityGroup?.Group?.joinCode || '') === joinCode
-            );
-            const studentName = ['name', 'username', 'userName']
-                .map((key) => localStorage.getItem(key) || sessionStorage.getItem(key))
-                .find((value) => String(value || '').trim()) || '';
-
-            await ensureStudentTopicInNotion({
-                studentName,
-                className: joinedActivity?.ActivityGroup?.Activity?.title || '',
-                theme: groupRes?.data?.group?.groupName || joinedActivity?.ActivityGroup?.Group?.groupName || '',
-            });
+            const result = await fetchJoinedStudentTopics(data.userId);
+            callback_setActivities(result.activities);
+            callback_setNotionSyncStatus?.(result.notionSyncStatus);
+            if (result.notionSyncStatus !== 'success') throw new Error('Notion save was not confirmed.');
 
             setOpen(false);
             setData({ userId, joinCode: '' });
@@ -72,7 +61,8 @@ export const JoinActivityForm = ({ callback_setActivities }) => {
             if (hasJoinedTopic) {
                 setOpen(false);
                 setData({ userId, joinCode: '' });
-                alert('You joined the topic, but saving the class/topic to Notion failed. Please enter the topic to retry.');
+                callback_setNotionSyncStatus?.('failed');
+                alert('You joined the topic, but saving the class/topic to Notion failed. Use Retry saving on the home page.');
             } else {
                 alert("Failed to join the topic. Please check the invitation code!");
             }

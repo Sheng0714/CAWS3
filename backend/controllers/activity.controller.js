@@ -1,5 +1,6 @@
 const db = require('../models');
 const { customAlphabet } = require('nanoid');
+const { syncJoinedTopicsToNotion } = require('../notion-student-topics');
 // const activityGroupModel = require('../models/activityGroup.model');
 // const activityModel = require('../models/activity.model');
 
@@ -185,12 +186,12 @@ exports.findOneActivity = (req, res) => {
 };
 
 // Get User joined's Activities by id.
-exports.getJoinedActivitiesByUserId = (req, res) => {
+exports.getJoinedActivitiesByUserId = async (req, res) => {
     if (req.user.dataValues.id !== req.params.userId) {
         return res.status(403).send("You are not authorized to access this resource.");
     }
-    UserActivityGroup
-        .findAll({
+    try {
+        const data = await UserActivityGroup.findAll({
             where: {
                 UserId: req.params.userId
             },
@@ -206,16 +207,28 @@ exports.getJoinedActivitiesByUserId = (req, res) => {
                     }]
                 }
             ]
-        })
-        .then((data) => {
-            // console.log('data: ', data);
-            res.status(200).send(data);
-        }).catch((err) => {
-            res.status(400).send({
+        });
+        let sync;
+        try {
+            // Use the same records returned to the logged-in student's home page.
+            sync = await syncJoinedTopicsToNotion(req.user.dataValues, data);
+        } catch (error) {
+            sync = { status: 'failed', synced: 0, failed: 0, error: 'notion_sync_failed' };
+        }
+        if (sync.status !== 'success') console.warn('Joined topic Notion sync incomplete:', sync);
+        res.set({
+            'Cache-Control': 'no-store',
+            'X-Notion-Sync-Status': sync.status,
+            'X-Notion-Synced-Count': String(sync.synced),
+            'X-Notion-Failed-Count': String(sync.failed),
+        });
+        return res.status(200).send(data);
+    } catch (err) {
+        return res.status(400).send({
             activity:
                 err.message || "Some error occurred while finding your joined activity.",
-            });
         });
+    }
 };
 
 // Clone one activity by id.

@@ -6,8 +6,9 @@ const vm = require('node:vm');
 
 const serverSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
 
-function loadLoginHandler(existingPage = null) {
+function loadLoginHandler(existingPage = null, emptyPages = []) {
     const routes = new Map();
+    let corsOptions;
     const calls = { create: [], update: [], query: [] };
     const schema = {
         '學生姓名': { type: 'title' },
@@ -27,6 +28,9 @@ function loadLoginHandler(existingPage = null) {
             async retrieve() { return { properties: schema }; },
             async query(request) {
                 calls.query.push(request);
+                if (request.filter.and.some((filter) => filter.rich_text?.is_empty)) {
+                    return { results: emptyPages, has_more: false };
+                }
                 return { results: existingPage ? [existingPage] : [] };
             },
         },
@@ -51,7 +55,7 @@ function loadLoginHandler(existingPage = null) {
     vm.runInNewContext(serverSource, {
         require(name) {
             if (name === 'express') return express;
-            if (name === 'cors') return () => {};
+            if (name === 'cors') return (options) => { corsOptions = options; };
             if (name === '@notionhq/client') return { Client: function () { return notion; } };
             throw new Error(`Unexpected dependency: ${name}`);
         },
@@ -72,6 +76,11 @@ function loadLoginHandler(existingPage = null) {
         calls,
         enter: (body) => request('/api/increment-login-count', body),
         ensureTopic: (body) => request('/api/ensure-student-topic', body),
+        isOriginAllowed(origin) {
+            let result;
+            corsOptions.origin(origin, (error, allowed) => { result = !error && allowed; });
+            return result;
+        },
     };
 }
 
@@ -157,4 +166,38 @@ test('joining with missing scope fields does not create a Notion record', async 
         assert.equal(response.statusCode, 400);
         assert.equal(calls.query.length + calls.create.length + calls.update.length, 0);
     }
+});
+
+test('backfilling a unique blank student record fills its class/topic and keeps its account fields', async () => {
+    const { calls, ensureTopic } = loadLoginHandler(null, [{ id: 'student-account-page' }]);
+    const response = await ensureTopic({ studentName: '測試學生', className: '1142B', theme: 'AI 學習' });
+
+    assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+    assert.equal(response.body.data.created, false);
+    assert.equal(response.body.data.updated, true);
+    assert.equal(response.body.data.pageId, 'student-account-page');
+    assert.equal(calls.create.length, 0);
+    assert.equal(calls.update.length, 1);
+    const properties = calls.update[0].properties;
+    assert.deepEqual(Object.keys(properties).sort(), ['班級', '主題'].sort());
+    assert.equal(properties['班級'].rich_text[0].text.content, '1142B');
+    assert.equal(properties['主題'].rich_text[0].text.content, 'AI 學習');
+});
+
+test('ambiguous blank student records are left intact', async () => {
+    const { calls, ensureTopic } = loadLoginHandler(null, [{ id: 'first-account' }, { id: 'second-account' }]);
+    const response = await ensureTopic({ studentName: '測試學生', className: '1142B', theme: 'AI 學習' });
+
+    assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+    assert.equal(response.body.data.created, true);
+    assert.equal(calls.update.length, 0);
+    assert.equal(calls.create.length, 1);
+});
+
+test('the current production origin is allowed and unrelated origins remain blocked', () => {
+    const { isOriginAllowed } = loadLoginHandler();
+    for (const origin of ['http://210.240.193.193', 'https://210.240.193.193', 'http://210.240.193.193:3000']) {
+        assert.equal(isOriginAllowed(origin), true);
+    }
+    assert.equal(isOriginAllowed('http://unrelated.example'), false);
 });

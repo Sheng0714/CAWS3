@@ -32,7 +32,7 @@ beforeEach(() => {
   jest.spyOn(window, 'alert').mockImplementation(() => {});
   axios.put.mockResolvedValue({ data: { group: { groupName: 'AI 學習' } } });
   axios.get
-    .mockResolvedValueOnce({ data: joinedActivities })
+    .mockResolvedValueOnce({ data: joinedActivities, headers: { 'x-notion-sync-status': 'success' } })
     .mockResolvedValueOnce({ data: { jwtToken: 'renewed-token' } });
 });
 
@@ -50,29 +50,33 @@ function submitInvitationCode(callback = jest.fn()) {
 
 test('joining writes the selected class/topic and waits for Notion before reloading', async () => {
   let finishSaving;
-  axios.post.mockImplementation(() => new Promise((resolve) => { finishSaving = resolve; }));
+  axios.get.mockReset();
+  axios.get
+    .mockImplementationOnce(() => new Promise((resolve) => { finishSaving = resolve; }))
+    .mockResolvedValueOnce({ data: { jwtToken: 'renewed-token' } });
   const callback = submitInvitationCode();
 
-  await waitFor(() => expect(axios.post).toHaveBeenCalledWith(
-    '/notion-api/api/ensure-student-topic',
-    { studentName: '測試學生', className: '1142B', theme: 'AI 學習' },
-    expect.objectContaining({ timeout: 12000 })
-  ));
-  expect(callback).toHaveBeenCalledWith(joinedActivities);
+  await waitFor(() => expect(axios.get).toHaveBeenCalledWith('/api/activities/myJoined/42', { headers: {} }));
+  expect(callback).not.toHaveBeenCalled();
   expect(screen.getByRole('button', { name: 'Joining...' }).disabled).toBe(true);
   expect(window.alert).not.toHaveBeenCalled();
   expect(window.location.reload).not.toHaveBeenCalled();
 
-  await act(async () => finishSaving({ data: { success: true, data: { created: true } } }));
+  await act(async () => finishSaving({ data: joinedActivities, headers: { 'x-notion-sync-status': 'success' } }));
 
   await waitFor(() => expect(window.location.reload).toHaveBeenCalledTimes(1));
+  expect(callback).toHaveBeenCalledWith(joinedActivities);
+  expect(axios.post).not.toHaveBeenCalled();
   expect(localStorage.getItem('jwtToken')).toBe('renewed-token');
   expect(window.alert).toHaveBeenCalledWith('Successfully joined the topic!');
 });
 
 test('a failed Notion save reports the partial success without reloading', async () => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
-  axios.post.mockRejectedValue(new Error('Notion unavailable'));
+  axios.get.mockReset();
+  axios.get
+    .mockResolvedValueOnce({ data: joinedActivities, headers: { 'x-notion-sync-status': 'failed' } })
+    .mockResolvedValueOnce({ data: { jwtToken: 'renewed-token' } });
   const callback = submitInvitationCode();
 
   await waitFor(() => expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('saving the class/topic to Notion failed')));

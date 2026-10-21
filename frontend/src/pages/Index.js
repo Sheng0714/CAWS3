@@ -1,6 +1,4 @@
-import config from '../config.json';
-import axios from 'axios';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 // import IndexPage_Navbar from '../components/IndexPage_Navbar';
 import IndexPage_Navbar from '../components/Navbar_Student';
 import { JoinActivityForm } from '../components/JoinActivityForm';
@@ -19,7 +17,7 @@ import io from 'socket.io-client';
 import ActivityCard from '../components/ActivityCard';
 import url from '../utils/urlConfig';
 import { fetchNotificationStatus } from '../services/essayNotificationService';
-import { syncJoinedStudentTopicsToNotion } from '../services/studentTopicService';
+import { fetchJoinedStudentTopics } from '../services/studentTopicService';
 import teacherAvatar from '../assets/teacher.png';
 
 const READ_NOTIFICATION_STORAGE_KEY = 'readNotificationMap_v1';
@@ -64,6 +62,7 @@ const readNotificationMapFromStorage = () => {
 
 export default function Index() {
   const [activities, setActivities] = useState([]);
+  const [notionSyncStatus, setNotionSyncStatus] = useState('loading');
   const [notificationMap, setNotificationMap] = useState({});
   const [readNotificationMap, setReadNotificationMap] = useState(readNotificationMapFromStorage);
   const [notificationDialog, setNotificationDialog] = useState({
@@ -94,36 +93,27 @@ export default function Index() {
     setWs(io(url.socketioHost, { path: '/s/socket.io' }));
   };
 
-  useEffect(() => {
-    const getActivities = async () => {
-      try {
-        const fetchData = await axios.get(
-          `${url.backendHost + config[4].myJoinedActivityList}/${localStorage.getItem('userId')}`
-        );
-        setActivities(fetchData.data);
-        console.log('fetchData: ', fetchData.data);
-      } catch (err) {
-        // console.log(err);
-      }
-    };
-    getActivities();
+  const loadJoinedTopics = useCallback(async () => {
+    setNotionSyncStatus('loading');
+    try {
+      const result = await fetchJoinedStudentTopics();
+      setActivities(result.activities);
+      setNotionSyncStatus(result.notionSyncStatus);
+    } catch (error) {
+      console.error('Failed to load joined class topics:', error);
+      setNotionSyncStatus('failed');
+    }
+  }, []);
 
+  useEffect(() => {
+    void loadJoinedTopics();
+  }, [loadJoinedTopics]);
+
+  useEffect(() => {
     if (ws) {
       initWebSocket();
     }
   }, [ws]);
-
-  useEffect(() => {
-    if (!studentName || activities.length === 0) return;
-
-    void syncJoinedStudentTopicsToNotion({ studentName, activities })
-      .then(({ failed }) => {
-        failed.forEach(({ className, theme, error }) => {
-          console.error('Failed to save an already joined topic to Notion:', { className, theme, error });
-        });
-      })
-      .catch((error) => console.error('Failed to sync joined topics to Notion:', error));
-  }, [activities, studentName]);
 
   useEffect(() => {
     let isMounted = true;
@@ -317,9 +307,16 @@ export default function Index() {
             padding: isMobile ? '0.75rem 1rem' : '0.9rem 1.75rem',
           }}
         >
-          <JoinActivityForm callback_setActivities={setActivities} />
+          <JoinActivityForm callback_setActivities={setActivities} callback_setNotionSyncStatus={setNotionSyncStatus} />
         </button>
       </Box>
+
+      {(notionSyncStatus === 'failed' || notionSyncStatus === 'unconfirmed') && (
+        <Box role="alert" style={{ paddingLeft: horizontalPadding, paddingRight: horizontalPadding }}>
+          <span>Your class topics have not been confirmed as saved to Notion. </span>
+          <button type="button" onClick={loadJoinedTopics}>Retry saving</button>
+        </Box>
+      )}
 
       <h2 style={{ textAlign: 'left', paddingLeft: horizontalPadding, paddingRight: horizontalPadding }}>In Progress</h2>
       <Box style={{ display: 'flex', alignItems: 'center', paddingRight: horizontalPadding, paddingLeft: horizontalPadding }}>
