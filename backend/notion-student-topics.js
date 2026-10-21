@@ -7,9 +7,13 @@ const readText = (property) =>
 // Serialize a student's writes so two page loads cannot reuse the same blank row.
 const studentWrites = new Map();
 function saveScopeToNotion(notion, databaseId, scope) {
-    const key = JSON.stringify([databaseId, scope.studentName]);
+    return queueStudentWrite(databaseId, scope.studentName, () => writeScope(notion, databaseId, scope));
+}
+
+function queueStudentWrite(databaseId, studentName, operation) {
+    const key = JSON.stringify([databaseId, studentName]);
     const previous = studentWrites.get(key) || Promise.resolve();
-    const request = previous.catch(() => {}).then(() => writeScope(notion, databaseId, scope));
+    const request = previous.catch(() => {}).then(operation);
     studentWrites.set(key, request);
     return request.finally(() => {
         if (studentWrites.get(key) === request) studentWrites.delete(key);
@@ -80,6 +84,16 @@ function joinedScopes(user, memberships) {
 }
 
 let notionClient;
+function getNotionClient() {
+    if (!process.env.NOTION_API_KEY || !process.env.NOTION_DATABASE_ID) {
+        throw Object.assign(new Error('Notion is not configured.'), { status: 503 });
+    }
+    if (!notionClient) {
+        notionClient = new Client({ auth: process.env.NOTION_API_KEY, timeoutMs: 15000, maxRetries: 1, logLevel: 'error' });
+    }
+    return notionClient;
+}
+
 async function syncJoinedTopicsToNotion(user, memberships) {
     const scopes = joinedScopes(user, memberships);
     const result = { status: 'success', total: scopes.length, synced: 0, failed: 0 };
@@ -87,12 +101,10 @@ async function syncJoinedTopicsToNotion(user, memberships) {
     if (!normalize(user.name) || !process.env.NOTION_API_KEY || !process.env.NOTION_DATABASE_ID) {
         return { ...result, status: 'failed', failed: scopes.length, error: 'missing_notion_configuration_or_student_name' };
     }
-    if (!notionClient) {
-        notionClient = new Client({ auth: process.env.NOTION_API_KEY, timeoutMs: 15000, maxRetries: 1, logLevel: 'error' });
-    }
+    const notion = getNotionClient();
     for (const scope of scopes) {
         try {
-            await saveScopeToNotion(notionClient, process.env.NOTION_DATABASE_ID, scope);
+            await saveScopeToNotion(notion, process.env.NOTION_DATABASE_ID, scope);
             result.synced += 1;
         } catch (error) {
             result.status = 'failed';
@@ -103,4 +115,85 @@ async function syncJoinedTopicsToNotion(user, memberships) {
     return result;
 }
 
-module.exports = { saveScopeToNotion, joinedScopes, syncJoinedTopicsToNotion };
+function normalizeChatHistory(history) {
+    if (!Array.isArray(history)) throw Object.assign(new Error('chatHistory must be an array.'), { status: 400 });
+    return history.map((session) => {
+        if (!session || typeof session.sessionId !== 'string' || !session.sessionId.trim() || !Array.isArray(session.messages)) {
+            throw Object.assign(new Error('Each chat session requires sessionId and messages.'), { status: 400 });
+        }
+        const messages = session.messages.map((message) => {
+            if (!['user', 'assistant'].includes(message?.role) || typeof message.content !== 'string') {
+                throw Object.assign(new Error('Each chat message requires a role and text content.'), { status: 400 });
+            }
+            return {
+                ...(typeof message.id === 'string' ? { id: message.id } : {}),
+                role: message.role,
+                content: message.content,
+                created_at: typeof message.created_at === 'string' ? message.created_at : '',
+            };
+        });
+        return {
+            sessionId: session.sessionId.trim(),
+            chatbotEntryMode: typeof session.chatbotEntryMode === 'string' ? session.chatbotEntryMode : 'unknown',
+            modeTitle: typeof session.modeTitle === 'string' ? session.modeTitle : '',
+            updatedAt: Number(session.updatedAt) || 0,
+            messages,
+        };
+    });
+}
+
+function mergeChatHistory(existing, incoming) {
+    const sessions = new Map(existing.map((session) => [session.sessionId || session.id, session]));
+    if (sessions.has(undefined) || sessions.has('')) throw new Error('Existing chat history contains an unidentified session.');
+    for (const session of incoming) {
+        const previous = sessions.get(session.sessionId);
+        const previousLength = Array.isArray(previous?.messages) ? previous.messages.length : 0;
+        // Requests contain full session snapshots. A delayed shorter snapshot must not erase newer turns.
+        if (!previous || session.messages.length > previousLength ||
+            (session.messages.length === previousLength && session.updatedAt >= (Number(previous.updatedAt) || 0))) {
+            sessions.set(session.sessionId, { ...previous, ...session });
+        }
+    }
+    return [...sessions.values()];
+}
+
+function chatHistoryRichText(history) {
+    const serialized = JSON.stringify(history);
+    const richText = [];
+    for (let start = 0; start < serialized.length;) {
+        let end = Math.min(start + 2000, serialized.length);
+        if (end < serialized.length && /[\uD800-\uDBFF]/.test(serialized[end - 1])) end -= 1;
+        richText.push({ text: { content: serialized.slice(start, end) } });
+        start = end;
+    }
+    if (richText.length > 100) {
+        throw Object.assign(new Error('Chat history exceeds the Notion field size limit; the saved history was kept.'), { status: 413 });
+    }
+    return { serialized, richText };
+}
+
+async function saveChatHistoryToNotion(scope, history) {
+    const incoming = normalizeChatHistory(history);
+    if (!normalize(scope.studentName)) throw Object.assign(new Error('Student name is required.'), { status: 400 });
+    const notion = getNotionClient();
+    const databaseId = process.env.NOTION_DATABASE_ID;
+    return queueStudentWrite(databaseId, scope.studentName, async () => {
+        const { pageId } = await writeScope(notion, databaseId, scope);
+        const page = await notion.pages.retrieve({ page_id: pageId });
+        const existingText = readText(page.properties?.['聊天歷史紀錄']);
+        const existing = existingText ? JSON.parse(existingText) : [];
+        if (!Array.isArray(existing)) throw new Error('Existing chat history is not a session list.');
+        const merged = mergeChatHistory(existing, incoming);
+        const { serialized, richText } = chatHistoryRichText(merged);
+        if (serialized !== existingText) {
+            await notion.pages.update({ page_id: pageId, properties: { '聊天歷史紀錄': { rich_text: richText } } });
+            const verified = await notion.pages.retrieve({ page_id: pageId });
+            if (readText(verified.properties?.['聊天歷史紀錄']) !== serialized) {
+                throw new Error('Notion chat history read-back verification failed.');
+            }
+        }
+        return { pageId, sessionCount: merged.length };
+    });
+}
+
+module.exports = { saveScopeToNotion, joinedScopes, syncJoinedTopicsToNotion, saveChatHistoryToNotion, normalizeChatHistory, mergeChatHistory, chatHistoryRichText };

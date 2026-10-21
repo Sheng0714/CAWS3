@@ -38498,7 +38498,6 @@ import StudentLeftSidebar from './StudentLeftSidebar';
 import BackIcon from '../assets/back.png';
 import CheckIcon from '../assets/check.png';
 import {
-  getScopedRagflowChatHistoryPayload,
   readToolkitContentByScope,
   writeToolkitContentByScope,
 } from '../utils/ragflowChatHistory';
@@ -38851,11 +38850,6 @@ const WritingArea = () => {
       return false;
     }
 
-    const chatHistoryPayload = getScopedRagflowChatHistoryPayload({
-      className,
-      topicName: theme,
-    });
-
     try {
       setIsSaving(true);
       await upsertEssayToNotion({
@@ -38867,7 +38861,6 @@ const WritingArea = () => {
         kfAnalysisContent: kfSummaryContent || '',
         outlineContent: outlineContent || '',
         ...(submissionStatus ? { submissionStatus } : {}),
-        chatHistory: chatHistoryPayload,
       });
       return true;
     } catch (error) {

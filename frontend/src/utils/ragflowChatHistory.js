@@ -1,4 +1,5 @@
 import axios from "axios";
+import { saveChatHistoryToNotion } from '../services/chatHistoryService';
 
 const RAGFLOW_CHAT_HISTORY_KEY = "ragflow_chat_history_v1";
 const KF_SUMMARY_TRIGGER_TEXT = "\u5df2\u7d93\u8db3\u5920";
@@ -51,7 +52,7 @@ const normalizeToolkitScope = (scopeInput = {}) => ({
 });
 
 const getRagflowCurrentUserToken = () => {
-  const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
+  const userId = localStorage.getItem("userId") || sessionStorage.getItem("userId");
   if (userId) return `uid_${String(userId)}`;
 
   const email = sessionStorage.getItem("email") || localStorage.getItem("email");
@@ -241,6 +242,7 @@ export const upsertRagflowChatSession = (sessionInput) => {
   const now = Date.now();
   const nextSession = {
     sessionId: sessionInput.sessionId,
+    userToken: getRagflowCurrentUserToken(),
     chatbotEntryMode: sessionInput.chatbotEntryMode || "unknown",
     modeTitle: sessionInput.modeTitle || "",
     sourceType: sessionInput.sourceType || "",
@@ -254,6 +256,8 @@ export const upsertRagflowChatSession = (sessionInput) => {
   const targetIndex = sessions.findIndex((session) => session?.sessionId === nextSession.sessionId);
   if (targetIndex >= 0) {
     const existing = sessions[targetIndex];
+    const keepExistingMessages = existing.userToken === nextSession.userToken &&
+      Array.isArray(existing.messages) && existing.messages.length > nextSession.messages.length;
     sessions[targetIndex] = {
       ...existing,
       ...nextSession,
@@ -265,13 +269,41 @@ export const upsertRagflowChatSession = (sessionInput) => {
           ? nextSession.scope
           : normalizeScope(existing?.scope),
       createdAt: existing?.createdAt || nextSession.createdAt,
-      updatedAt: nextSession.updatedAt || now,
+      messages: keepExistingMessages ? existing.messages : nextSession.messages,
+      updatedAt: keepExistingMessages ? existing.updatedAt : nextSession.updatedAt || now,
     };
   } else {
     sessions.push(nextSession);
   }
 
   localStorage.setItem(RAGFLOW_CHAT_HISTORY_KEY, JSON.stringify(sessions));
+  return targetIndex >= 0 ? sessions[targetIndex] : nextSession;
+};
+
+export const syncRagflowChatHistoryToNotion = async (scopeInput) => {
+  const scope = normalizeScope(scopeInput);
+  if (!(scope.activityId && scope.groupId) && !(scope.className && scope.topicName)) {
+    throw new Error('A class and topic are required to save chat history.');
+  }
+  const userToken = getRagflowCurrentUserToken();
+  const sessions = getAllRagflowChatSessions()
+    .filter((session) => session.userToken === userToken && isSameScope(session.scope, scope))
+    .filter((session) => Array.isArray(session.messages) && session.messages.length > 0)
+    .map((session) => ({
+      sessionId: session.sessionId,
+      chatbotEntryMode: session.chatbotEntryMode,
+      modeTitle: session.modeTitle,
+      updatedAt: session.updatedAt,
+      messages: session.messages.map((message) => ({
+        ...(message.id ? { id: String(message.id) } : {}),
+        role: message.role === 'assistant' ? 'assistant' : 'user',
+        content: typeof message.content === 'string' ? message.content : '',
+        created_at: Number.isFinite(Number(message.createdAt)) && Number(message.createdAt) > 0
+          ? new Date(Number(message.createdAt)).toISOString() : '',
+      })),
+    }));
+  if (!sessions.length) return null;
+  return saveChatHistoryToNotion({ scope, sessions });
 };
 
 export const buildRagflowHistoryTitle = (session) => {
@@ -382,10 +414,6 @@ export const syncToolkitSnapshotToNotion = async ({
     typeof notesContent === "string"
       ? notesContent
       : readToolkitContentByScope("noteData", scope);
-  const chatHistoryPayload = getScopedRagflowChatHistoryPayload({
-    className: scope.className,
-    topicName: scope.topicName,
-  });
 
   const token = localStorage.getItem("jwtToken");
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -406,7 +434,6 @@ export const syncToolkitSnapshotToNotion = async ({
           noteContent: notesValue || "",
           kfAnalysisContent: summaryValue || "",
           outlineContent: outlineValue || "",
-          chatHistory: Array.isArray(chatHistoryPayload) ? chatHistoryPayload : [],
         },
         {
           timeout: 15000,

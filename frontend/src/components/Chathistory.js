@@ -6,6 +6,7 @@ import StudentLeftSidebar from "./StudentLeftSidebar";
 import RagflowMarkdown from "./RagflowMarkdown";
 import config from "../config.json";
 import url from "../utils/urlConfig";
+import useNotionChatHistorySync from '../utils/useNotionChatHistorySync';
 import cawsOwl from "../assets/去背.png";
 import sendIcon from "../assets/發送.png";
 import backIcon from "../assets/back.png";
@@ -198,6 +199,7 @@ export default function Studentfuntion() {
   }, [className, topicName]);
 
   const scopeUserId = useMemo(() => buildRagflowScopeUserId(historyScope), [historyScope]);
+  const { syncChatHistory, notionSyncError, isNotionSyncing } = useNotionChatHistorySync(historyScope);
 
   const buildSessionsUrl = useCallback(() => {
     if (!activeModeConfig) {
@@ -289,19 +291,22 @@ export default function Studentfuntion() {
       setHistoryLoadError("");
 
       try {
-        const nextSessions = await fetchHistorySessionsFromApi();
-        setSessions(nextSessions);
+        const loadedSessions = await fetchHistorySessionsFromApi();
         const scopedClassName = historyScope.className || className || "";
         const scopedTopicName = historyScope.topicName || topicName || "";
-        nextSessions.forEach((session) => {
-          upsertRagflowChatSession({
+        const nextSessions = loadedSessions.map((session) => {
+          const saved = upsertRagflowChatSession({
             ...session,
             scope: {
+              ...historyScope,
               className: scopedClassName,
               topicName: scopedTopicName,
             },
           });
+          return { ...session, messages: saved.messages, updatedAt: saved.updatedAt };
         });
+        setSessions(nextSessions);
+        void syncChatHistory();
 
         if (focusSessionId) {
           const focused = nextSessions.find((session) => session.sessionId === focusSessionId);
@@ -320,7 +325,7 @@ export default function Studentfuntion() {
         setIsHistoryLoading(false);
       }
     },
-    [fetchHistorySessionsFromApi, isSupportedEntry, historyScope, className, topicName]
+    [fetchHistorySessionsFromApi, isSupportedEntry, historyScope, className, topicName, syncChatHistory]
   );
 
   useEffect(() => {
@@ -453,12 +458,14 @@ export default function Studentfuntion() {
         sourceType: completedSession.sourceType || activeModeConfig?.sourceType || "",
         targetId: completedSession.targetId || activeModeConfig?.targetId || "",
         scope: {
+          ...historyScope,
           className: toolkitScope.className || "",
           topicName: toolkitScope.topicName || "",
         },
         updatedAt: completedSession.updatedAt || Date.now(),
         messages: completedSession.messages || [],
       });
+      void syncChatHistory();
       const didSyncKfSummary = syncKfSummaryFromAssistantReply(
         chatbotEntryMode,
         answer,
@@ -641,6 +648,13 @@ export default function Studentfuntion() {
 
           {isSupportedEntry && historyLoadError && (
             <p style={{ marginTop: 0, color: "#b91c1c", fontSize: "16px" }}>{historyLoadError}</p>
+          )}
+
+          {notionSyncError && (
+            <p role="alert" style={{ color: '#b91c1c' }}>
+              {notionSyncError}{' '}
+              <button type="button" disabled={isNotionSyncing} onClick={syncChatHistory}>Retry saving</button>
+            </p>
           )}
 
           {isSupportedEntry && !isHistoryLoading && historyCards.length === 0 && !historyLoadError && (

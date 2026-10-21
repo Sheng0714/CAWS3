@@ -6,6 +6,16 @@ const vm = require('node:vm');
 
 const serverSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
 
+test('saving a note or essay does not write an old chat-history snapshot over the dedicated chat field', async () => {
+    const { calls, updateNote } = loadLoginHandler({ id: 'existing-page', properties: {
+        '聊天歷史紀錄': { rich_text: [{ text: { content: JSON.stringify([{ sessionId: 'chat-session', messages: [] }]) } }] },
+    } });
+    const response = await updateNote({ studentName: '學生', className: '1151 Reading and Writing', theme: 'Nuclear energy', essayContent: 'Essay', noteContent: 'Notes' });
+    assert.equal(response.body.success, true, JSON.stringify(response.body));
+    assert.equal(calls.update.length, 1);
+    assert.equal(Object.hasOwn(calls.update[0].properties, '聊天歷史紀錄'), false);
+});
+
 function loadLoginHandler(existingPage = null, emptyPages = []) {
     const routes = new Map();
     let corsOptions;
@@ -16,6 +26,11 @@ function loadLoginHandler(existingPage = null, emptyPages = []) {
         '主題': { type: 'rich_text' },
         '登入次數': { type: 'number' },
         '登入日期統計': { type: 'rich_text' },
+        '議論文內容': { type: 'rich_text' },
+        '筆記區': { type: 'rich_text' },
+        'KF摘要': { type: 'rich_text' },
+        '聊天歷史紀錄': { type: 'rich_text' },
+        '寫作大綱': { type: 'rich_text' },
     };
     const validateProperties = (properties) => {
         for (const [name, value] of Object.entries(properties)) {
@@ -48,7 +63,8 @@ function loadLoginHandler(existingPage = null, emptyPages = []) {
         },
     };
     const app = {
-        use() {}, options() {}, get() {}, patch() {}, listen() {},
+        use() {}, options() {}, get() {}, listen() {},
+        patch(route, handler) { routes.set(route, handler); },
         post(route, handler) { routes.set(route, handler); },
     };
     const express = Object.assign(() => app, { json() {}, urlencoded() {} });
@@ -76,6 +92,7 @@ function loadLoginHandler(existingPage = null, emptyPages = []) {
         calls,
         enter: (body) => request('/api/increment-login-count', body),
         ensureTopic: (body) => request('/api/ensure-student-topic', body),
+        updateNote: (body) => request('/api/update-note', body),
         isOriginAllowed(origin) {
             let result;
             corsOptions.origin(origin, (error, allowed) => { result = !error && allowed; });

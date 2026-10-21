@@ -2799,9 +2799,9 @@ app.patch('/api/update-note', async (req, res) => {
                     'KF摘要': {
                         rich_text: kfAnalysisRichText,
                     },
-                    '聊天歷史紀錄': {
-                        rich_text: chatHistoryRichText,
-                    },
+                    ...(chatHistory === undefined ? {} : {
+                        '聊天歷史紀錄': { rich_text: chatHistoryRichText },
+                    }),
                     '寫作大綱': {
                         rich_text: outlineRichText,
                     },

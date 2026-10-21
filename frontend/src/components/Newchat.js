@@ -6,6 +6,7 @@ import StudentLeftSidebar from "./StudentLeftSidebar";
 import RagflowMarkdown from "./RagflowMarkdown";
 import config from "../config.json";
 import url from "../utils/urlConfig";
+import useNotionChatHistorySync from '../utils/useNotionChatHistorySync';
 import {
   buildRagflowScopeFromStorage,
   buildRagflowScopeUserId,
@@ -93,6 +94,7 @@ export default function Studentfuntion() {
   }, [className, topicName]);
 
   const scopeUserId = useMemo(() => buildRagflowScopeUserId(historyScope), [historyScope]);
+  const { syncChatHistory, notionSyncError, isNotionSyncing } = useNotionChatHistorySync(historyScope);
 
   const buildRagflowApiUrl = (apiName) => {
     if (!activeModeConfig) return "";
@@ -449,12 +451,14 @@ export default function Studentfuntion() {
         sourceType: activeModeConfig?.sourceType || "",
         targetId: activeModeConfig?.targetId || "",
         scope: {
+          ...historyScope,
           className: toolkitScope.className || "",
           topicName: toolkitScope.topicName || "",
         },
         updatedAt: Date.now(),
         messages: completedMessages,
       });
+      void syncChatHistory();
       const didSyncKfSummary = syncKfSummaryFromAssistantReply(
         chatbotEntryMode,
         answer,
@@ -634,6 +638,13 @@ export default function Studentfuntion() {
 
           {isSupportedEntry && ragflowError && (
             <p style={{ marginTop: 0, color: "#b91c1c", fontSize: "16px" }}>{ragflowError}</p>
+          )}
+
+          {notionSyncError && (
+            <p role="alert" style={{ color: '#b91c1c' }}>
+              {notionSyncError}{' '}
+              <button type="button" disabled={isNotionSyncing} onClick={syncChatHistory}>Retry saving</button>
+            </p>
           )}
 
           {isSupportedEntry && ragflowSessionId && (

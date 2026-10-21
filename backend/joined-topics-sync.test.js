@@ -10,13 +10,14 @@ const readText = (property) => (property?.title || property?.rich_text || []).ma
 const theme = 'Should nuclear energy be part of a country’s future energy mix? Why or why not?';
 const student = { id: '42', name: '學生' };
 const membership = (topic = theme, extra = {}) => ({
-    ActivityGroup: { Activity: { title: '1151 Reading and Writing', userId: '7', ...extra }, Group: { groupName: topic } },
+    ActivityGroup: { Activity: { id: '1', title: '1151 Reading and Writing', userId: '7', ...extra }, Group: { id: '2', groupName: topic } },
 });
 
 function loadHandler(options = {}) {
     const pages = options.pages || [];
     const calls = { query: [], create: [], update: [], retrieve: [], sql: [] };
     let failTheme = options.failTheme;
+    let failChatUpdate = options.failChatUpdate;
     const notion = {
         databases: { async query(request) {
             calls.query.push(request);
@@ -40,6 +41,10 @@ function loadHandler(options = {}) {
             },
             async update(request) {
                 calls.update.push(request);
+                if (request.properties['聊天歷史紀錄'] && failChatUpdate) {
+                    failChatUpdate = false;
+                    throw new Error('Temporary Notion write failure');
+                }
                 const page = pages.find((entry) => entry.id === request.page_id);
                 Object.assign(page.properties, request.properties);
                 return page;
@@ -47,7 +52,11 @@ function loadHandler(options = {}) {
             async retrieve(request) {
                 calls.retrieve.push(request);
                 if (options.beforeVerify) await options.beforeVerify();
-                return pages.find((entry) => entry.id === request.page_id);
+                const page = pages.find((entry) => entry.id === request.page_id);
+                if (options.failChatReadBack && page.properties['聊天歷史紀錄']) {
+                    return { ...page, properties: { ...page.properties, '聊天歷史紀錄': richText('[]') } };
+                }
+                return page;
             },
         },
     };
@@ -87,7 +96,16 @@ function loadHandler(options = {}) {
         await controller.getJoinedActivitiesByUserId({ user: { dataValues: student }, params: { userId } }, response);
         return response;
     }
-    return { request, calls, pages, joinedScopes: syncModule.exports.joinedScopes };
+    async function requestChat(body, userId = '42') {
+        const response = {
+            statusCode: 200,
+            status(code) { this.statusCode = code; return this; },
+            json(value) { this.body = value; return this; },
+        };
+        await controller.saveJoinedChatHistory({ user: { dataValues: student }, params: { userId }, body }, response);
+        return response;
+    }
+    return { request, requestChat, calls, pages, joinedScopes: syncModule.exports.joinedScopes };
 }
 
 test('the original class-list request fills the account row, includes old topics and is safe to repeat', async () => {
@@ -181,4 +199,106 @@ test('scope extraction skips teacher ownership and empty topics, and normalizes 
     assert.equal(scopes.length, 1);
     assert.equal(scopes[0].studentName, student.name);
     assert.equal(scopes[0].theme, theme);
+});
+
+const chatSession = (sessionId = 'session-1', contents = ['Question', 'Answer']) => ({
+    sessionId, chatbotEntryMode: 'kf_analysis', modeTitle: 'KF Analysis', updatedAt: 100,
+    messages: contents.map((content, index) => ({ role: index % 2 ? 'assistant' : 'user', content, created_at: '2026-10-22T12:00:00Z' })),
+});
+const chatRequest = (chatHistory = [chatSession()]) => ({ activityId: '1', groupId: '2', chatHistory });
+const chatPage = (history = []) => ({ id: 'student-topic', properties: {
+    '學生姓名': title(student.name), '班級': richText('1151 Reading and Writing'), '主題': richText(theme),
+    '聊天歷史紀錄': richText(JSON.stringify(history)), '論文內容': richText('Keep this essay'), '密碼': richText('Keep this password'),
+} });
+const savedHistory = (page) => JSON.parse(readText(page.properties['聊天歷史紀錄']));
+
+test('chat history uses authenticated identity and database class/topic, updating only the chat field', async () => {
+    const page = chatPage();
+    const { requestChat, calls } = loadHandler({ pages: [page] });
+    const response = await requestChat({ ...chatRequest(), studentName: 'Wrong student', className: 'Wrong class', theme: 'Wrong topic' });
+    assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+    assert.equal(response.body.success, true);
+    assert.equal(response.body.data.pageId, page.id);
+    assert.equal(savedHistory(page)[0].messages[1].content, 'Answer');
+    assert.deepEqual(Object.keys(calls.update[0].properties), ['聊天歷史紀錄']);
+    assert.equal(readText(page.properties['論文內容']), 'Keep this essay');
+    assert.equal(readText(page.properties['密碼']), 'Keep this password');
+    assert.equal(calls.create.length, 0);
+});
+
+test('chat snapshots merge sessions across modes without duplication or stale-history truncation', async () => {
+    const page = chatPage([chatSession('old-session')]);
+    const { requestChat, calls } = loadHandler({ pages: [page] });
+    const completed = chatSession('session-1', ['Question', 'Answer', 'Follow-up', 'More help']);
+    await requestChat(chatRequest([completed]));
+    const writes = calls.update.length;
+    await requestChat(chatRequest([completed]));
+    assert.equal(calls.update.length, writes);
+    await requestChat(chatRequest([chatSession()]));
+    assert.equal(savedHistory(page).length, 2);
+    assert.equal(savedHistory(page).find((session) => session.sessionId === 'session-1').messages.length, 4);
+    await requestChat(chatRequest([{ ...chatSession('analysis-session'), chatbotEntryMode: 'writing_analysis' }]));
+    assert.equal(savedHistory(page).length, 3);
+});
+
+test('concurrent chat requests preserve both sessions', async () => {
+    const page = chatPage();
+    const { requestChat } = loadHandler({ pages: [page] });
+    await Promise.all([requestChat(chatRequest([chatSession('first')])), requestChat(chatRequest([chatSession('second')]))]);
+    assert.equal(savedHistory(page).length, 2);
+});
+
+test('chat history rejects another user and an unjoined topic before accessing Notion', async () => {
+    const { requestChat, calls } = loadHandler();
+    assert.equal((await requestChat(chatRequest(), '99')).statusCode, 403);
+    assert.equal(calls.sql.length, 0);
+    assert.equal((await requestChat({ ...chatRequest(), groupId: '999' })).statusCode, 403);
+    assert.equal(calls.query.length, 0);
+});
+
+test('invalid chat data is rejected before database reads or writes', async () => {
+    const { requestChat, calls } = loadHandler();
+    assert.equal((await requestChat(chatRequest('bad history'))).statusCode, 400);
+    assert.equal((await requestChat(chatRequest([{ sessionId: 'invalid', messages: [{ role: 'system', content: 'wrong' }] }]))).statusCode, 400);
+    assert.equal(calls.sql.length, 0);
+    assert.equal(calls.query.length, 0);
+});
+
+test('a Notion failure is reported and the same request can be retried without duplicate sessions', async () => {
+    const page = chatPage();
+    const { requestChat } = loadHandler({ pages: [page], failChatUpdate: true });
+    assert.equal((await requestChat(chatRequest())).statusCode, 502);
+    assert.equal(savedHistory(page).length, 0);
+    assert.equal((await requestChat(chatRequest())).statusCode, 200);
+    assert.equal(savedHistory(page).length, 1);
+});
+
+test('long conversations split into valid Notion text chunks without clipping Unicode or messages', async () => {
+    const page = chatPage();
+    const { requestChat, calls } = loadHandler({ pages: [page] });
+    const messages = Array.from({ length: 45 }, (_, index) => `Turn ${index} ${'😀'.repeat(70)}`);
+    assert.equal((await requestChat(chatRequest([chatSession('long-session', messages)]))).statusCode, 200);
+    const chunks = calls.update[0].properties['聊天歷史紀錄'].rich_text;
+    assert.ok(chunks.length > 1);
+    assert.ok(chunks.every((chunk) => chunk.text.content.length <= 2000 && !/[\uD800-\uDBFF]$/.test(chunk.text.content)));
+    assert.deepEqual(savedHistory(page)[0].messages.map((message) => message.content), messages);
+});
+
+test('oversized history returns an explicit error and keeps the saved history intact', async () => {
+    const page = chatPage([chatSession('old-session')]);
+    const { requestChat, calls } = loadHandler({ pages: [page] });
+    const response = await requestChat(chatRequest([chatSession('too-long', ['x'.repeat(200000)])]));
+    assert.equal(response.statusCode, 413);
+    assert.equal(calls.update.length, 0);
+    assert.equal(savedHistory(page)[0].sessionId, 'old-session');
+});
+
+test('unreadable existing history is preserved and a failed read-back cannot report success', async () => {
+    const invalid = chatPage();
+    invalid.properties['聊天歷史紀錄'] = richText('Keep existing unreadable history');
+    const first = loadHandler({ pages: [invalid] });
+    assert.equal((await first.requestChat(chatRequest())).statusCode, 502);
+    assert.equal(first.calls.update.length, 0);
+    const second = loadHandler({ pages: [chatPage()], failChatReadBack: true });
+    assert.equal((await second.requestChat(chatRequest())).statusCode, 502);
 });

@@ -241,7 +241,6 @@ const MessageBoard = () => {
         essayContent: latestData?.essayContent || "",
         noteContent: JSON.stringify(updatedNote),
         kfAnalysisContent: latestData?.kfAnalysisContent || "",
-        chatHistory: Array.isArray(latestData?.chatHistory) ? latestData.chatHistory : [],
         outlineContent: latestData?.outlineContent || "",
         teacherMessage: buildTeacherMessageFieldText(nextMessages),
       });

@@ -1,6 +1,6 @@
 const db = require('../models');
 const { customAlphabet } = require('nanoid');
-const { syncJoinedTopicsToNotion } = require('../notion-student-topics');
+const { syncJoinedTopicsToNotion, saveChatHistoryToNotion, normalizeChatHistory } = require('../notion-student-topics');
 // const activityGroupModel = require('../models/activityGroup.model');
 // const activityModel = require('../models/activity.model');
 
@@ -227,6 +227,45 @@ exports.getJoinedActivitiesByUserId = async (req, res) => {
         return res.status(400).send({
             activity:
                 err.message || "Some error occurred while finding your joined activity.",
+        });
+    }
+};
+
+// Save chatbot sessions only for a class/topic joined by the authenticated student.
+exports.saveJoinedChatHistory = async (req, res) => {
+    if (req.user.dataValues.id !== req.params.userId) {
+        return res.status(403).json({ success: false, error: 'You are not authorized to access this resource.' });
+    }
+    try {
+        const { activityId, groupId, className, theme, chatHistory } = req.body;
+        const normalize = (value) => String(value ?? '').replace(/\u3000/g, ' ').trim();
+        const hasIds = Boolean(activityId && groupId);
+        if ((!hasIds && (activityId || groupId)) || (!hasIds && (!normalize(className) || !normalize(theme)))) {
+            return res.status(400).json({ success: false, error: 'A class and topic are required.' });
+        }
+        const history = normalizeChatHistory(chatHistory);
+        const memberships = await UserActivityGroup.findAll({
+            where: { UserId: req.params.userId },
+            include: [{ model: ActivityGroup, include: [{ model: Activity }, { model: Group }] }],
+        });
+        const membership = memberships.find((row) => {
+            const activity = row?.ActivityGroup?.Activity;
+            const group = row?.ActivityGroup?.Group;
+            return hasIds
+                ? String(activity?.id) === String(activityId) && String(group?.id) === String(groupId)
+                : normalize(activity?.title) === normalize(className) && normalize(group?.groupName) === normalize(theme);
+        });
+        if (!membership) return res.status(403).json({ success: false, error: 'You have not joined this class topic.' });
+        const data = await saveChatHistoryToNotion({
+            studentName: req.user.dataValues.name,
+            className: normalize(membership.ActivityGroup.Activity.title),
+            theme: normalize(membership.ActivityGroup.Group.groupName),
+        }, history);
+        return res.json({ success: true, data });
+    } catch (error) {
+        return res.status(error.status || 502).json({
+            success: false,
+            error: error.status ? error.message : 'Chat history could not be saved and verified in Notion. Please retry.',
         });
     }
 };
