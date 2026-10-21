@@ -2951,13 +2951,13 @@ app.post('/api/increment-login-count', async (req, res) => {
             responsePayload = await notion.pages.create({
                 parent: { database_id: NOTION_DATABASE_ID },
                 properties: {
-                    '摮貊?憪?': {
+                    '學生姓名': {
                         title: [{ text: { content: normalizedStudentName } }],
                     },
-                    '銝駁?': {
+                    '主題': {
                         rich_text: [{ text: { content: normalizedTheme } }],
                     },
-                    '?剔?': {
+                    '班級': {
                         rich_text: [{ text: { content: normalizedClassName } }],
                     },
                     ...updateProperties,
