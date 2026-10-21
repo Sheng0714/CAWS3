@@ -59,17 +59,19 @@ function loadLoginHandler(existingPage = null) {
         console: { log() {}, warn() {}, error() {} },
     }, { filename: 'server.js' });
 
+    const request = async (route, body) => {
+        const response = {
+            statusCode: 200,
+            status(code) { this.statusCode = code; return this; },
+            json(value) { this.body = value; return this; },
+        };
+        await routes.get(route)({ body }, response);
+        return response;
+    };
     return {
         calls,
-        async enter(body) {
-            const response = {
-                statusCode: 200,
-                status(code) { this.statusCode = code; return this; },
-                json(value) { this.body = value; return this; },
-            };
-            await routes.get('/api/increment-login-count')({ body }, response);
-            return response;
-        },
+        enter: (body) => request('/api/increment-login-count', body),
+        ensureTopic: (body) => request('/api/ensure-student-topic', body),
     };
 }
 
@@ -113,6 +115,46 @@ test('a missing class or topic is rejected before accessing Notion', async () =>
 
         assert.equal(response.statusCode, 400);
         assert.equal(response.body.success, false);
+        assert.equal(calls.query.length + calls.create.length + calls.update.length, 0);
+    }
+});
+
+test('joining a topic saves the class/topic fields without counting a login', async () => {
+    const { calls, ensureTopic } = loadLoginHandler();
+    const response = await ensureTopic({ studentName: ' 測試學生 ', className: ' 1142B ', theme: ' AI 學習 ' });
+
+    assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+    assert.equal(response.body.data.created, true);
+    assert.equal(calls.create.length, 1);
+    const { properties } = calls.create[0];
+    assert.equal(properties['學生姓名'].title[0].text.content, '測試學生');
+    assert.equal(properties['班級'].rich_text[0].text.content, '1142B');
+    assert.equal(properties['主題'].rich_text[0].text.content, 'AI 學習');
+    assert.deepEqual(Object.keys(properties).sort(), ['學生姓名', '班級', '主題'].sort());
+    const filters = calls.query[0].filter.and;
+    assert.deepEqual(Array.from(filters, (filter) => filter.property), ['學生姓名', '班級', '主題']);
+    assert.equal(filters[0].title.equals, '測試學生');
+    assert.equal(filters[1].rich_text.equals, '1142B');
+    assert.equal(filters[2].rich_text.equals, 'AI 學習');
+});
+
+test('joining an existing class/topic preserves its writing content and avoids another page', async () => {
+    const { calls, ensureTopic } = loadLoginHandler({ id: 'existing-page', properties: {} });
+    const response = await ensureTopic({ studentName: '測試學生', className: '1142B', theme: 'AI 學習' });
+
+    assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+    assert.equal(response.body.data.created, false);
+    assert.equal(response.body.data.pageId, 'existing-page');
+    assert.equal(calls.create.length, 0);
+    assert.equal(calls.update.length, 0);
+});
+
+test('joining with missing scope fields does not create a Notion record', async () => {
+    for (const missingKey of ['studentName', 'className', 'theme']) {
+        const { calls, ensureTopic } = loadLoginHandler();
+        const response = await ensureTopic({ studentName: '測試學生', className: '1142B', theme: 'AI 學習', [missingKey]: ' ' });
+
+        assert.equal(response.statusCode, 400);
         assert.equal(calls.query.length + calls.create.length + calls.update.length, 0);
     }
 });

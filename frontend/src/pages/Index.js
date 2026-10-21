@@ -19,6 +19,7 @@ import io from 'socket.io-client';
 import ActivityCard from '../components/ActivityCard';
 import url from '../utils/urlConfig';
 import { fetchNotificationStatus } from '../services/essayNotificationService';
+import { syncJoinedStudentTopicsToNotion } from '../services/studentTopicService';
 import teacherAvatar from '../assets/teacher.png';
 
 const READ_NOTIFICATION_STORAGE_KEY = 'readNotificationMap_v1';
@@ -111,6 +112,18 @@ export default function Index() {
       initWebSocket();
     }
   }, [ws]);
+
+  useEffect(() => {
+    if (!studentName || activities.length === 0) return;
+
+    void syncJoinedStudentTopicsToNotion({ studentName, activities })
+      .then(({ failed }) => {
+        failed.forEach(({ className, theme, error }) => {
+          console.error('Failed to save an already joined topic to Notion:', { className, theme, error });
+        });
+      })
+      .catch((error) => console.error('Failed to sync joined topics to Notion:', error));
+  }, [activities, studentName]);
 
   useEffect(() => {
     let isMounted = true;

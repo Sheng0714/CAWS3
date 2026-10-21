@@ -2887,6 +2887,48 @@ app.patch('/api/update-note', async (req, res) => {
     }
 });
 
+// Register a joined class/topic without modifying writing content or login counts.
+app.post('/api/ensure-student-topic', async (req, res) => {
+    const studentName = normalizeLookupValue(req.body?.studentName);
+    const className = normalizeLookupValue(req.body?.className);
+    const theme = normalizeLookupValue(req.body?.theme);
+
+    if (!studentName || !className || !theme) {
+        return res.status(400).json({
+            success: false,
+            error: '缺少必要欄位：studentName、className、theme',
+        });
+    }
+
+    try {
+        const response = await notion.databases.query({
+            database_id: NOTION_DATABASE_ID,
+            filter: createScopeFilter('equals', studentName, className, theme),
+            page_size: 1,
+        });
+        const existingPage = response.results[0];
+        const page = existingPage || await notion.pages.create({
+            parent: { database_id: NOTION_DATABASE_ID },
+            properties: {
+                '學生姓名': { title: [{ text: { content: studentName } }] },
+                '班級': { rich_text: [{ text: { content: className } }] },
+                '主題': { rich_text: [{ text: { content: theme } }] },
+            },
+        });
+
+        return res.json({
+            success: true,
+            data: { studentName, className, theme, pageId: page.id, created: !existingPage },
+        });
+    } catch (error) {
+        console.error('Failed to save joined student topic to Notion:', error?.message || error);
+        return res.status(error?.status || 500).json({
+            success: false,
+            error: error?.message || '無法儲存班級主題至 Notion',
+        });
+    }
+});
+
 // 根據班級名稱查詢 Notion 資料庫中的記錄
 app.post('/api/increment-login-count', async (req, res) => {
     const normalizedStudentName = normalizeLookupValue(req.body?.studentName);

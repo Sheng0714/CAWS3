@@ -4,33 +4,24 @@ import React, { useState } from 'react'
 import { Button, TextField, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Link } from '@mui/material';
 import joinTopicIcon from '../assets/JoinTopic.png';
 import url from '../utils/urlConfig';
+import { ensureStudentTopicInNotion } from '../services/studentTopicService';
 
 export const JoinActivityForm = ({ callback_setActivities }) => {
     const userId = localStorage.getItem('userId'); 
     const [open, setOpen] = React.useState(false);
     const [isJoinCodeFocused, setIsJoinCodeFocused] = React.useState(false);
+    const [isJoining, setIsJoining] = useState(false);
     const [data, setData] = useState({
         userId: userId,
         joinCode: ""
     });
-    const [activityData, setActivityData] = useState({
-        ActivityGroup:{
-            Activity: {
-                createdAt: '',
-                endDate: '',
-                title: ''
-            },
-            Group: {
-                groupName: ''
-            }
-        }
-    })
     
     const handleClickOpen = () => {
         setOpen(true);
     };
   
     const handleClose = () => {
+        if (isJoining) return;
         setOpen(false);
     };
 
@@ -42,46 +33,65 @@ export const JoinActivityForm = ({ callback_setActivities }) => {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const activityData = {
-            userId: data.userId,
-        };
-        axios
-            .put(`${url.backendHost + config[5].joinActivity}/${data.joinCode}/join`, activityData)
-            .then((groupRes) => {
+        const joinCode = data.joinCode.trim();
+        if (isJoining || !joinCode) return;
 
-                axios.get(`${url.backendHost + config[4].myJoinedActivityList}/${data.userId}`).then((fetchData)=>{
-                    callback_setActivities(fetchData.data);
-                    console.log(`fetchdata-response: ${fetchData.data}`);
-                    setOpen(false);
-                    setData({
-                        userId: userId,
-                        joinCode: ""
-                    });
+        setIsJoining(true);
+        let hasJoinedTopic = false;
+        let shouldReload = false;
+        try {
+            const groupRes = await axios.put(
+                `${url.backendHost + config[5].joinActivity}/${encodeURIComponent(joinCode)}/join`,
+                { userId: data.userId }
+            );
+            hasJoinedTopic = true;
 
-                    // renew token
-                    axios.get(url.backendHost + config[1].reNewTokenUrl)
-                    
-                    // console.log('加入活動成功~🎉');
-                    alert("Successfully joined the topic!");
-                    window.location.reload();
-                    
-                  }).catch((error) => {
-                        alert("取得主題失敗...");
-                  })
-            })
-            .catch((error) => {
-                alert("Failed to join the topic. Please check the invitation code!");
-                if (error.response) {
-                    // console.log(error.response);
-                    // console.log("server responded");
-                } else if (error.request) {
-                    // console.log("network error");
-                } else {
-                    // console.log(error);
-                }
+            const fetchData = await axios.get(`${url.backendHost + config[4].myJoinedActivityList}/${data.userId}`);
+            const activities = Array.isArray(fetchData.data) ? fetchData.data : [];
+            callback_setActivities(activities);
+            const joinedActivity = activities.find((activity) =>
+                String(activity?.ActivityGroup?.Group?.joinCode || '') === joinCode
+            );
+            const studentName = ['name', 'username', 'userName']
+                .map((key) => localStorage.getItem(key) || sessionStorage.getItem(key))
+                .find((value) => String(value || '').trim()) || '';
+
+            await ensureStudentTopicInNotion({
+                studentName,
+                className: joinedActivity?.ActivityGroup?.Activity?.title || '',
+                theme: groupRes?.data?.group?.groupName || joinedActivity?.ActivityGroup?.Group?.groupName || '',
             });
+
+            setOpen(false);
+            setData({ userId, joinCode: '' });
+            shouldReload = true;
+        } catch (error) {
+            console.error('Failed to join or save the topic:', error);
+            if (hasJoinedTopic) {
+                setOpen(false);
+                setData({ userId, joinCode: '' });
+                alert('You joined the topic, but saving the class/topic to Notion failed. Please enter the topic to retry.');
+            } else {
+                alert("Failed to join the topic. Please check the invitation code!");
+            }
+        } finally {
+            if (hasJoinedTopic) {
+                try {
+                    const response = await axios.get(url.backendHost + config[1].reNewTokenUrl);
+                    const token = response?.data?.jwtToken || response?.data?.token;
+                    if (token) localStorage.setItem('jwtToken', token);
+                } catch (error) {
+                    console.warn('Token renew failed:', error);
+                }
+            }
+            setIsJoining(false);
+        }
+        if (shouldReload) {
+            alert('Successfully joined the topic!');
+            window.location.reload();
+        }
     };
   
     return (
@@ -146,6 +156,7 @@ export const JoinActivityForm = ({ callback_setActivities }) => {
                     type="text"
                     name='joinCode'
                     value={data.joinCode}
+                    disabled={isJoining}
                     fullWidth
                     variant="outlined"
                     InputProps={{
@@ -167,7 +178,9 @@ export const JoinActivityForm = ({ callback_setActivities }) => {
                 />
             </DialogContent>
             <DialogActions sx={{ justifyContent: 'flex-end', pb: 2, px: 3 }}>
-                <Button type='submit' onClick={handleSubmit}>Join</Button>
+                <Button type='submit' onClick={handleSubmit} disabled={isJoining || !data.joinCode.trim()}>
+                    {isJoining ? 'Joining...' : 'Join'}
+                </Button>
             </DialogActions>
         </Dialog>
       </div>
