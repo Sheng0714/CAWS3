@@ -30,7 +30,6 @@ const cardData = [
     numberImage: number2,
     featureImage: ICON2,
     title: "Writing Assistant",
-    disabled: true,
     description: [
       "Check your knowledge of argumentative essay structure.",
       "Build your writing outline.",
