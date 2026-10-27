@@ -6,8 +6,11 @@ import WritingStageStepper from "./WritingStageStepper";
 import {
   RAGFLOW_TOOLKIT_STORAGE_EVENT,
   buildToolkitScopeFromStorage,
-  getScopedRagflowChatHistoryPayload,
+  notionApiBases,
+  readPendingToolkitSnapshot,
   readToolkitContentByScope,
+  savePendingToolkitSnapshot,
+  syncToolkitSnapshotToNotion,
   writeToolkitContentByScope,
 } from "../utils/ragflowChatHistory";
 
@@ -94,13 +97,6 @@ const SIDEBAR_TOOLKIT_MENUS = [
   { key: "notes-area", icon: NotesAreaIcon, label: "Notes Area", action: (navigate) => navigate("/writing_area") },
 ];
 
-const notionApiBases = [
-  process.env.REACT_APP_NOTION_API_BASE_URL,
-  "/notion-api",
-  "http://localhost:4000",
-  "http://140.115.126.27:4000",
-].filter(Boolean);
-
 const fetchToolkitFromNotion = async ({ studentName, className, topicName }) => {
   if (!studentName || !className || !topicName) return null;
 
@@ -118,9 +114,12 @@ const fetchToolkitFromNotion = async ({ studentName, className, topicName }) => 
         headers,
         params: { className, theme: topicName },
       });
-      return response?.data?.data || null;
+      if (response?.data?.success !== true || !response.data.data) {
+        throw new Error("Notion did not return valid toolkit content.");
+      }
+      return response.data.data;
     } catch (error) {
-      if (error?.response?.status === 404) {
+      if (error?.response?.status === 404 && error.response.data?.success === false) {
         return null;
       }
       lastError = error;
@@ -134,47 +133,16 @@ const upsertToolkitToNotion = async ({
   studentName,
   className,
   topicName,
-  essayContent,
   kfSummaryContent,
   outlineContent,
   notesContent,
-  chatHistory,
 }) => {
-  if (!studentName || !className || !topicName) return;
-
-  const token = localStorage.getItem("jwtToken");
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  let lastError = null;
-
-  for (const base of notionApiBases) {
-    const normalizedBase = base.replace(/\/+$/, "");
-    const url = `${normalizedBase}/api/update-note`;
-
-    try {
-      await axios.patch(
-        url,
-        {
-          studentName,
-          className,
-          theme: topicName,
-          essayContent: essayContent || "",
-          noteContent: notesContent || "",
-          kfAnalysisContent: kfSummaryContent || "",
-          outlineContent: outlineContent || "",
-          chatHistory: Array.isArray(chatHistory) ? chatHistory : [],
-        },
-        {
-          timeout: 15000,
-          headers,
-        }
-      );
-      return;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError || new Error("Upsert toolkit to Notion failed");
+  return syncToolkitSnapshotToNotion({
+    scopeInput: { studentName, className, topicName },
+    kfSummaryContent,
+    outlineContent,
+    notesContent,
+  });
 };
 
 const hasMeaningfulStageValue = (value) => {
@@ -266,9 +234,11 @@ export default function StudentLeftSidebar() {
 
     latestEssayContentRef.current = essayContent;
 
-    const chatHistoryPayload = getScopedRagflowChatHistoryPayload({
-      className: toolkitScope.className,
-      topicName: toolkitScope.topicName,
+    savePendingToolkitSnapshot({
+      scopeInput: toolkitScope,
+      kfSummaryContent: nextKfSummary,
+      outlineContent: nextOutline,
+      notesContent: nextNotes,
     });
 
     queuedToolkitSyncPayloadRef.current = {
@@ -279,7 +249,6 @@ export default function StudentLeftSidebar() {
       kfSummaryContent: nextKfSummary,
       outlineContent: nextOutline,
       notesContent: nextNotes,
-      chatHistory: chatHistoryPayload,
     };
 
     if (toolkitAutosaveTimerRef.current) {
@@ -372,14 +341,15 @@ export default function StudentLeftSidebar() {
           return;
         }
 
-        const fetchedKfSummary =
-          typeof notionData?.kfAnalysisContent === "string" ? notionData.kfAnalysisContent : "";
-        const fetchedOutline =
-          typeof notionData?.outlineContent === "string" ? notionData.outlineContent : "";
+        const pending = readPendingToolkitSnapshot(toolkitScope);
+        const fetchedKfSummary = pending?.kfSummaryContent ??
+          (typeof notionData?.kfAnalysisContent === "string" ? notionData.kfAnalysisContent : "");
+        const fetchedOutline = pending?.outlineContent ??
+          (typeof notionData?.outlineContent === "string" ? notionData.outlineContent : "");
         const fetchedEssay =
           typeof notionData?.essayContent === "string" ? notionData.essayContent : "";
-        const fetchedNotes =
-          typeof notionData?.noteContent === "string" ? notionData.noteContent : "";
+        const fetchedNotes = pending?.notesContent ??
+          (typeof notionData?.noteContent === "string" ? notionData.noteContent : "");
         const submissionStatus = notionData?.submissionStatus ?? notionData?.[SUBMISSION_STATUS_FIELD];
         setIsScoringUnlocked(hasSubmissionStatusValue(submissionStatus));
 

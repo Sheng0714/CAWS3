@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import axios from 'axios';
 import Newchat from './Newchat';
 import Chathistory from './Chathistory';
+import { readPendingToolkitSnapshot, readToolkitContentByScope } from '../utils/ragflowChatHistory';
 
 jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn(), patch: jest.fn() }));
 jest.mock('react-router-dom', () => ({ useLocation: () => ({ state: { chatbotEntryMode: 'kf_analysis' } }), useNavigate: () => jest.fn() }));
@@ -30,6 +31,7 @@ beforeEach(() => {
     ? { data: { success: true, data: { chatHistory: [] } } }
     : { data: { title: '1151 Reading and Writing', Groups: [{ id: 2, groupName: 'Nuclear energy' }] } });
   axios.post.mockResolvedValue({ data: { success: true, data: { sessionCount: 1 } } });
+  axios.patch.mockResolvedValue({ data: { success: true } });
   global.fetch = jest.fn(async (requestUrl) => {
     if (requestUrl.endsWith('/chat-title/generate')) return apiResponse({ title: '' });
     if (requestUrl.endsWith('/completions')) return apiResponse({ code: 0, data: { answer: 'Ordinary reply without a toolkit trigger' } });
@@ -162,4 +164,71 @@ test('an unconfirmed Notion read response is shown as a load error', async () =>
   await act(async () => { render(<Chathistory />); });
   expect(screen.getByRole('button', { name: 'Retry loading' })).toBeTruthy();
   expect(screen.queryByText('No chat history yet.')).toBeNull();
+});
+
+const toolkitScope = { studentName: 'Student', className: '1151 Reading and Writing', topicName: 'Nuclear energy' };
+const completedSummary = '**Supporting Arguments:**\nLow-carbon electricity.\n**Opposing Arguments:**\nWaste storage.\n**Evidence:**\nGroup research data.';
+
+test('a completed new-chat summary is imported locally and into KF摘要 for the current class/topic', async () => {
+  global.fetch.mockImplementation(async (requestUrl) => {
+    if (requestUrl.endsWith('/chat-title/generate')) return apiResponse({ title: '' });
+    if (requestUrl.endsWith('/completions')) return apiResponse({ code: 0, data: { answer: completedSummary } });
+    return apiResponse({ code: 0, data: { id: 'new-session' } });
+  });
+  await act(async () => { render(<Newchat />); });
+  const input = await screen.findByRole('textbox');
+  fireEvent.change(input, { target: { value: 'Summarize our KF discussion' } });
+  await act(async () => { fireEvent.keyDown(input, { key: 'Enter' }); });
+  expect(readToolkitContentByScope('kfAnalysisData', toolkitScope)).toBe(completedSummary);
+  expect(axios.patch.mock.calls[0][1]).toEqual({
+    studentName: 'Student', className: toolkitScope.className, theme: toolkitScope.topicName, kfAnalysisContent: completedSummary,
+  });
+  expect(readPendingToolkitSnapshot(toolkitScope)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Retry importing' })).toBeNull();
+});
+
+test('a completed summary from a continued history chat follows the same import path', async () => {
+  useNotionHistory();
+  global.fetch.mockImplementation(async (requestUrl) => {
+    if (requestUrl.endsWith('/completions')) return apiResponse({ code: 0, data: { answer: completedSummary } });
+    throw new Error('RAGFLOW history unavailable');
+  });
+  await act(async () => { render(<Chathistory />); });
+  fireEvent.click(screen.getByText('Saved discussion'));
+  const input = screen.getByRole('textbox');
+  fireEvent.change(input, { target: { value: 'Finish our summary' } });
+  await act(async () => { fireEvent.keyDown(input, { key: 'Enter' }); });
+  expect(readToolkitContentByScope('kfAnalysisData', toolkitScope)).toBe(completedSummary);
+  expect(axios.patch.mock.calls[0][1].kfAnalysisContent).toBe(completedSummary);
+  expect(axios.patch.mock.calls[0][1]).not.toHaveProperty('outlineContent');
+});
+
+test('failed imports remain visible locally, offer retry, and resume after reloading the chat', async () => {
+  global.fetch.mockImplementation(async (requestUrl) => {
+    if (requestUrl.endsWith('/chat-title/generate')) return apiResponse({ title: '' });
+    if (requestUrl.endsWith('/completions')) return apiResponse({ code: 0, data: { answer: completedSummary } });
+    return apiResponse({ code: 0, data: { id: 'new-session' } });
+  });
+  axios.patch.mockRejectedValue(new Error('Notion offline'));
+  let view;
+  await act(async () => { view = render(<Newchat />); });
+  const input = await screen.findByRole('textbox');
+  fireEvent.change(input, { target: { value: 'Finish the discussion' } });
+  await act(async () => { fireEvent.keyDown(input, { key: 'Enter' }); });
+  expect(screen.getByRole('button', { name: 'Retry importing' })).toBeTruthy();
+  expect(readToolkitContentByScope('kfAnalysisData', toolkitScope)).toBe(completedSummary);
+  expect(readPendingToolkitSnapshot(toolkitScope).kfSummaryContent).toBe(completedSummary);
+  axios.patch.mockResolvedValue({ data: { success: true } });
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Retry importing' })); });
+  expect(screen.queryByRole('button', { name: 'Retry importing' })).toBeNull();
+  expect(readPendingToolkitSnapshot(toolkitScope)).toBeNull();
+
+  // Simulate a browser reload with an unsaved import still on disk.
+  const { savePendingToolkitSnapshot } = require('../utils/ragflowChatHistory');
+  savePendingToolkitSnapshot({ scopeInput: toolkitScope, kfSummaryContent: completedSummary });
+  view.unmount();
+  axios.patch.mockClear();
+  await act(async () => { render(<Newchat />); });
+  expect(axios.patch.mock.calls[0][1].kfAnalysisContent).toBe(completedSummary);
+  expect(readPendingToolkitSnapshot(toolkitScope)).toBeNull();
 });

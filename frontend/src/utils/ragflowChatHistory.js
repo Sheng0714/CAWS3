@@ -2,15 +2,16 @@ import axios from "axios";
 import { saveChatHistoryToNotion } from '../services/chatHistoryService';
 
 const RAGFLOW_CHAT_HISTORY_KEY = "ragflow_chat_history_v1";
-const KF_SUMMARY_TRIGGER_TEXT = "\u5df2\u7d93\u8db3\u5920";
 const WRITING_OUTLINE_TRIGGER_TEXT = "\u81ea\u52d5\u532f\u5165";
 export const RAGFLOW_TOOLKIT_STORAGE_EVENT = "ragflow-toolkit-storage-updated";
-const notionApiBases = [
+export const notionApiBases = [
   process.env.REACT_APP_NOTION_API_BASE_URL,
   "/notion-api",
+  "/api/notion",
   "http://localhost:4000",
   "http://140.115.126.27:4000",
 ].filter(Boolean);
+const TOOLKIT_SYNC_FIELDS = ["kfSummaryContent", "outlineContent", "notesContent"];
 
 const notifyToolkitStorageUpdated = (key, value) => {
   if (typeof window === "undefined") return;
@@ -134,11 +135,6 @@ export const buildToolkitStorageKey = (baseKey, scopeInput = {}) => {
   )}::${encodeURIComponent(scope.topicName || "")}`;
 };
 
-const buildEssayStorageKey = (studentName, className, topicName) =>
-  `essayData::${encodeURIComponent(studentName || "")}::${encodeURIComponent(
-    className || ""
-  )}::${encodeURIComponent(topicName || "")}`;
-
 export const readToolkitContentByScope = (baseKey, scopeInput) => {
   if (typeof window === "undefined") return "";
 
@@ -175,6 +171,53 @@ export const writeToolkitContentByScope = (baseKey, value, scopeInput) => {
   notifyToolkitStorageUpdated(normalizedBaseKey, normalizedValue);
 
   return scopedKey;
+};
+
+export const readPendingToolkitSnapshot = (scopeInput) => {
+  const scope = normalizeToolkitScope(scopeInput);
+  try {
+    const value = JSON.parse(localStorage.getItem(buildToolkitStorageKey("toolkitPendingSync", scope)));
+    const content = Object.fromEntries(
+      TOOLKIT_SYNC_FIELDS.filter((field) => typeof value?.[field] === "string")
+        .map((field) => [field, value[field]])
+    );
+    return Object.keys(content).length ? { scopeInput: scope, ...content } : null;
+  } catch {
+    return null;
+  }
+};
+
+export const savePendingToolkitSnapshot = (payload) => {
+  const scope = normalizeToolkitScope(payload.scopeInput);
+  if (!scope.studentName || !scope.className || !scope.topicName) {
+    throw new Error("A student, class and topic are required to save the toolkit content.");
+  }
+  const content = Object.fromEntries(
+    TOOLKIT_SYNC_FIELDS.filter((field) => typeof payload[field] === "string")
+      .map((field) => [field, payload[field]])
+  );
+  const pending = { ...readPendingToolkitSnapshot(scope), ...content, scopeInput: scope };
+  const key = buildToolkitStorageKey("toolkitPendingSync", scope);
+  localStorage.setItem(key, JSON.stringify(pending));
+  notifyToolkitStorageUpdated(key, JSON.stringify(pending));
+  return pending;
+};
+
+export const clearSavedToolkitSnapshot = (payload) => {
+  const pending = readPendingToolkitSnapshot(payload.scopeInput);
+  if (!pending) return;
+  for (const field of TOOLKIT_SYNC_FIELDS) {
+    if (typeof payload[field] === "string" && pending[field] === payload[field]) {
+      delete pending[field];
+    }
+  }
+  const key = buildToolkitStorageKey("toolkitPendingSync", payload.scopeInput);
+  if (TOOLKIT_SYNC_FIELDS.some((field) => typeof pending[field] === "string")) {
+    localStorage.setItem(key, JSON.stringify(pending));
+  } else {
+    localStorage.removeItem(key);
+  }
+  notifyToolkitStorageUpdated(key, localStorage.getItem(key) || "");
 };
 
 export const buildRagflowScopeUserId = (scopeInput) => {
@@ -366,7 +409,28 @@ export const syncKfSummaryFromAssistantReply = (chatbotEntryMode, assistantReply
   if (typeof assistantReply !== "string") return false;
 
   const normalizedReply = assistantReply.trim();
-  if (!normalizedReply.includes(KF_SUMMARY_TRIGGER_TEXT)) return false;
+  // RAGFLOW can change the closing sentence or respond entirely in English.
+  // A completed summary has arguments on both sides and supporting evidence.
+  const plainReply = normalizedReply.replace(/\r/g, "").replace(/[*_#`]/g, "");
+  const sectionNames = [
+    "(?:supporting|supportive|pro)\\s+arguments?|贊成論點|支持論點",
+    "(?:opposing|opposition|con)\\s+arguments?|反對論點",
+    "evidence|證據",
+  ];
+  const sections = sectionNames.map((name) => plainReply.match(new RegExp(
+    `(?:^|\\n)[ \\t]*(?:[-•]|\\d+[.)])?[ \\t]*(?:${name})(?:[ \\t]*[（(][^\\n）)]*[）)])?[ \\t]*(?:[:：]|(?=\\n|$))`,
+    "im"
+  )));
+  const hasSummarySections = sections.every((section) => {
+    if (!section) return false;
+    const start = section.index + section[0].length;
+    const nextSection = sections.filter((other) => other && other.index >= start)
+      .sort((left, right) => left.index - right.index)[0];
+    return plainReply.slice(start, nextSection?.index ?? plainReply.length)
+      .replace(/[\s\d.():：\-•]/g, "").length > 0;
+  });
+  const hasCompletionNotice = /已經足夠|討論(?:已)?足夠|(?:KF\s*討論)?摘要已(?:自動)?匯入|(?:discussion|information)\s+is\s+(?:now\s+)?(?:sufficient|enough)/i.test(normalizedReply);
+  if (!hasSummarySections && !hasCompletionNotice) return false;
 
   writeToolkitContentByScope("kfAnalysisData", normalizedReply, scopeInput);
   return true;
@@ -397,28 +461,17 @@ export const syncToolkitSnapshotToNotion = async ({
 
   const scope = normalizeToolkitScope(scopeInput || buildToolkitScopeFromStorage());
   if (!scope.studentName || !scope.className || !scope.topicName) {
-    return false;
+    throw new Error("A student, class and topic are required to save the toolkit content.");
   }
 
-  const essayStorageKey = buildEssayStorageKey(scope.studentName, scope.className, scope.topicName);
-  const essayContent =
-    localStorage.getItem(essayStorageKey) ||
-    localStorage.getItem("essayData") ||
-    localStorage.getItem("editorData") ||
-    "";
-
-  const summaryValue =
-    typeof kfSummaryContent === "string"
-      ? kfSummaryContent
-      : readToolkitContentByScope("kfAnalysisData", scope);
-  const outlineValue =
-    typeof outlineContent === "string"
-      ? outlineContent
-      : readToolkitContentByScope("outlineData", scope);
-  const notesValue =
-    typeof notesContent === "string"
-      ? notesContent
-      : readToolkitContentByScope("noteData", scope);
+  // Only patch the fields supplied by the caller. Browser caches may be empty
+  // or stale, especially when opening a chat before the sidebar has loaded.
+  const content = {
+    ...(typeof kfSummaryContent === "string" ? { kfAnalysisContent: kfSummaryContent } : {}),
+    ...(typeof outlineContent === "string" ? { outlineContent } : {}),
+    ...(typeof notesContent === "string" ? { noteContent: notesContent } : {}),
+  };
+  if (!Object.keys(content).length) return false;
 
   const token = localStorage.getItem("jwtToken");
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -429,22 +482,23 @@ export const syncToolkitSnapshotToNotion = async ({
     const requestUrl = `${normalizedBase}/api/update-note`;
 
     try {
-      await axios.patch(
+      const response = await axios.patch(
         requestUrl,
         {
           studentName: scope.studentName,
           className: scope.className,
           theme: scope.topicName,
-          essayContent,
-          noteContent: notesValue || "",
-          kfAnalysisContent: summaryValue || "",
-          outlineContent: outlineValue || "",
+          ...content,
         },
         {
           timeout: 15000,
           headers,
         }
       );
+      if (response?.data?.success !== true) {
+        throw new Error("Notion did not confirm saving the toolkit content.");
+      }
+      clearSavedToolkitSnapshot({ scopeInput: scope, kfSummaryContent, outlineContent, notesContent });
       return true;
     } catch (error) {
       lastError = error;

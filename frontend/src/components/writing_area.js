@@ -38498,6 +38498,9 @@ import StudentLeftSidebar from './StudentLeftSidebar';
 import BackIcon from '../assets/back.png';
 import CheckIcon from '../assets/check.png';
 import {
+  clearSavedToolkitSnapshot,
+  notionApiBases,
+  readPendingToolkitSnapshot,
   readToolkitContentByScope,
   writeToolkitContentByScope,
 } from '../utils/ragflowChatHistory';
@@ -38554,12 +38557,6 @@ const ensureQuillLoaded = () => {
   });
 };
 
-const notionApiBases = [
-  process.env.REACT_APP_NOTION_API_BASE_URL,
-  '/notion-api',
-  'http://localhost:4000',
-  'http://140.115.126.27:4000',
-].filter(Boolean);
 const WRITING_ANALYSIS_PREFILL_KEY = 'writingAnalysisPrefillPrompt';
 
 const upsertEssayToNotion = async (payload) => {
@@ -38572,10 +38569,13 @@ const upsertEssayToNotion = async (payload) => {
     const url = `${normalizedBase}/api/update-note`;
 
     try {
-      await axios.patch(url, payload, {
+      const response = await axios.patch(url, payload, {
         timeout: 15000,
         headers,
       });
+      if (response?.data?.success !== true) {
+        throw new Error('Notion did not confirm saving the writing content.');
+      }
       return;
     } catch (error) {
       lastError = error;
@@ -38600,7 +38600,10 @@ const fetchEssayFromNotion = async ({ studentName, className, theme }) => {
         headers,
         params: { className, theme },
       });
-      return response?.data?.data || null;
+      if (response?.data?.success !== true || !response.data.data) {
+        throw new Error('Notion did not return valid writing content.');
+      }
+      return response.data.data;
     } catch (error) {
       const isBackendJson =
         error?.response &&
@@ -38670,9 +38673,6 @@ const WritingArea = () => {
   const [isCompletedEntry, setIsCompletedEntry] = useState(false);
   const [openConfirmSubmitDialog, setOpenConfirmSubmitDialog] = useState(false);
   const [openSaveSuccessDialog, setOpenSaveSuccessDialog] = useState(false);
-  const [kfSummaryContent, setKfSummaryContent] = useState('');
-  const [outlineContent, setOutlineContent] = useState('');
-  const [notesContent, setNotesContent] = useState('');
 
   const quillRootRef = useRef(null);
   const quillInstanceRef = useRef(null);
@@ -38706,9 +38706,6 @@ const WritingArea = () => {
       const scopedSubmitLockKey = buildSubmitLockKey(savedStudentName, savedActivityTitle, savedGroupName);
       const scopedSubmitLocked = localStorage.getItem(scopedSubmitLockKey) === 'true';
       const toolkitScope = buildToolkitScope(savedStudentName, savedActivityTitle, savedGroupName);
-      const savedKfSummary = readToolkitContentByScope('kfAnalysisData', toolkitScope);
-      const savedOutline = readToolkitContentByScope('outlineData', toolkitScope);
-      const savedNotes = readToolkitContentByScope('noteData', toolkitScope);
 
       if (!mounted) return;
       setStudentName(savedStudentName);
@@ -38717,9 +38714,6 @@ const WritingArea = () => {
       setEditorContent(scopedSavedEssay);
       setIsSubmitted(scopedSubmitLocked);
       setIsCompletedEntry(completedEntry);
-      setKfSummaryContent(savedKfSummary);
-      setOutlineContent(savedOutline);
-      setNotesContent(savedNotes);
 
       if (!savedStudentName || !savedActivityTitle || !savedGroupName) {
         setEditorContent('');
@@ -38734,17 +38728,16 @@ const WritingArea = () => {
         });
 
         const fetchedEssay = typeof notionData?.essayContent === 'string' ? notionData.essayContent : '';
-        const fetchedKfSummary =
-          typeof notionData?.kfAnalysisContent === 'string' ? notionData.kfAnalysisContent : '';
-        const fetchedOutline =
-          typeof notionData?.outlineContent === 'string' ? notionData.outlineContent : '';
-        const fetchedNotes = typeof notionData?.noteContent === 'string' ? notionData.noteContent : '';
+        const pending = readPendingToolkitSnapshot(toolkitScope);
+        const fetchedKfSummary = pending?.kfSummaryContent ??
+          (typeof notionData?.kfAnalysisContent === 'string' ? notionData.kfAnalysisContent : '');
+        const fetchedOutline = pending?.outlineContent ??
+          (typeof notionData?.outlineContent === 'string' ? notionData.outlineContent : '');
+        const fetchedNotes = pending?.notesContent ??
+          (typeof notionData?.noteContent === 'string' ? notionData.noteContent : '');
         if (!mounted) return;
 
         setEditorContent(fetchedEssay);
-        setKfSummaryContent(fetchedKfSummary);
-        setOutlineContent(fetchedOutline);
-        setNotesContent(fetchedNotes);
         localStorage.setItem(scopedEssayKey, fetchedEssay);
         localStorage.setItem('essayData', fetchedEssay);
         localStorage.setItem('editorData', fetchedEssay);
@@ -38753,17 +38746,15 @@ const WritingArea = () => {
         writeToolkitContentByScope('noteData', fetchedNotes, toolkitScope);
       } catch (error) {
         if (!mounted) return;
-        if (error?.code === 'NOT_FOUND' || error?.response?.status === 404) {
+        if (error?.code === 'NOT_FOUND') {
+          const pending = readPendingToolkitSnapshot(toolkitScope);
           setEditorContent('');
-          setKfSummaryContent('');
-          setOutlineContent('');
-          setNotesContent('');
           localStorage.removeItem(scopedEssayKey);
           localStorage.removeItem('essayData');
           localStorage.removeItem('editorData');
-          writeToolkitContentByScope('kfAnalysisData', '', toolkitScope);
-          writeToolkitContentByScope('outlineData', '', toolkitScope);
-          writeToolkitContentByScope('noteData', '', toolkitScope);
+          writeToolkitContentByScope('kfAnalysisData', pending?.kfSummaryContent ?? '', toolkitScope);
+          writeToolkitContentByScope('outlineData', pending?.outlineContent ?? '', toolkitScope);
+          writeToolkitContentByScope('noteData', pending?.notesContent ?? '', toolkitScope);
           return;
         }
         console.error('從 Notion 載入議論文失敗，改用該主題本機資料:', error);
@@ -38837,13 +38828,13 @@ const WritingArea = () => {
   const syncEssayToNotion = async ({ submissionStatus } = {}) => {
     const { currentStudentName, className, theme, toolkitScope } = resolveCurrentScopeValues();
     const scopedEssayKey = buildEssayStorageKey(currentStudentName, className, theme);
+    const latestKfSummary = readToolkitContentByScope('kfAnalysisData', toolkitScope);
+    const latestOutline = readToolkitContentByScope('outlineData', toolkitScope);
+    const latestNotes = readToolkitContentByScope('noteData', toolkitScope);
 
     localStorage.setItem(scopedEssayKey, editorContent);
     localStorage.setItem('essayData', editorContent);
     localStorage.setItem('editorData', editorContent);
-    writeToolkitContentByScope('kfAnalysisData', kfSummaryContent, toolkitScope);
-    writeToolkitContentByScope('outlineData', outlineContent, toolkitScope);
-    writeToolkitContentByScope('noteData', notesContent, toolkitScope);
 
     if (!currentStudentName || !className || !theme) {
       alert('已先儲存到本機，但缺少姓名、班級或主題，無法同步到 Notion。');
@@ -38857,10 +38848,16 @@ const WritingArea = () => {
         className,
         theme,
         essayContent: editorContent,
-        noteContent: notesContent || '',
-        kfAnalysisContent: kfSummaryContent || '',
-        outlineContent: outlineContent || '',
+        noteContent: latestNotes,
+        kfAnalysisContent: latestKfSummary,
+        outlineContent: latestOutline,
         ...(submissionStatus ? { submissionStatus } : {}),
+      });
+      clearSavedToolkitSnapshot({
+        scopeInput: toolkitScope,
+        kfSummaryContent: latestKfSummary,
+        outlineContent: latestOutline,
+        notesContent: latestNotes,
       });
       return true;
     } catch (error) {

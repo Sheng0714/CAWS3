@@ -7,6 +7,7 @@ import RagflowMarkdown from "./RagflowMarkdown";
 import config from "../config.json";
 import url from "../utils/urlConfig";
 import useNotionChatHistorySync from '../utils/useNotionChatHistorySync';
+import useNotionToolkitSync from '../utils/useNotionToolkitSync';
 import { fetchChatHistoryFromNotion } from '../services/chatHistoryService';
 import cawsOwl from "../assets/去背.png";
 import sendIcon from "../assets/發送.png";
@@ -15,9 +16,9 @@ import {
   buildRagflowHistoryTitle,
   buildRagflowScopeFromStorage,
   buildRagflowScopeUserId,
+  buildToolkitScopeFromStorage,
   formatRagflowDate,
   syncKfSummaryFromAssistantReply,
-  syncToolkitSnapshotToNotion,
   syncWritingOutlineFromAssistantReply,
   upsertRagflowChatSession,
 } from "../utils/ragflowChatHistory";
@@ -227,6 +228,12 @@ export default function Studentfuntion() {
 
   const scopeUserId = useMemo(() => buildRagflowScopeUserId(historyScope), [historyScope]);
   const { syncChatHistory, notionSyncError, isNotionSyncing } = useNotionChatHistorySync(historyScope);
+  const toolkitScope = useMemo(() => ({
+    ...buildToolkitScopeFromStorage(),
+    className: historyScope.className,
+    topicName: historyScope.topicName,
+  }), [historyScope]);
+  const { syncToolkit, retryToolkitSync, toolkitSyncError, isToolkitSyncing } = useNotionToolkitSync(toolkitScope);
 
   const buildSessionsUrl = useCallback(() => {
     if (!activeModeConfig) {
@@ -497,15 +504,6 @@ export default function Studentfuntion() {
       }
 
       const answer = parseCompletionAnswer(payload, optimisticSession.sourceType);
-      const toolkitScope = {
-        studentName:
-          localStorage.getItem("name") ||
-          localStorage.getItem("username") ||
-          localStorage.getItem("userName") ||
-          "",
-        className: historyScope.className || className || "",
-        topicName: historyScope.topicName || topicName || "",
-      };
       const assistantMessage = {
         id: payload?.data?.id || payload?.data?.message_id || `history-assistant-${Date.now()}`,
         role: "assistant",
@@ -536,22 +534,20 @@ export default function Studentfuntion() {
       });
       void syncChatHistory();
       const didSyncKfSummary = syncKfSummaryFromAssistantReply(
-        chatbotEntryMode,
+        completedSession.chatbotEntryMode,
         answer,
         toolkitScope
       );
       const didSyncWritingOutline = syncWritingOutlineFromAssistantReply(
-        chatbotEntryMode,
+        completedSession.chatbotEntryMode,
         answer,
         toolkitScope
       );
       if (didSyncKfSummary || didSyncWritingOutline) {
-        void syncToolkitSnapshotToNotion({
+        void syncToolkit({
           scopeInput: toolkitScope,
           ...(didSyncKfSummary ? { kfSummaryContent: answer } : {}),
           ...(didSyncWritingOutline ? { outlineContent: answer } : {}),
-        }).catch((error) => {
-          console.error("Failed to sync toolkit content to Notion after chat:", error);
         });
       }
       await loadHistory({
@@ -726,6 +722,13 @@ export default function Studentfuntion() {
             <p role="alert" style={{ color: '#b91c1c' }}>
               {notionSyncError}{' '}
               <button type="button" disabled={isNotionSyncing} onClick={syncChatHistory}>Retry saving</button>
+            </p>
+          )}
+
+          {toolkitSyncError && (
+            <p role="alert" style={{ color: '#b91c1c' }}>
+              {toolkitSyncError}{' '}
+              <button type="button" disabled={isToolkitSyncing} onClick={retryToolkitSync}>Retry importing</button>
             </p>
           )}
 

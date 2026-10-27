@@ -2790,21 +2790,21 @@ app.patch('/api/update-note', async (req, res) => {
             const updateResponse = await notion.pages.update({
                 page_id: pageId,
                 properties: {
-                    '議論文內容': {
-                        rich_text: essayRichText,
-                    },
-                    '筆記區': {
-                        rich_text: noteRichText,
-                    },
-                    'KF摘要': {
-                        rich_text: kfAnalysisRichText,
-                    },
+                    ...(essayContent === undefined ? {} : {
+                        '議論文內容': { rich_text: essayRichText },
+                    }),
+                    ...(noteContent === undefined ? {} : {
+                        '筆記區': { rich_text: noteRichText },
+                    }),
+                    ...(kfAnalysisContent === undefined ? {} : {
+                        'KF摘要': { rich_text: kfAnalysisRichText },
+                    }),
                     ...(chatHistory === undefined ? {} : {
                         '聊天歷史紀錄': { rich_text: chatHistoryRichText },
                     }),
-                    '寫作大綱': {
-                        rich_text: outlineRichText,
-                    },
+                    ...(outlineContent === undefined ? {} : {
+                        '寫作大綱': { rich_text: outlineRichText },
+                    }),
                     ...gradingPayload.properties,
                 },
             });

@@ -16,6 +16,43 @@ test('saving a note or essay does not write an old chat-history snapshot over th
     assert.equal(Object.hasOwn(calls.update[0].properties, '聊天歷史紀錄'), false);
 });
 
+test('a KF import updates only KF摘要 on the matching student/class/topic record', async () => {
+    const { calls, updateNote } = loadLoginHandler({ id: 'matching-page', properties: {} });
+    const summary = '核能討論摘要'.repeat(600);
+    const response = await updateNote({ studentName: '學生', className: '1151 Reading and Writing', theme: 'Nuclear energy', kfAnalysisContent: summary });
+    assert.equal(response.body.success, true, JSON.stringify(response.body));
+    assert.equal(calls.update[0].page_id, 'matching-page');
+    assert.deepEqual(Object.keys(calls.update[0].properties), ['KF摘要']);
+    const richText = calls.update[0].properties['KF摘要'].rich_text;
+    assert.equal(richText.map((part) => part.text.content).join(''), summary);
+    assert.ok(richText.every((part) => part.text.content.length <= 2000));
+    assert.deepEqual(Array.from(calls.query[0].filter.and, (filter) => [filter.property, filter.title?.equals || filter.rich_text?.equals]), [
+        ['學生姓名', '學生'], ['班級', '1151 Reading and Writing'], ['主題', 'Nuclear energy'],
+    ]);
+});
+
+test('an outline import and an explicit summary clear leave other fields untouched', async () => {
+    const { calls, updateNote } = loadLoginHandler({ id: 'matching-page', properties: {} });
+    await updateNote({ studentName: '學生', className: '班級', theme: '主題', outlineContent: 'My outline' });
+    assert.deepEqual(Object.keys(calls.update[0].properties), ['寫作大綱']);
+    assert.equal(calls.update[0].properties['寫作大綱'].rich_text[0].text.content, 'My outline');
+    await updateNote({ studentName: '學生', className: '班級', theme: '主題', kfAnalysisContent: '' });
+    assert.deepEqual(Object.keys(calls.update[1].properties), ['KF摘要']);
+    assert.equal(calls.update[1].properties['KF摘要'].rich_text.length, 0);
+});
+
+test('an import creates a correctly scoped student record when none exists', async () => {
+    const { calls, updateNote } = loadLoginHandler();
+    const response = await updateNote({ studentName: '學生', className: '班級', theme: '主題', kfAnalysisContent: 'Summary' });
+    assert.equal(response.body.success, true, JSON.stringify(response.body));
+    assert.equal(calls.create.length, 1);
+    const { properties } = calls.create[0];
+    assert.equal(properties['學生姓名'].title[0].text.content, '學生');
+    assert.equal(properties['班級'].rich_text[0].text.content, '班級');
+    assert.equal(properties['主題'].rich_text[0].text.content, '主題');
+    assert.equal(properties['KF摘要'].rich_text[0].text.content, 'Summary');
+});
+
 function loadLoginHandler(existingPage = null, emptyPages = []) {
     const routes = new Map();
     let corsOptions;
