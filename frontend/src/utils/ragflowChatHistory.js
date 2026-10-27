@@ -404,24 +404,13 @@ export const formatRagflowDate = (value) => {
   });
 };
 
-export const syncKfSummaryFromAssistantReply = (chatbotEntryMode, assistantReply, scopeInput) => {
-  if (chatbotEntryMode !== "kf_analysis") return false;
-  if (typeof assistantReply !== "string") return false;
-
-  const normalizedReply = assistantReply.trim();
-  // RAGFLOW can change the closing sentence or respond entirely in English.
-  // A completed summary has arguments on both sides and supporting evidence.
-  const plainReply = normalizedReply.replace(/\r/g, "").replace(/[*_#`]/g, "");
-  const sectionNames = [
-    "(?:supporting|supportive|pro)\\s+arguments?|贊成論點|支持論點",
-    "(?:opposing|opposition|con)\\s+arguments?|反對論點",
-    "evidence|證據",
-  ];
+const hasPopulatedReplySections = (reply, sectionNames) => {
+  const plainReply = reply.replace(/\r/g, "").replace(/[*_#`]/g, "");
   const sections = sectionNames.map((name) => plainReply.match(new RegExp(
     `(?:^|\\n)[ \\t]*(?:[-•]|\\d+[.)])?[ \\t]*(?:${name})(?:[ \\t]*[（(][^\\n）)]*[）)])?[ \\t]*(?:[:：]|(?=\\n|$))`,
     "im"
   )));
-  const hasSummarySections = sections.every((section) => {
+  return sections.every((section) => {
     if (!section) return false;
     const start = section.index + section[0].length;
     const nextSection = sections.filter((other) => other && other.index >= start)
@@ -429,6 +418,19 @@ export const syncKfSummaryFromAssistantReply = (chatbotEntryMode, assistantReply
     return plainReply.slice(start, nextSection?.index ?? plainReply.length)
       .replace(/[\s\d.():：\-•]/g, "").length > 0;
   });
+};
+
+export const syncKfSummaryFromAssistantReply = (chatbotEntryMode, assistantReply, scopeInput) => {
+  if (chatbotEntryMode !== "kf_analysis") return false;
+  if (typeof assistantReply !== "string") return false;
+
+  const normalizedReply = assistantReply.trim();
+  // RAGFLOW can change the closing sentence or respond entirely in English.
+  const hasSummarySections = hasPopulatedReplySections(normalizedReply, [
+    "(?:supporting|supportive|pro)\\s+arguments?|贊成論點|支持論點",
+    "(?:opposing|opposition|con)\\s+arguments?|反對論點",
+    "evidence|證據",
+  ]);
   const hasCompletionNotice = /已經足夠|討論(?:已)?足夠|(?:KF\s*討論)?摘要已(?:自動)?匯入|(?:discussion|information)\s+is\s+(?:now\s+)?(?:sufficient|enough)/i.test(normalizedReply);
   if (!hasSummarySections && !hasCompletionNotice) return false;
 
@@ -445,7 +447,26 @@ export const syncWritingOutlineFromAssistantReply = (
   if (typeof assistantReply !== "string") return false;
 
   const normalizedReply = assistantReply.trim();
-  if (!normalizedReply.includes(WRITING_OUTLINE_TRIGGER_TEXT)) return false;
+  const plainReply = normalizedReply.replace(/[*_#`]/g, "");
+  const hasCompletionNotice = normalizedReply.includes(WRITING_OUTLINE_TRIGGER_TEXT) || [
+    /(?:已(?:經)?完成|恭喜[^\n。！？]{0,12}完成)(?:了)?\s*(?:(?:你(?:[／/]妳)?|您|我們|本次|這份)的?\s*)?(?:完整的|最終的)?(?:寫作|議論文|作文|文章)?大綱/,
+    /(?:寫作|議論文|作文|文章)?大綱\s*(?:現在)?已(?:經)?(?:成功)?完成/,
+    /(?:^|[.!?\n])\s*(?:congratulations[,!:\s]+)?(?:now\s+)?you(?:\s+have|['’]ve)(?:\s+(?:now|successfully))*\s+completed\s+(?:your|the|a)\s+(?:(?:writing|essay|argumentative)\s+){0,2}outline\b/i,
+    /(?:^|[.!?\n])\s*your\s+(?:(?:writing|essay|argumentative)\s+){0,2}outline\s+is\s+(?:now\s+)?(?:complete|completed|ready)\b/i,
+    /(?:^|[.!?\n])\s*here(?:\s+is|['’]s)\s+(?:your|the)\s+(?:completed|complete|final)\s+(?:(?:writing|essay|argumentative)\s+){0,2}outline\b/i,
+    /(?:^|[.!?\n])\s*(?:the|your)\s+(?:(?:writing|essay|argumentative)\s+){0,2}outline\s+(?:has\s+been|was|is(?:\s+now)?)\s+automatically\s+(?:imported|saved|added)\b/i,
+  ].some((pattern) => pattern.test(plainReply));
+  // Import complete outlines even when the model omits its completion notice.
+  const hasOutlineSections = hasPopulatedReplySections(normalizedReply, [
+    "position|thesis(?:\\s+statement)?|立場|主旨",
+    "(?:argument|claim)\\s*1|論點\\s*[1１一]",
+    "(?:supporting\\s+)?evidence\\s*1|證據\\s*[1１一]",
+    "(?:argument|claim)\\s*2|論點\\s*[2２二]",
+    "(?:supporting\\s+)?evidence\\s*2|證據\\s*[2２二]",
+    "counter[ -]?argument|opposing\\s+argument|反(?:對|駁)論點",
+    "counter[ -]?argument(?:\\s+rebuttal)?\\s+evidence|rebuttal(?:\\s+evidence)?|反(?:對|駁)(?:論點)?(?:的)?證據",
+  ]);
+  if (!hasCompletionNotice && !hasOutlineSections) return false;
 
   writeToolkitContentByScope("outlineData", normalizedReply, scopeInput);
   return true;

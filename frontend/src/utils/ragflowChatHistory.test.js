@@ -13,6 +13,7 @@ const scope = { activityId: '1', groupId: '2', className: '1151 Reading and Writ
 const messages = Array.from({ length: 45 }, (_, index) => ({ role: index % 2 ? 'assistant' : 'user', content: `Message ${index}`, createdAt: 1000 + index }));
 const toolkitScope = { studentName: 'Student', className: scope.className, topicName: scope.topicName };
 const summary = '**Supporting Arguments:**\n1. Nuclear power produces low-carbon electricity.\n\n**Opposing Arguments:**\n1. Waste requires long-term storage.\n\n**Evidence:**\n1. The group compared emissions and waste data.';
+const outline = '**Position:** Support nuclear energy.\n**Argument 1:** Low-carbon electricity.\n**Evidence 1:** Group emissions data.\n**Argument 2:** Reliable power.\n**Evidence 2:** Generation data.\n**Counterargument:** Waste requires storage.\n**Counterargument Rebuttal Evidence:** Waste management research.';
 
 beforeEach(() => {
   jest.resetAllMocks();
@@ -109,6 +110,48 @@ test('routes each chatbot output to its own toolkit field', () => {
   expect(syncWritingOutlineFromAssistantReply('writing_assistant', '寫作大綱已自動匯入', toolkitScope)).toBe(true);
   expect(readToolkitContentByScope('outlineData', toolkitScope)).toBe('寫作大綱已自動匯入');
   expect(readToolkitContentByScope('kfAnalysisData', toolkitScope)).toBe('');
+});
+
+test.each([
+  '寫作大綱已自動匯入到左側欄位。',
+  '恭喜你已完成寫作大綱，可以開始寫作！',
+  '恭喜你/妳完成了你的寫作大綱。',
+  '你的寫作大綱已完成。',
+  'Congratulations! You have completed your writing outline. You can now start writing!',
+  'You’ve now completed your essay outline.',
+  'Your writing outline is now complete.',
+  'Here is your completed essay outline:',
+  'The outline has been automatically imported into the left panel of your writing area.',
+  outline,
+  '立場：支持核能。\n論點1：減少碳排。\n證據1：排放數據。\n論點2：穩定供電。\n證據2：發電數據。\n反對論點：核廢料問題。\n反駁證據：廢料管理研究。',
+])('imports completed Writing Assistant outlines in either language: %s', (reply) => {
+  writeToolkitContentByScope('kfAnalysisData', 'Existing KF summary', toolkitScope);
+  expect(syncWritingOutlineFromAssistantReply('writing_assistant', reply, toolkitScope)).toBe(true);
+  expect(readToolkitContentByScope('outlineData', toolkitScope)).toBe(reply);
+  expect(readToolkitContentByScope('kfAnalysisData', toolkitScope)).toBe('Existing KF summary');
+  expect(readToolkitContentByScope('outlineData', { ...toolkitScope, topicName: 'Other topic' })).toBe('');
+});
+
+test.each([
+  '',
+  'Please share your KF discussion summary so we can build your writing outline.',
+  'What is your position? Please provide Argument 1 and Evidence 1.',
+  'Have you completed your writing outline?',
+  'You have not completed your writing outline yet.',
+  'Once you have completed your writing outline, you can start writing.',
+  '已完成測驗，現在產出寫作大綱。',
+  '接下來我們會完成寫作大綱，請先提供你的立場。',
+  '**Position:** Support nuclear energy.\n**Argument 1:** Lower emissions.\n**Evidence 1:** Group data.',
+  '**Position:**\n**Argument 1:**\n**Evidence 1:**\n**Argument 2:**\n**Evidence 2:**\n**Counterargument:**\n**Counterargument Evidence:**',
+])('retains the existing outline during questions and incomplete work: %s', (reply) => {
+  writeToolkitContentByScope('outlineData', 'Existing outline', toolkitScope);
+  expect(syncWritingOutlineFromAssistantReply('writing_assistant', reply, toolkitScope)).toBe(false);
+  expect(readToolkitContentByScope('outlineData', toolkitScope)).toBe('Existing outline');
+});
+
+test.each(['kf_analysis', 'writing_analysis'])('does not import an outline from another chatbot mode: %s', (mode) => {
+  expect(syncWritingOutlineFromAssistantReply(mode, outline, toolkitScope)).toBe(false);
+  expect(readToolkitContentByScope('outlineData', toolkitScope)).toBe('');
 });
 
 test('imports only the changed summary, regardless of unrelated cached writing', async () => {

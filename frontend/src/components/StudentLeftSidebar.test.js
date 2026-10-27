@@ -6,6 +6,7 @@ import {
   readToolkitContentByScope,
   savePendingToolkitSnapshot,
   syncKfSummaryFromAssistantReply,
+  syncWritingOutlineFromAssistantReply,
 } from '../utils/ragflowChatHistory';
 
 jest.mock('axios', () => ({ get: jest.fn(), patch: jest.fn() }));
@@ -47,4 +48,18 @@ test('the sidebar skips an HTML fallback and reads the HTTPS Notion route', asyn
     '/notion-api/api/get-essay/Student', '/api/notion/api/get-essay/Student',
   ]);
   expect(readToolkitContentByScope('outlineData', scope)).toBe('Existing outline');
+});
+
+test('a completed Writing Assistant outline appears immediately in the left Writing Outline panel', async () => {
+  const outline = 'Your writing outline is now complete. You can start writing your essay.';
+  await act(async () => { render(<StudentLeftSidebar />); });
+  await act(async () => {
+    syncWritingOutlineFromAssistantReply('writing_assistant', outline, scope);
+    savePendingToolkitSnapshot({ scopeInput: scope, outlineContent: outline });
+  });
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'menu-toggle' })); });
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Writing Outline-expand/ })); });
+  expect(screen.getByText(outline)).toBeTruthy();
+  expect(readToolkitContentByScope('outlineData', scope)).toBe(outline);
+  expect(readToolkitContentByScope('noteData', scope)).toBe('Existing notes');
 });

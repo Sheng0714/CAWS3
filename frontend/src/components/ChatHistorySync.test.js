@@ -5,8 +5,10 @@ import Newchat from './Newchat';
 import Chathistory from './Chathistory';
 import { readPendingToolkitSnapshot, readToolkitContentByScope } from '../utils/ragflowChatHistory';
 
+let mockChatbotEntryMode = 'kf_analysis';
+
 jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn(), patch: jest.fn() }));
-jest.mock('react-router-dom', () => ({ useLocation: () => ({ state: { chatbotEntryMode: 'kf_analysis' } }), useNavigate: () => jest.fn() }));
+jest.mock('react-router-dom', () => ({ useLocation: () => ({ state: { chatbotEntryMode: mockChatbotEntryMode } }), useNavigate: () => jest.fn() }));
 jest.mock('./Navbar_Student', () => () => null);
 jest.mock('./StudentLeftSidebar', () => () => null);
 jest.mock('./RagflowMarkdown', () => ({ content }) => content);
@@ -22,6 +24,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.resetAllMocks();
+  mockChatbotEntryMode = 'kf_analysis';
   localStorage.clear();
   sessionStorage.clear();
   for (const [key, value] of Object.entries({ userId: '42', name: 'Student', activityId: '1', groupId: '2', activityTitle: '1151 Reading and Writing', groupName: 'Nuclear energy' })) {
@@ -230,5 +233,27 @@ test('failed imports remain visible locally, offer retry, and resume after reloa
   axios.patch.mockClear();
   await act(async () => { render(<Newchat />); });
   expect(axios.patch.mock.calls[0][1].kfAnalysisContent).toBe(completedSummary);
+  expect(readPendingToolkitSnapshot(toolkitScope)).toBeNull();
+});
+
+test.each(['new chat', 'history'])('Writing Assistant imports its completed outline from %s into 寫作大綱', async (entry) => {
+  mockChatbotEntryMode = 'writing_assistant';
+  const answer = 'Congratulations! You have completed your writing outline. You can now start writing!';
+  useNotionHistory([{ ...storedSession, chatbotEntryMode: 'writing_assistant' }]);
+  global.fetch.mockImplementation(async (requestUrl) => {
+    if (requestUrl.endsWith('/chat-title/generate')) return apiResponse({ title: '' });
+    if (requestUrl.endsWith('/completions')) return apiResponse({ code: 0, data: { data: { content: answer } } });
+    if (entry === 'new chat') return apiResponse({ code: 0, data: { id: 'outline-session' } });
+    throw new Error('RAGFLOW history unavailable');
+  });
+  await act(async () => { render(entry === 'new chat' ? <Newchat /> : <Chathistory />); });
+  if (entry === 'history') fireEvent.click(screen.getByText('Saved discussion'));
+  const input = await screen.findByRole('textbox');
+  fireEvent.change(input, { target: { value: 'Finish my writing outline' } });
+  await act(async () => { fireEvent.keyDown(input, { key: 'Enter' }); });
+  expect(readToolkitContentByScope('outlineData', toolkitScope)).toBe(answer);
+  expect(axios.patch.mock.calls[0][1]).toEqual({
+    studentName: toolkitScope.studentName, className: toolkitScope.className, theme: toolkitScope.topicName, outlineContent: answer,
+  });
   expect(readPendingToolkitSnapshot(toolkitScope)).toBeNull();
 });
