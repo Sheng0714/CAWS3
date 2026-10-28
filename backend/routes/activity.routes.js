@@ -23,6 +23,7 @@ module.exports = app => {
 
     // Find all user in activity.
     router.get('/myJoined/:userId', authenticateJWT,activities.getJoinedActivitiesByUserId);
+    router.get('/myJoined/:userId/writing-scope', authenticateJWT, activities.getJoinedWritingScope);
     router.post('/myJoined/:userId/chat-history', authenticateJWT, activities.saveJoinedChatHistory);
     router.get('/myJoined/:userId/chat-history', authenticateJWT, activities.getJoinedChatHistory);
 

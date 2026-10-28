@@ -38489,7 +38489,7 @@
 
 
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -38497,6 +38497,7 @@ import Navbar from './Navbar_Student';
 import StudentLeftSidebar from './StudentLeftSidebar';
 import BackIcon from '../assets/back.png';
 import CheckIcon from '../assets/check.png';
+import { fetchWritingScope, readWritingSelection } from '../services/writingScopeService';
 import {
   clearSavedToolkitSnapshot,
   notionApiBases,
@@ -38578,6 +38579,7 @@ const upsertEssayToNotion = async (payload) => {
       }
       return;
     } catch (error) {
+      if (error?.response?.data?.success === false) throw error;
       lastError = error;
     }
   }
@@ -38668,6 +38670,7 @@ const WritingArea = () => {
   const [studentName, setStudentName] = useState('');
   const [activityTitle, setActivityTitle] = useState('');
   const [groupName, setGroupName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCompletedEntry, setIsCompletedEntry] = useState(false);
@@ -38676,28 +38679,30 @@ const WritingArea = () => {
 
   const quillRootRef = useRef(null);
   const quillInstanceRef = useRef(null);
+  const selectionRef = useRef(readWritingSelection());
+  const loadedScopeRef = useRef(null);
   const englishWordCount = useMemo(() => countEnglishWords(editorContent), [editorContent]);
   const isReadOnly = isSubmitted || isCompletedEntry;
 
-  const resolveCurrentScopeValues = () => {
-    const currentStudentName =
-      localStorage.getItem('name') ||
-      localStorage.getItem('username') ||
-      localStorage.getItem('userName') ||
-      studentName ||
-      '';
-    const className = activityTitle || localStorage.getItem('activityTitle') || '';
-    const theme = groupName || localStorage.getItem('groupName') || '';
-    const toolkitScope = buildToolkitScope(currentStudentName, className, theme);
-    return { currentStudentName, className, theme, toolkitScope };
-  };
+  const applyResolvedScope = useCallback((scope) => {
+    setStudentName(scope.studentName);
+    setActivityTitle(scope.className);
+    setGroupName(scope.theme);
+    for (const storage of [localStorage, sessionStorage]) {
+      storage.setItem('name', scope.studentName);
+      storage.setItem('activityTitle', scope.className);
+      storage.setItem('groupName', scope.theme);
+      storage.setItem('selectedClassName', scope.className);
+      storage.setItem('selectedTopicName', scope.theme);
+    }
+  }, []);
 
   useEffect(() => {
     let mounted = true;
     const loadInitialData = async () => {
-      const savedStudentName = localStorage.getItem('name') || '';
-      const savedActivityTitle = localStorage.getItem('activityTitle') || '';
-      const savedGroupName = localStorage.getItem('groupName') || '';
+      const savedStudentName = localStorage.getItem('name') || localStorage.getItem('username') || localStorage.getItem('userName') || '';
+      const savedActivityTitle = selectionRef.current.className;
+      const savedGroupName = selectionRef.current.theme;
       const completedEntry =
         localStorage.getItem('isCompletedActivityEntry') === 'true' ||
         localStorage.getItem('activityEntryStatus') === 'completed';
@@ -38705,7 +38710,6 @@ const WritingArea = () => {
       const scopedSavedEssay = localStorage.getItem(scopedEssayKey) || '';
       const scopedSubmitLockKey = buildSubmitLockKey(savedStudentName, savedActivityTitle, savedGroupName);
       const scopedSubmitLocked = localStorage.getItem(scopedSubmitLockKey) === 'true';
-      const toolkitScope = buildToolkitScope(savedStudentName, savedActivityTitle, savedGroupName);
 
       if (!mounted) return;
       setStudentName(savedStudentName);
@@ -38715,17 +38719,29 @@ const WritingArea = () => {
       setIsSubmitted(scopedSubmitLocked);
       setIsCompletedEntry(completedEntry);
 
-      if (!savedStudentName || !savedActivityTitle || !savedGroupName) {
-        setEditorContent('');
-        return;
-      }
-
       try {
-        const notionData = await fetchEssayFromNotion({
-          studentName: savedStudentName,
-          className: savedActivityTitle,
-          theme: savedGroupName,
-        });
+        const scope = await fetchWritingScope(selectionRef.current);
+        if (!mounted) return;
+        loadedScopeRef.current = scope;
+        applyResolvedScope(scope);
+        const essayKey = buildEssayStorageKey(scope.studentName, scope.className, scope.theme);
+        const submitLockKey = buildSubmitLockKey(scope.studentName, scope.className, scope.theme);
+        const toolkitScope = buildToolkitScope(scope.studentName, scope.className, scope.theme);
+        setEditorContent(localStorage.getItem(essayKey) || '');
+        setIsSubmitted(localStorage.getItem(submitLockKey) === 'true');
+
+        let notionData;
+        try {
+          notionData = await fetchEssayFromNotion(scope);
+        } catch (error) {
+          if (error?.code !== 'NOT_FOUND') throw error;
+          if (!mounted) return;
+          const pending = readPendingToolkitSnapshot(toolkitScope);
+          writeToolkitContentByScope('kfAnalysisData', pending?.kfSummaryContent ?? '', toolkitScope);
+          writeToolkitContentByScope('outlineData', pending?.outlineContent ?? '', toolkitScope);
+          writeToolkitContentByScope('noteData', pending?.notesContent ?? '', toolkitScope);
+          return;
+        }
 
         const fetchedEssay = typeof notionData?.essayContent === 'string' ? notionData.essayContent : '';
         const pending = readPendingToolkitSnapshot(toolkitScope);
@@ -38738,7 +38754,7 @@ const WritingArea = () => {
         if (!mounted) return;
 
         setEditorContent(fetchedEssay);
-        localStorage.setItem(scopedEssayKey, fetchedEssay);
+        localStorage.setItem(essayKey, fetchedEssay);
         localStorage.setItem('essayData', fetchedEssay);
         localStorage.setItem('editorData', fetchedEssay);
         writeToolkitContentByScope('kfAnalysisData', fetchedKfSummary, toolkitScope);
@@ -38746,18 +38762,9 @@ const WritingArea = () => {
         writeToolkitContentByScope('noteData', fetchedNotes, toolkitScope);
       } catch (error) {
         if (!mounted) return;
-        if (error?.code === 'NOT_FOUND') {
-          const pending = readPendingToolkitSnapshot(toolkitScope);
-          setEditorContent('');
-          localStorage.removeItem(scopedEssayKey);
-          localStorage.removeItem('essayData');
-          localStorage.removeItem('editorData');
-          writeToolkitContentByScope('kfAnalysisData', pending?.kfSummaryContent ?? '', toolkitScope);
-          writeToolkitContentByScope('outlineData', pending?.outlineContent ?? '', toolkitScope);
-          writeToolkitContentByScope('noteData', pending?.notesContent ?? '', toolkitScope);
-          return;
-        }
         console.error('從 Notion 載入議論文失敗，改用該主題本機資料:', error);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
     };
 
@@ -38765,7 +38772,7 @@ const WritingArea = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [applyResolvedScope]);
 
   useEffect(() => {
     let mounted = true;
@@ -38776,7 +38783,7 @@ const WritingArea = () => {
         if (!mounted || !quillRootRef.current) return;
 
         if (quillInstanceRef.current) {
-          quillInstanceRef.current.enable(!isReadOnly);
+          quillInstanceRef.current.enable(!isReadOnly && !isLoading);
           return;
         }
 
@@ -38799,7 +38806,7 @@ const WritingArea = () => {
 
         quill.root.style.fontSize = '16px';
         quill.root.innerHTML = editorContent || '';
-        quill.enable(!isReadOnly);
+        quill.enable(!isReadOnly && !isLoading);
 
         quill.on('text-change', () => {
           setEditorContent(quill.root.innerHTML);
@@ -38816,7 +38823,7 @@ const WritingArea = () => {
     return () => {
       mounted = false;
     };
-  }, [isReadOnly]);
+  }, [isReadOnly, isLoading]);
 
   useEffect(() => {
     const quill = quillInstanceRef.current;
@@ -38826,27 +38833,27 @@ const WritingArea = () => {
   }, [editorContent]);
 
   const syncEssayToNotion = async ({ submissionStatus } = {}) => {
-    const { currentStudentName, className, theme, toolkitScope } = resolveCurrentScopeValues();
-    const scopedEssayKey = buildEssayStorageKey(currentStudentName, className, theme);
-    const latestKfSummary = readToolkitContentByScope('kfAnalysisData', toolkitScope);
-    const latestOutline = readToolkitContentByScope('outlineData', toolkitScope);
-    const latestNotes = readToolkitContentByScope('noteData', toolkitScope);
-
-    localStorage.setItem(scopedEssayKey, editorContent);
-    localStorage.setItem('essayData', editorContent);
-    localStorage.setItem('editorData', editorContent);
-
-    if (!currentStudentName || !className || !theme) {
-      alert('已先儲存到本機，但缺少姓名、班級或主題，無法同步到 Notion。');
-      return false;
-    }
+    const draftKey = buildEssayStorageKey(studentName, activityTitle, groupName);
+    localStorage.setItem(draftKey, editorContent);
 
     try {
       setIsSaving(true);
+      const scope = await fetchWritingScope(selectionRef.current);
+      const loadedScope = loadedScopeRef.current;
+      if (loadedScope && ['studentName', 'className', 'theme'].some((key) => loadedScope[key] !== scope[key])) {
+        throw new Error('班級或主題已變更，草稿已保留，請回首頁重新進入目前活動後再儲存。');
+      }
+      applyResolvedScope(scope);
+      loadedScopeRef.current = scope;
+      const toolkitScope = buildToolkitScope(scope.studentName, scope.className, scope.theme);
+      const latestKfSummary = readToolkitContentByScope('kfAnalysisData', toolkitScope);
+      const latestOutline = readToolkitContentByScope('outlineData', toolkitScope);
+      const latestNotes = readToolkitContentByScope('noteData', toolkitScope);
+      localStorage.setItem(buildEssayStorageKey(scope.studentName, scope.className, scope.theme), editorContent);
+      localStorage.setItem('essayData', editorContent);
+      localStorage.setItem('editorData', editorContent);
       await upsertEssayToNotion({
-        studentName: currentStudentName,
-        className,
-        theme,
+        ...scope,
         essayContent: editorContent,
         noteContent: latestNotes,
         kfAnalysisContent: latestKfSummary,
@@ -38859,10 +38866,10 @@ const WritingArea = () => {
         outlineContent: latestOutline,
         notesContent: latestNotes,
       });
-      return true;
+      return scope;
     } catch (error) {
       console.error('同步到 Notion 失敗:', error);
-      const errorMessage = error?.response?.data?.error || error?.message || '未知錯誤';
+      const errorMessage = error?.response?.data?.details || error?.response?.data?.error || error?.message || '未知錯誤';
       alert(`已先儲存到本機，但同步 Notion 失敗：${errorMessage}`);
       return false;
     } finally {
@@ -38886,12 +38893,10 @@ const WritingArea = () => {
   const handleConfirmSubmit = async () => {
     if (isReadOnly) return;
 
-    const { currentStudentName, className, theme } = resolveCurrentScopeValues();
-    const scopedSubmitLockKey = buildSubmitLockKey(currentStudentName, className, theme);
+    const savedScope = await handleSubmit();
+    if (!savedScope) return;
 
-    const submitSucceeded = await handleSubmit();
-    if (!submitSucceeded) return;
-
+    const scopedSubmitLockKey = buildSubmitLockKey(savedScope.studentName, savedScope.className, savedScope.theme);
     localStorage.setItem(scopedSubmitLockKey, 'true');
     setIsSubmitted(true);
     setOpenConfirmSubmitDialog(false);
@@ -39069,18 +39074,18 @@ const WritingArea = () => {
                 mt: 2,
               }}
             >
-              <Button variant="contained" onClick={handleSave} sx={buttonSx} disabled={isSaving || isReadOnly}>
+              <Button variant="contained" onClick={handleSave} sx={buttonSx} disabled={isLoading || isSaving || isReadOnly}>
                 {isSaving ? 'Saving...' : 'Save'}
               </Button>
               <Button
                 variant="contained"
                 onClick={() => handleGoToChatbotMode('writing_analysis')}
                 sx={buttonSx}
-                disabled={isSaving}
+                disabled={isLoading || isSaving}
               >
                 Analyze
               </Button>
-              <Button variant="contained" onClick={() => setOpenConfirmSubmitDialog(true)} sx={buttonSx} disabled={isSaving || isReadOnly}>
+              <Button variant="contained" onClick={() => setOpenConfirmSubmitDialog(true)} sx={buttonSx} disabled={isLoading || isSaving || isReadOnly}>
                 Submit
               </Button>
             </Box>

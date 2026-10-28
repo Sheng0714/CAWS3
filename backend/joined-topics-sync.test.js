@@ -108,18 +108,51 @@ function loadHandler(options = {}) {
         await controller.saveJoinedChatHistory({ user: { dataValues: student }, params: { userId }, body }, response);
         return response;
     }
-    async function readChat(query = { activityId: '1', groupId: '2' }, userId = '42') {
+    async function readChat(query = { activityId: '1', groupId: '2' }, userId = '42', handler = controller.getJoinedChatHistory) {
         const response = {
             statusCode: 200, headers: {},
             status(code) { this.statusCode = code; return this; },
             set(name, value) { this.headers[name] = value; return this; },
             json(value) { this.body = value; return this; },
         };
-        await controller.getJoinedChatHistory({ user: { dataValues: student }, params: { userId }, query }, response);
+        await handler({ user: { dataValues: student }, params: { userId }, query }, response);
         return response;
     }
-    return { request, requestChat, readChat, calls, pages, joinedScopes: syncModule.exports.joinedScopes };
+    return {
+        request, requestChat, readChat, calls, pages, joinedScopes: syncModule.exports.joinedScopes,
+        readScope: (query, userId) => readChat(query, userId, controller.getJoinedWritingScope),
+    };
 }
+
+test('writing scope reads the logged-in student and current class/topic by IDs without accessing Notion', async () => {
+    const { readScope, calls } = loadHandler();
+    const response = await readScope({ activityId: '1', groupId: '2', studentName: 'Wrong student', className: 'Stale class', theme: 'Stale topic' });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.success, true);
+    assert.deepEqual({ ...response.body.data }, { studentName: student.name, className: '1151 Reading and Writing', theme });
+    assert.equal(response.headers['Cache-Control'], 'no-store');
+    assert.equal(calls.sql[0].where.UserId, student.id);
+    assert.equal(calls.query.length + calls.create.length + calls.update.length, 0);
+});
+
+test('writing scope rejects missing selection, another student and an unjoined topic', async () => {
+    const { readScope, calls } = loadHandler();
+    assert.equal((await readScope(undefined, '99')).statusCode, 403);
+    assert.equal((await readScope({})).statusCode, 400);
+    assert.equal((await readScope({ activityId: '1' })).statusCode, 400);
+    assert.equal(calls.sql.length, 0);
+    assert.equal((await readScope({ activityId: '1', groupId: '999' })).statusCode, 403);
+    assert.equal(calls.query.length, 0);
+});
+
+test('writing scope can resolve an exact stored class/topic and reports database failures', async () => {
+    const { readScope } = loadHandler();
+    const response = await readScope({ className: ' 1151 Reading and Writing ', theme });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.data.theme, theme);
+    const failed = loadHandler({ sqlError: true });
+    assert.equal((await failed.readScope()).statusCode, 502);
+});
 
 test('the original class-list request fills the account row, includes old topics and is safe to repeat', async () => {
     const accountPage = { id: 'account', properties: {

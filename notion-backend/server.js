@@ -2495,16 +2495,8 @@ app.get('/api/get-essay/:studentName', async (req, res) => {
             },
         });
 
-        let candidateResults = Array.isArray(response?.results) ? response.results : [];
-        let matchedBy = 'equals';
-        if (candidateResults.length === 0) {
-            const fuzzyResponse = await notion.databases.query({
-                database_id: NOTION_DATABASE_ID,
-                filter: createScopeFilter('contains', studentName, className, theme),
-            });
-            candidateResults = Array.isArray(fuzzyResponse?.results) ? fuzzyResponse.results : [];
-            matchedBy = 'contains';
-        }
+        const candidateResults = Array.isArray(response?.results) ? response.results : [];
+        const matchedBy = 'equals';
 
         if (candidateResults.length === 0) {
             return res.status(404).json({
@@ -2744,14 +2736,7 @@ app.patch('/api/update-note', async (req, res) => {
             console.warn('Notion grading fields unresolved in update-note:', gradingPayload.unresolved);
         }
 
-        let matchedPage = sortByLastEditedDesc(queryResponse.results)[0] || null;
-        if (!matchedPage) {
-            const fuzzyResponse = await notion.databases.query({
-                database_id: NOTION_DATABASE_ID,
-                filter: createScopeFilter('contains', normalizedStudentName, normalizedClassName, normalizedTheme),
-            });
-            matchedPage = sortByLastEditedDesc(fuzzyResponse.results)[0] || null;
-        }
+        const matchedPage = sortByLastEditedDesc(queryResponse.results)[0] || null;
 
         // Preserve existing large text fields when caller omits them.
         if (matchedPage) {
@@ -2827,7 +2812,7 @@ app.patch('/api/update-note', async (req, res) => {
                         title: [
                             {
                                 text: {
-                                    content: studentName,
+                                    content: normalizedStudentName,
                                 },
                             },
                         ],
@@ -2836,7 +2821,7 @@ app.patch('/api/update-note', async (req, res) => {
                         rich_text: [
                             {
                                 text: {
-                                    content: theme,
+                                    content: normalizedTheme,
                                 },
                             },
                         ],
@@ -2848,7 +2833,7 @@ app.patch('/api/update-note', async (req, res) => {
                         rich_text: [
                             {
                                 text: {
-                                    content: className,
+                                    content: normalizedClassName,
                                 },
                             },
                         ],

@@ -53,7 +53,7 @@ test('an import creates a correctly scoped student record when none exists', asy
     assert.equal(properties['KF摘要'].rich_text[0].text.content, 'Summary');
 });
 
-function loadLoginHandler(existingPage = null, emptyPages = []) {
+function loadLoginHandler(existingPage = null, emptyPages = [], fuzzyPage = null) {
     const routes = new Map();
     let corsOptions;
     const calls = { create: [], update: [], query: [] };
@@ -80,6 +80,9 @@ function loadLoginHandler(existingPage = null, emptyPages = []) {
             async retrieve() { return { properties: schema }; },
             async query(request) {
                 calls.query.push(request);
+                if (request.filter.and.some((filter) => filter.title?.contains || filter.rich_text?.contains)) {
+                    return { results: fuzzyPage ? [fuzzyPage] : [] };
+                }
                 if (request.filter.and.some((filter) => filter.rich_text?.is_empty)) {
                     return { results: emptyPages, has_more: false };
                 }
@@ -100,7 +103,8 @@ function loadLoginHandler(existingPage = null, emptyPages = []) {
         },
     };
     const app = {
-        use() {}, options() {}, get() {}, listen() {},
+        use() {}, options() {}, listen() {},
+        get(route, handler) { routes.set(route, handler); },
         patch(route, handler) { routes.set(route, handler); },
         post(route, handler) { routes.set(route, handler); },
     };
@@ -122,7 +126,7 @@ function loadLoginHandler(existingPage = null, emptyPages = []) {
             status(code) { this.statusCode = code; return this; },
             json(value) { this.body = value; return this; },
         };
-        await routes.get(route)({ body }, response);
+        await routes.get(route)({ body, params: { studentName: body.studentName }, query: body }, response);
         return response;
     };
     return {
@@ -130,6 +134,7 @@ function loadLoginHandler(existingPage = null, emptyPages = []) {
         enter: (body) => request('/api/increment-login-count', body),
         ensureTopic: (body) => request('/api/ensure-student-topic', body),
         updateNote: (body) => request('/api/update-note', body),
+        getEssay: (body) => request('/api/get-essay/:studentName', body),
         isOriginAllowed(origin) {
             let result;
             corsOptions.origin(origin, (error, allowed) => { result = !error && allowed; });
@@ -137,6 +142,48 @@ function loadLoginHandler(existingPage = null, emptyPages = []) {
         },
     };
 }
+
+test('similar class/topic names cannot load or overwrite another essay', async () => {
+    const { calls, getEssay, updateNote } = loadLoginHandler(null, [], { id: 'another-topic-page' });
+    const scope = { studentName: 'Student', className: 'Class A', theme: 'Topic A' };
+    const missing = await getEssay(scope);
+    assert.equal(missing.statusCode, 404);
+    const saved = await updateNote({ ...scope, essayContent: 'My essay' });
+    assert.equal(saved.body.success, true, JSON.stringify(saved.body));
+    assert.equal(calls.update.length, 0);
+    assert.equal(calls.create.length, 1);
+    assert.equal(calls.query.length, 2);
+    for (const request of calls.query) {
+        assert.ok(request.filter.and.every((filter) => filter.title?.equals || filter.rich_text?.equals));
+    }
+});
+
+test('a new essay writes the normalized identity and corresponding writing fields', async () => {
+    const { calls, updateNote } = loadLoginHandler();
+    const response = await updateNote({
+        studentName: ' Student ', className: ' Class A　', theme: ' Topic A ',
+        essayContent: '<p>My essay</p>', noteContent: 'Notes', kfAnalysisContent: 'Summary', outlineContent: 'Outline',
+    });
+    assert.equal(response.body.success, true, JSON.stringify(response.body));
+    const properties = calls.create[0].properties;
+    const text = (name) => (properties[name].title || properties[name].rich_text).map((part) => part.text.content).join('');
+    assert.equal(text('學生姓名'), 'Student');
+    assert.equal(text('班級'), 'Class A');
+    assert.equal(text('主題'), 'Topic A');
+    assert.equal(text('議論文內容'), 'My essay');
+    assert.equal(text('筆記區'), 'Notes');
+    assert.equal(text('KF摘要'), 'Summary');
+    assert.equal(text('寫作大綱'), 'Outline');
+});
+
+test('saving without class/topic cannot access Notion', async () => {
+    for (const missing of ['studentName', 'className', 'theme']) {
+        const { calls, updateNote } = loadLoginHandler();
+        const response = await updateNote({ studentName: 'Student', className: 'Class A', theme: 'Topic A', [missing]: ' ' });
+        assert.equal(response.statusCode, 400);
+        assert.equal(calls.query.length + calls.create.length + calls.update.length, 0);
+    }
+});
 
 test('first entry saves the student, class and topic using the Notion schema names', async () => {
     const { calls, enter } = loadLoginHandler();

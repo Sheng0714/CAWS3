@@ -231,7 +231,7 @@ exports.getJoinedActivitiesByUserId = async (req, res) => {
     }
 };
 
-async function resolveJoinedChatScope(req, input) {
+async function resolveJoinedStudentScope(req, input) {
     const { activityId, groupId, className, theme } = input;
     const normalize = (value) => String(value ?? '').replace(/\u3000/g, ' ').trim();
     const hasIds = Boolean(activityId && groupId);
@@ -251,18 +251,37 @@ async function resolveJoinedChatScope(req, input) {
     });
     if (!membership) throw Object.assign(new Error('You have not joined this class topic.'), { status: 403 });
     return {
-        studentName: req.user.dataValues.name,
+        studentName: normalize(req.user.dataValues.name),
         className: normalize(membership.ActivityGroup.Activity.title),
         theme: normalize(membership.ActivityGroup.Group.groupName),
     };
 }
+
+exports.getJoinedWritingScope = async (req, res) => {
+    if (req.user.dataValues.id !== req.params.userId) {
+        return res.status(403).json({ success: false, error: 'You are not authorized to access this resource.' });
+    }
+    try {
+        const scope = await resolveJoinedStudentScope(req, req.query);
+        if (!scope.studentName || !scope.className || !scope.theme) {
+            return res.status(400).json({ success: false, error: 'Student name, class and topic are required before saving.' });
+        }
+        res.set('Cache-Control', 'no-store');
+        return res.json({ success: true, data: scope });
+    } catch (error) {
+        return res.status(error.status || 502).json({
+            success: false,
+            error: error.status ? error.message : 'The current class and topic could not be loaded. Please retry.',
+        });
+    }
+};
 
 exports.getJoinedChatHistory = async (req, res) => {
     if (req.user.dataValues.id !== req.params.userId) {
         return res.status(403).json({ success: false, error: 'You are not authorized to access this resource.' });
     }
     try {
-        const scope = await resolveJoinedChatScope(req, req.query);
+        const scope = await resolveJoinedStudentScope(req, req.query);
         const chatHistory = await getChatHistoryFromNotion(scope);
         res.set('Cache-Control', 'no-store');
         return res.json({ success: true, data: { chatHistory } });
@@ -281,7 +300,7 @@ exports.saveJoinedChatHistory = async (req, res) => {
     }
     try {
         const history = normalizeChatHistory(req.body.chatHistory);
-        const scope = await resolveJoinedChatScope(req, req.body);
+        const scope = await resolveJoinedStudentScope(req, req.body);
         const data = await saveChatHistoryToNotion(scope, history);
         return res.json({ success: true, data });
     } catch (error) {
