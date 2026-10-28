@@ -40,7 +40,6 @@ const cardData = [
     numberImage: number3,
     featureImage: ICON3,
     title: "Writing Analysis",
-    disabled: true,
     description: [
       "Receive feedback and suggestions before submitting your argumentative essay.",
     ],
